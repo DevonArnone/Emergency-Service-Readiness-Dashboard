@@ -164,5 +164,3 @@ See http://localhost:8000/docs for full interactive API documentation.
 ## Contributing
 
 This is a portfolio project demonstrating modern data infrastructure and real-time systems. Feel free to fork and extend!
-
-# Emergency-Service-Readiness-Dashboard
