@@ -1,7 +1,7 @@
 """Pydantic models for the Workforce & Shift Management system."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 from enum import Enum
 
 
@@ -128,12 +128,44 @@ class Personnel(BaseModel):
     rank: Optional[str] = None
     role: str
     certifications: List[str] = Field(default_factory=list)
-    cert_expirations: Dict[str, datetime] = Field(default_factory=dict)
+    cert_expirations: Dict[str, Union[datetime, str]] = Field(default_factory=dict)
     availability_status: AvailabilityStatus = AvailabilityStatus.AVAILABLE
     last_check_in: Optional[datetime] = None
     station_id: Optional[str] = None
     current_unit_id: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator('cert_expirations', mode='before')
+    @classmethod
+    def parse_cert_expirations(cls, v):
+        """Parse cert_expirations, converting string dates to datetime objects."""
+        if not isinstance(v, dict):
+            return v
+        result = {}
+        for cert_name, exp_date in v.items():
+            if isinstance(exp_date, str):
+                try:
+                    # Handle ISO format with Z
+                    if exp_date.endswith('Z'):
+                        exp_date = exp_date.replace('Z', '+00:00')
+                    # Try parsing ISO format
+                    if 'T' in exp_date:
+                        result[cert_name] = datetime.fromisoformat(exp_date)
+                    else:
+                        # If it's just a date (YYYY-MM-DD), add time at end of day UTC
+                        result[cert_name] = datetime.fromisoformat(exp_date + 'T23:59:59+00:00')
+                except (ValueError, AttributeError, TypeError) as e:
+                    # If parsing fails, log and keep as string (will be handled by readiness service)
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Failed to parse expiration date '{exp_date}' for cert '{cert_name}': {e}")
+                    result[cert_name] = exp_date
+            elif isinstance(exp_date, datetime):
+                result[cert_name] = exp_date
+            else:
+                # Unknown type, keep as is
+                result[cert_name] = exp_date
+        return result
 
     class Config:
         from_attributes = True

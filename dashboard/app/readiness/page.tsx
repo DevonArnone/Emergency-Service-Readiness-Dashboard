@@ -54,14 +54,20 @@ export default function ReadinessPage() {
 
   const fetchReadiness = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/readiness/units`)
+      setError(null)
+      const response = await fetch(`${apiBaseUrl}/api/readiness/units`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
       if (!response.ok) {
-        throw new Error('Failed to fetch readiness data')
+        const errorText = await response.text()
+        throw new Error(`Failed to fetch readiness data: ${response.status} ${errorText}`)
       }
       const data = await response.json()
       setUnits(data)
       setLoading(false)
     } catch (err) {
+      console.error('Error fetching readiness:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
       setLoading(false)
     }
@@ -635,19 +641,31 @@ export default function ReadinessPage() {
           const cert_expirations: Record<string, string> = {}
           selectedCerts.forEach((certName) => {
             const expirationDate = formData.get(`cert_expiration_${certName}`) as string
-            if (expirationDate) {
-              cert_expirations[certName] = expirationDate
+            if (expirationDate && expirationDate.trim() !== '') {
+              try {
+                // Convert date string (YYYY-MM-DD) to ISO datetime string for backend
+                const date = new Date(expirationDate + 'T23:59:59.000Z')
+                if (!isNaN(date.getTime())) {
+                  cert_expirations[certName] = date.toISOString()
+                }
+              } catch (e) {
+                console.error(`Failed to parse expiration date for ${certName}:`, e)
+              }
             }
           })
           
-          const personnelData = {
+          const personnelData: any = {
             name: formData.get('name') as string,
             rank: formData.get('rank') as string || undefined,
             role: formData.get('role') as string,
             certifications: selectedCerts,
-            cert_expirations: Object.keys(cert_expirations).length > 0 ? cert_expirations : undefined,
             availability_status: formData.get('availability_status') as string || 'AVAILABLE',
             station_id: formData.get('station_id') as string || undefined,
+          }
+          
+          // Only include cert_expirations if there are valid dates
+          if (Object.keys(cert_expirations).length > 0) {
+            personnelData.cert_expirations = cert_expirations
           }
           try {
             const response = await fetch(`${apiBaseUrl}/api/personnel`, {
@@ -655,12 +673,17 @@ export default function ReadinessPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(personnelData),
             })
-            if (!response.ok) throw new Error('Failed to create personnel')
+            if (!response.ok) {
+              const errorText = await response.text()
+              throw new Error(`Failed to create personnel: ${errorText}`)
+            }
             setShowCreatePersonnel(false)
+            setSelectedCertExpirations({})
             await fetchPersonnel()
             await fetchReadiness()
             addToast('Personnel created successfully!', 'success')
           } catch (err) {
+            console.error('Error creating personnel:', err)
             addToast(err instanceof Error ? err.message : 'Failed to create personnel', 'error')
           } finally {
             setCreating(false)

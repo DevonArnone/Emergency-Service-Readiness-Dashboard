@@ -33,16 +33,42 @@ from app.websocket.unit_readiness_manager import unit_readiness_manager
 @router.post("/personnel", response_model=Personnel)
 async def create_personnel(profile: Personnel) -> Personnel:
     """Create a new personnel profile."""
-    personnel_id = str(uuid.uuid4())
-    profile.personnel_id = personnel_id
-    profile.last_check_in = profile.last_check_in or datetime.utcnow()
-    personnel_store[personnel_id] = profile
-    
-    # Insert into Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_personnel(profile)
-    
-    return profile
+    try:
+        personnel_id = str(uuid.uuid4())
+        profile.personnel_id = personnel_id
+        profile.last_check_in = profile.last_check_in or datetime.utcnow()
+        
+        # Ensure cert_expirations are datetime objects (validator should handle this, but double-check)
+        if profile.cert_expirations:
+            normalized_expirations = {}
+            for cert_name, exp_date in profile.cert_expirations.items():
+                if isinstance(exp_date, str):
+                    try:
+                        if exp_date.endswith('Z'):
+                            exp_date = exp_date.replace('Z', '+00:00')
+                        if 'T' in exp_date:
+                            normalized_expirations[cert_name] = datetime.fromisoformat(exp_date)
+                        else:
+                            normalized_expirations[cert_name] = datetime.fromisoformat(exp_date + 'T23:59:59+00:00')
+                    except (ValueError, AttributeError):
+                        # Keep as string if parsing fails
+                        normalized_expirations[cert_name] = exp_date
+                else:
+                    normalized_expirations[cert_name] = exp_date
+            profile.cert_expirations = normalized_expirations
+        
+        personnel_store[personnel_id] = profile
+        
+        # Insert into Snowflake (non-blocking)
+        snowflake_service = get_snowflake_service()
+        snowflake_service.insert_personnel(profile)
+        
+        return profile
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating personnel: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Failed to create personnel: {str(e)}")
 
 
 @router.get("/personnel", response_model=List[Personnel])
