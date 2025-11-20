@@ -10,8 +10,6 @@ This project demonstrates a production-ready architecture combining:
 - **Data warehousing & analytics** with Snowflake
 - **Modern web stack** (FastAPI + Next.js)
 
-See [docs/architecture.md](./docs/architecture.md) for detailed architecture diagrams and flow descriptions.
-
 ## 🛠️ Tech Stack
 
 ### Backend
@@ -83,7 +81,7 @@ workforce-shift-dashboard/
     └── architecture.md
 ```
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Backend (.env)
 ```bash
@@ -111,7 +109,7 @@ CORS_ORIGINS=http://localhost:3000,https://your-frontend.vercel.app
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Backend (Render/Railway)
 
@@ -139,7 +137,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 - **Full-Stack Development**: FastAPI (Python) backend + Next.js (TypeScript) frontend
 - **Production-Ready**: Environment-based configuration, cloud deployment ready
 
-## 📝 API Endpoints
+## API Endpoints
 
 ### REST API
 - `POST /api/personnel` - Create personnel profile
@@ -157,13 +155,13 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 See http://localhost:8000/docs for full interactive API documentation.
 
-## 📚 Documentation
+## Documentation
 
 - [SETUP.md](./SETUP.md) - Detailed setup and installation guide
 - [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) - Snowflake configuration and data pipeline setup
 - [docs/architecture.md](./docs/architecture.md) - System architecture and design
 
-## 🤝 Contributing
+## Contributing
 
 This is a portfolio project demonstrating modern data infrastructure and real-time systems. Feel free to fork and extend!
 
