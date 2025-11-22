@@ -51,7 +51,7 @@ After logging into Snowflake:
 If you don't have a dedicated user for the application:
 
 1. Go to **Admin** → **Users & Roles**
-2. Click **+ User**
+2. Click **+ Account**
 3. Fill in:
    - **Username**: `workforce_app` (or your choice)
    - **Password**: Create a strong password (save this!)
@@ -62,7 +62,7 @@ If you don't have a dedicated user for the application:
 
 ### 1.4 Verify Your Warehouse
 
-1. Go to **Admin** → **Warehouses**
+1. Go to **Compute** → **Warehouses**
 2. Check if `COMPUTE_WH` exists (default warehouse)
 3. If not, create a warehouse:
    - Name: `COMPUTE_WH`
