@@ -26,7 +26,7 @@ This project demonstrates a production-ready architecture combining:
 
 ### Certification Compliance View
 
-![Certification Compliance](./docs/screenshots/certifications.png)
+![Certification Compliance](./docs/screenshots/certificates.png)
 
 ### Snowflake Analytics View
 
