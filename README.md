@@ -28,9 +28,9 @@ This project demonstrates a production-ready architecture combining:
 
 ![Certification Compliance](./docs/screenshots/certificates.png)
 
-### Snowflake Analytics View
+### Snowflake Analytics Example View
 
-![Snowflake Analytics](./doc/screenshots/snowflake.png)
+![Snowflake Analytics](./docs/screenshots/snowflake.png)
 
 ## 🛠️ Tech Stack
 
