@@ -10,6 +10,28 @@ This project demonstrates a production-ready architecture combining:
 - **Data warehousing & analytics** with Snowflake
 - **Modern web stack** (FastAPI + Next.js)
 
+## 🖼️ Screenshots
+
+### Personnel Dashboard View
+
+![Personnel Dashboard](./docs/screenshots/personnel_units.png)
+
+### Update Personnel View
+
+![Update Personnel](./docs/screenshots/update_personnel.png)
+
+### Shift Detail View
+
+![Shift Detail](./docs/screenshots/shifts.png)
+
+### Certification Compliance View
+
+![Certification Compliance](./docs/screenshots/certifications.png)
+
+### Snowflake Analytics View
+
+![Snowflake Analytics](./doc/screenshots/snowflake.png)
+
 ## 🛠️ Tech Stack
 
 ### Backend
