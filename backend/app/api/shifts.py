@@ -230,17 +230,138 @@ async def get_live_shifts():
 
 @router.get("/analytics/coverage", response_model=List[CoverageSummary])
 async def get_coverage_analytics(target_date: date = None):
-    """Get shift coverage analytics for a specific date."""
+    """Get shift coverage analytics for a specific date from Snowflake."""
     if target_date is None:
         target_date = date.today()
     
-    snowflake_service = get_snowflake_service()
-    coverage = snowflake_service.get_shift_coverage_summary(target_date)
+    logger.info(f"Fetching coverage analytics for date: {target_date}")
     
-    # If Snowflake returns empty, return mock data for development
-    if not coverage:
-        logger.info("No Snowflake data available, returning empty list")
+    try:
+        snowflake_service = get_snowflake_service()
+        
+        # Check if Snowflake is actually connected
+        if not hasattr(snowflake_service, 'conn') or snowflake_service.conn is None:
+            logger.warning("Snowflake connection not available - check configuration")
+            return []
+        
+        coverage = snowflake_service.get_shift_coverage_summary(target_date)
+        
+        logger.info(f"Retrieved {len(coverage)} coverage records from Snowflake for {target_date}")
+        
+        # Return results (empty list is valid - means no data for that date)
+        return coverage
+        
+    except Exception as e:
+        logger.error(f"Error fetching coverage analytics: {e}", exc_info=True)
+        # Return empty list on error - frontend will show appropriate message
         return []
-    
-    return coverage
+
+
+@router.post("/analytics/populate")
+async def populate_analytics():
+    """Manually trigger population of coverage analytics from unit assignments."""
+    try:
+        snowflake_service = get_snowflake_service()
+        
+        if not hasattr(snowflake_service, 'conn') or snowflake_service.conn is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Snowflake connection not available"
+            )
+        
+        success = snowflake_service.populate_coverage_from_assignments()
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Coverage analytics populated successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to populate coverage analytics"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error populating analytics: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error populating analytics: {str(e)}"
+        )
+
+
+@router.get("/analytics/health")
+async def analytics_health():
+    """Check if Snowflake analytics connection is working."""
+    try:
+        snowflake_service = get_snowflake_service()
+        
+        # Check if it's a mock service
+        from app.services.snowflake_service import MockSnowflakeService
+        if isinstance(snowflake_service, MockSnowflakeService):
+            # Check if settings are actually configured
+            from app.config import settings
+            is_configured = (
+                settings.snowflake_account != "placeholder" and
+                settings.snowflake_user != "placeholder" and
+                settings.snowflake_password != "placeholder"
+            )
+            
+            if is_configured:
+                return {
+                    "status": "error",
+                    "message": "Snowflake credentials configured but connection failed. Check logs for details.",
+                    "configured": True,
+                    "service_type": "mock_fallback"
+                }
+            else:
+                return {
+                    "status": "not_configured",
+                    "message": "Snowflake not configured - using placeholder values",
+                    "configured": False,
+                    "service_type": "mock"
+                }
+        
+        # It's a real SnowflakeService - check connection
+        if not hasattr(snowflake_service, 'conn') or snowflake_service.conn is None:
+            return {
+                "status": "disconnected",
+                "message": "Snowflake service initialized but connection is None",
+                "configured": True,
+                "service_type": "real"
+            }
+        
+        # Try a simple query to verify connection
+        try:
+            cursor = snowflake_service.conn.cursor()
+            cursor.execute("SELECT CURRENT_TIMESTAMP(), CURRENT_DATABASE(), CURRENT_SCHEMA()")
+            result = cursor.fetchone()
+            cursor.close()
+            
+            return {
+                "status": "connected",
+                "message": "Snowflake connection is active",
+                "configured": True,
+                "service_type": "real",
+                "server_time": str(result[0]) if result else None,
+                "database": result[1] if result and len(result) > 1 else None,
+                "schema": result[2] if result and len(result) > 2 else None
+            }
+        except Exception as conn_error:
+            logger.error(f"Error executing test query: {conn_error}")
+            return {
+                "status": "error",
+                "message": f"Connection exists but query failed: {str(conn_error)}",
+                "configured": True,
+                "service_type": "real"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error checking Snowflake health: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "message": str(e),
+            "configured": False
+        }
 

@@ -29,6 +29,8 @@ class SnowflakeService:
             return
         
         try:
+            logger.info(f"Attempting to connect to Snowflake: account={settings.snowflake_account}, user={settings.snowflake_user}, database={settings.snowflake_database}, schema={settings.snowflake_schema}")
+            
             # Use connection timeouts to prevent hanging
             self.conn = snowflake.connector.connect(
                 account=settings.snowflake_account,
@@ -38,13 +40,21 @@ class SnowflakeService:
                 warehouse=settings.snowflake_warehouse,
                 database=settings.snowflake_database,
                 schema=settings.snowflake_schema,
-                login_timeout=5,  # 5 second login timeout
-                network_timeout=5,  # 5 second network timeout
+                login_timeout=10,  # 10 second login timeout
+                network_timeout=10,  # 10 second network timeout
             )
             logger.info("Connected to Snowflake successfully")
+            
+            # Test the connection with a simple query
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()")
+            result = cursor.fetchone()
+            cursor.close()
+            logger.info(f"Snowflake connection verified - Database: {result[0]}, Schema: {result[1]}")
+            
         except Exception as e:
-            logger.warning(f"Could not connect to Snowflake: {e}")
-            logger.info("Using mock Snowflake service - app will continue without Snowflake")
+            logger.error(f"Could not connect to Snowflake: {e}", exc_info=True)
+            logger.warning("Snowflake connection failed - app will continue without Snowflake")
             self.conn = None
     
     def insert_shift_event(self, event: ShiftEvent) -> bool:
@@ -113,7 +123,26 @@ class SnowflakeService:
         try:
             cursor = self.conn.cursor()
             
-            # Query analytics view
+            # First, check if the table exists
+            try:
+                check_query = """
+                    SELECT COUNT(*) 
+                    FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE TABLE_SCHEMA = 'ANALYTICS' 
+                    AND TABLE_NAME = 'SHIFT_COVERAGE_HOURLY'
+                """
+                cursor.execute(check_query)
+                table_exists = cursor.fetchone()[0] > 0
+                
+                if not table_exists:
+                    logger.warning("SHIFT_COVERAGE_HOURLY table does not exist in ANALYTICS schema")
+                    cursor.close()
+                    return []
+            except Exception as e:
+                logger.warning(f"Could not check if table exists: {e}")
+            
+            # Query analytics table (SHIFT_COVERAGE_HOURLY is a table, not a view)
+            # Use DATE() function to ensure proper date comparison
             query = """
                 SELECT 
                     location,
@@ -128,26 +157,47 @@ class SnowflakeService:
                 ORDER BY location, hour
             """
             
-            cursor.execute(query, (target_date.isoformat(),))
-            results = cursor.fetchall()
+            # Convert date to string format that Snowflake expects (YYYY-MM-DD)
+            date_str = target_date.isoformat()
+            logger.info(f"Querying Snowflake for coverage data on date: {date_str}")
             
-            coverage_summaries = []
-            for row in results:
-                coverage_summaries.append(CoverageSummary(
-                    location=row[0],
-                    hour=row[1],
-                    scheduled_headcount=row[2],
-                    actual_headcount=row[3],
-                    understaffed_flag=row[4],
-                    overtime_risk_flag=row[5],
-                    date=row[6],
-                ))
-            
-            cursor.close()
-            return coverage_summaries
+            try:
+                cursor.execute(query, (date_str,))
+                results = cursor.fetchall()
+                
+                logger.info(f"Retrieved {len(results)} rows from Snowflake")
+                
+                coverage_summaries = []
+                for row in results:
+                    try:
+                        coverage_summaries.append(CoverageSummary(
+                            location=row[0] or "UNKNOWN",
+                            hour=row[1] or 0,
+                            scheduled_headcount=row[2] or 0,
+                            actual_headcount=row[3] or 0,
+                            understaffed_flag=bool(row[4]) if row[4] is not None else False,
+                            overtime_risk_flag=bool(row[5]) if row[5] is not None else False,
+                            date=str(row[6]) if row[6] else target_date.isoformat(),
+                        ))
+                    except Exception as e:
+                        logger.error(f"Error parsing coverage row: {e}, row: {row}")
+                        continue
+                
+                cursor.close()
+                logger.info(f"Successfully parsed {len(coverage_summaries)} coverage summaries")
+                return coverage_summaries
+                
+            except Exception as query_error:
+                error_msg = str(query_error)
+                logger.error(f"SQL Query failed: {error_msg}")
+                logger.error(f"Query was: {query}")
+                logger.error(f"Parameters: date={date_str}")
+                cursor.close()
+                # Return empty list on query error
+                return []
             
         except Exception as e:
-            logger.error(f"Error querying Snowflake analytics: {e}")
+            logger.error(f"Error querying Snowflake analytics: {e}", exc_info=True)
             return []
     
     def insert_personnel(self, personnel: Personnel) -> bool:
@@ -232,6 +282,8 @@ class SnowflakeService:
                 personnel.notes,
             ))
             
+            # Explicitly commit the transaction
+            self.conn.commit()
             cursor.close()
             logger.info(f"Inserted/updated personnel in Snowflake: {personnel.personnel_id}")
             return True
@@ -301,6 +353,8 @@ class SnowflakeService:
                 unit.station_id,
             ))
             
+            # Explicitly commit the transaction
+            self.conn.commit()
             cursor.close()
             logger.info(f"Inserted/updated unit in Snowflake: {unit.unit_id}")
             return True
@@ -366,6 +420,8 @@ class SnowflakeService:
                 assignment.assignment_status.value if hasattr(assignment.assignment_status, 'value') else str(assignment.assignment_status),
             ))
             
+            # Explicitly commit the transaction
+            self.conn.commit()
             cursor.close()
             logger.info(f"Inserted/updated unit assignment in Snowflake: {assignment.assignment_id}")
             return True
@@ -428,6 +484,109 @@ class SnowflakeService:
         except Exception as e:
             logger.error(f"Error querying unit readiness history: {e}")
             return []
+    
+    def populate_coverage_from_assignments(self) -> bool:
+        """
+        Manually populate SHIFT_COVERAGE_HOURLY from UNIT_ASSIGNMENTS.
+        This is a fallback if the task hasn't run yet.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.conn:
+            logger.warning("Snowflake connection not available")
+            return False
+        
+        try:
+            cursor = self.conn.cursor()
+            
+            # Use the same logic as the task
+            query = """
+                MERGE INTO ANALYTICS.SHIFT_COVERAGE_HOURLY AS target
+                USING (
+                    WITH active_assignments AS (
+                        SELECT
+                            ua.unit_id,
+                            ua.personnel_id,
+                            ua.shift_start,
+                            ua.shift_end,
+                            ua.assignment_status,
+                            COALESCE(u.station_id, p.station_id, 'UNKNOWN') as location,
+                            u.minimum_staff
+                        FROM RAW.UNIT_ASSIGNMENTS ua
+                        JOIN RAW.UNITS u ON ua.unit_id = u.unit_id
+                        LEFT JOIN RAW.PERSONNEL p ON ua.personnel_id = p.personnel_id
+                        WHERE ua.assignment_status = 'ON_SHIFT'
+                            AND DATE(ua.shift_start) >= DATEADD(day, -7, CURRENT_DATE())
+                    ),
+                    hourly_breakdown AS (
+                        SELECT
+                            DATE(shift_start) as coverage_date,
+                            location,
+                            HOUR(shift_start) as hour,
+                            unit_id,
+                            personnel_id,
+                            minimum_staff
+                        FROM active_assignments
+                        WHERE HOUR(shift_start) >= 0 AND HOUR(shift_start) < 24
+                    ),
+                    hourly_aggregates AS (
+                        SELECT
+                            coverage_date as date,
+                            location,
+                            hour,
+                            COUNT(DISTINCT unit_id) as scheduled_headcount,
+                            COUNT(DISTINCT personnel_id) as actual_headcount,
+                            SUM(minimum_staff) as total_required
+                        FROM hourly_breakdown
+                        GROUP BY coverage_date, location, hour
+                    )
+                    SELECT
+                        date,
+                        location,
+                        hour,
+                        scheduled_headcount,
+                        actual_headcount,
+                        CASE 
+                            WHEN actual_headcount < total_required THEN TRUE 
+                            ELSE FALSE 
+                        END as understaffed_flag,
+                        FALSE as overtime_risk_flag
+                    FROM hourly_aggregates
+                ) AS source
+                ON target.date = source.date
+                    AND target.location = source.location
+                    AND target.hour = source.hour
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        scheduled_headcount = source.scheduled_headcount,
+                        actual_headcount = source.actual_headcount,
+                        understaffed_flag = source.understaffed_flag,
+                        overtime_risk_flag = source.overtime_risk_flag,
+                        last_updated = CURRENT_TIMESTAMP()
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        date, location, hour,
+                        scheduled_headcount, actual_headcount,
+                        understaffed_flag, overtime_risk_flag
+                    )
+                    VALUES (
+                        source.date, source.location, source.hour,
+                        source.scheduled_headcount, source.actual_headcount,
+                        source.understaffed_flag, source.overtime_risk_flag
+                    )
+            """
+            
+            cursor.execute(query)
+            # Explicitly commit the transaction
+            self.conn.commit()
+            cursor.close()
+            logger.info("Successfully populated coverage data from unit assignments")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error populating coverage data: {e}", exc_info=True)
+            return False
     
     def close(self):
         """Close Snowflake connection."""

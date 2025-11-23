@@ -244,10 +244,104 @@ CREATE OR REPLACE TASK process_certification_expirations_task
             AND p.availability_status != 'IN_TRAINING'
     );
 
+-- Task to populate SHIFT_COVERAGE_HOURLY from UNIT_ASSIGNMENTS
+-- This creates hourly coverage analytics from emergency services unit assignments
+CREATE OR REPLACE TASK process_unit_coverage_task
+    WAREHOUSE = COMPUTE_WH
+    SCHEDULE = '5 MINUTE'
+    AS
+    -- Populate coverage analytics from unit assignments
+    MERGE INTO ANALYTICS.SHIFT_COVERAGE_HOURLY AS target
+    USING (
+        WITH active_assignments AS (
+            -- Get all active unit assignments for today and recent days
+            SELECT
+                ua.unit_id,
+                ua.personnel_id,
+                ua.shift_start,
+                ua.shift_end,
+                ua.assignment_status,
+                COALESCE(u.station_id, p.station_id, 'UNKNOWN') as location,
+                u.minimum_staff
+            FROM RAW.UNIT_ASSIGNMENTS ua
+            JOIN RAW.UNITS u ON ua.unit_id = u.unit_id
+            LEFT JOIN RAW.PERSONNEL p ON ua.personnel_id = p.personnel_id
+            WHERE ua.assignment_status = 'ON_SHIFT'
+                AND DATE(ua.shift_start) >= DATEADD(day, -7, CURRENT_DATE())
+        ),
+        hourly_breakdown AS (
+            -- Break down assignments by hour
+            SELECT
+                DATE(shift_start) as coverage_date,
+                location,
+                HOUR(shift_start) + hours.hour_offset as hour,
+                unit_id,
+                personnel_id,
+                minimum_staff
+            FROM active_assignments
+            CROSS JOIN (
+                SELECT 0 as hour_offset UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL 
+                SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL 
+                SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL 
+                SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL 
+                SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL 
+                SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23
+            ) hours
+            WHERE hours.hour_offset < TIMESTAMPDIFF(HOUR, shift_start, shift_end) + 1
+                AND hours.hour_offset >= 0
+                AND hour < 24
+        ),
+        hourly_aggregates AS (
+            SELECT
+                coverage_date as date,
+                location,
+                hour,
+                COUNT(DISTINCT unit_id) as scheduled_headcount,
+                COUNT(DISTINCT personnel_id) as actual_headcount,
+                SUM(minimum_staff) as total_required
+            FROM hourly_breakdown
+            GROUP BY coverage_date, location, hour
+        )
+        SELECT
+            date,
+            location,
+            hour,
+            scheduled_headcount,
+            actual_headcount,
+            CASE 
+                WHEN actual_headcount < total_required THEN TRUE 
+                ELSE FALSE 
+            END as understaffed_flag,
+            FALSE as overtime_risk_flag
+        FROM hourly_aggregates
+    ) AS source
+    ON target.date = source.date
+        AND target.location = source.location
+        AND target.hour = source.hour
+    WHEN MATCHED THEN
+        UPDATE SET
+            scheduled_headcount = source.scheduled_headcount,
+            actual_headcount = source.actual_headcount,
+            understaffed_flag = source.understaffed_flag,
+            overtime_risk_flag = source.overtime_risk_flag,
+            last_updated = CURRENT_TIMESTAMP()
+    WHEN NOT MATCHED THEN
+        INSERT (
+            date, location, hour,
+            scheduled_headcount, actual_headcount,
+            understaffed_flag, overtime_risk_flag
+        )
+        VALUES (
+            source.date, source.location, source.hour,
+            source.scheduled_headcount, source.actual_headcount,
+            source.understaffed_flag, source.overtime_risk_flag
+        );
+
 -- Resume all tasks
 ALTER TASK process_personnel_readiness_task RESUME;
 ALTER TASK process_unit_assignments_task RESUME;
 ALTER TASK process_certification_expirations_task RESUME;
+ALTER TASK process_unit_coverage_task RESUME;
 
 -- Grant necessary permissions (adjust role as needed)
 -- GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE YOUR_ROLE;
@@ -264,4 +358,5 @@ COMMENT ON TASK process_shift_events_task IS 'Task that processes shift events s
 COMMENT ON TASK process_personnel_readiness_task IS 'Task that processes personnel and unit assignment changes to calculate readiness scores every 5 minutes';
 COMMENT ON TASK process_unit_assignments_task IS 'Task that triggers readiness recalculation when unit assignments change';
 COMMENT ON TASK process_certification_expirations_task IS 'Task that checks for expired certifications and updates personnel status every hour';
+COMMENT ON TASK process_unit_coverage_task IS 'Task that processes unit assignments and populates hourly coverage analytics every 5 minutes';
 
