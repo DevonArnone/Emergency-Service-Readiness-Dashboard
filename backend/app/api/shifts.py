@@ -238,12 +238,7 @@ async def get_coverage_analytics(target_date: date = None):
     
     try:
         snowflake_service = get_snowflake_service()
-        
-        # Check if Snowflake is actually connected
-        if not hasattr(snowflake_service, 'conn') or snowflake_service.conn is None:
-            logger.warning("Snowflake connection not available - check configuration")
-            return []
-        
+
         coverage = snowflake_service.get_shift_coverage_summary(target_date)
         
         logger.info(f"Retrieved {len(coverage)} coverage records from Snowflake for {target_date}")

@@ -13,25 +13,17 @@ This project is strongest when it is presented as a command-and-readiness produc
 
 ## Screenshots
 
-### Personnel Dashboard View
+### Command Overview
 
-![Personnel Dashboard](./docs/screenshots/personnel_units.png)
+![Command Overview](./docs/screenshots/overview_revamp.png)
 
-### Update Personnel View
+### Live Readiness Board
 
-![Update Personnel](./docs/screenshots/update_personnel.png)
+![Live Readiness Board](./docs/screenshots/readiness_revamp.png)
 
-### Shift Detail View
+### Operational Analytics
 
-![Shift Detail](./docs/screenshots/shifts.png)
-
-### Certification Compliance View
-
-![Certification Compliance](./docs/screenshots/certificates.png)
-
-### Snowflake Analytics Example View
-
-![Snowflake Analytics](./docs/screenshots/snowflake.png)
+![Operational Analytics](./docs/screenshots/analytics_revamp.png)
 
 ## Tech Stack
 
