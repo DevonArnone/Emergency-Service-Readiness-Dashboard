@@ -20,25 +20,35 @@ CREATE TABLE IF NOT EXISTS SHIFT_COVERAGE_HOURLY (
 -- Populate coverage data from assignments
 MERGE INTO ANALYTICS.SHIFT_COVERAGE_HOURLY AS target
 USING (
+    WITH unit_hourly AS (
+        SELECT
+            DATE(ua.shift_start) as date,
+            COALESCE(u.station_id, p.station_id, 'UNKNOWN') as location,
+            HOUR(ua.shift_start) as hour,
+            ua.unit_id,
+            MAX(u.minimum_staff) as required_staff,
+            COUNT(DISTINCT ua.personnel_id) as staffed_positions,
+            MAX(CASE WHEN TIMESTAMPDIFF(HOUR, ua.shift_start, ua.shift_end) >= 12 THEN 1 ELSE 0 END) as overtime_risk_unit
+        FROM RAW.UNIT_ASSIGNMENTS ua
+        JOIN RAW.UNITS u ON ua.unit_id = u.unit_id
+        LEFT JOIN RAW.PERSONNEL p ON ua.personnel_id = p.personnel_id
+        WHERE DATE(ua.shift_start) >= CURRENT_DATE() - 7
+        GROUP BY
+            DATE(ua.shift_start),
+            COALESCE(u.station_id, p.station_id, 'UNKNOWN'),
+            HOUR(ua.shift_start),
+            ua.unit_id
+    )
     SELECT
-        DATE(ua.shift_start) as date,
-        COALESCE(u.station_id, p.station_id, 'UNKNOWN') as location,
-        HOUR(ua.shift_start) as hour,
-        COUNT(DISTINCT ua.unit_id) as scheduled_headcount,
-        COUNT(DISTINCT ua.personnel_id) as actual_headcount,
-        CASE 
-            WHEN COUNT(DISTINCT ua.personnel_id) < SUM(u.minimum_staff) THEN TRUE 
-            ELSE FALSE 
-        END as understaffed_flag,
-        FALSE as overtime_risk_flag
-    FROM RAW.UNIT_ASSIGNMENTS ua
-    JOIN RAW.UNITS u ON ua.unit_id = u.unit_id
-    LEFT JOIN RAW.PERSONNEL p ON ua.personnel_id = p.personnel_id
-    WHERE DATE(ua.shift_start) >= CURRENT_DATE() - 7
-    GROUP BY 
-        DATE(ua.shift_start),
-        COALESCE(u.station_id, p.station_id, 'UNKNOWN'),
-        HOUR(ua.shift_start)
+        date,
+        location,
+        hour,
+        SUM(required_staff) as scheduled_headcount,
+        SUM(staffed_positions) as actual_headcount,
+        CASE WHEN SUM(staffed_positions) < SUM(required_staff) THEN TRUE ELSE FALSE END as understaffed_flag,
+        MAX(overtime_risk_unit) = 1 as overtime_risk_flag
+    FROM unit_hourly
+    GROUP BY date, location, hour
 ) AS source
 ON target.date = source.date
     AND target.location = source.location
@@ -72,4 +82,3 @@ FROM SHIFT_COVERAGE_HOURLY;
 -- Show all coverage data
 SELECT * FROM SHIFT_COVERAGE_HOURLY 
 ORDER BY date DESC, hour;
-

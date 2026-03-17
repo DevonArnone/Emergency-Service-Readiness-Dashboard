@@ -1,128 +1,132 @@
+const platformStats = [
+  { label: 'Alert latency', value: '< 1s', detail: 'WebSocket push for critical readiness gaps' },
+  { label: 'API surface', value: '30+', detail: 'FastAPI endpoints with validated contracts' },
+  { label: 'Pipeline model', value: 'Event-driven', detail: 'Kafka ingestion with Snowflake analytics' },
+]
+
+const commandPriorities = [
+  {
+    title: 'Operational readiness',
+    detail: 'Track whether each engine, medic, and rescue unit can deploy right now based on staffed seats, certification coverage, and availability status.',
+  },
+  {
+    title: 'Coverage risk windows',
+    detail: 'Surface the specific hours where scheduled capacity diverges from available headcount so leadership can intervene before the shift breaks.',
+  },
+  {
+    title: 'Certification exposure',
+    detail: 'Highlight expiring or missing credentials as an operational constraint instead of burying them as administrative metadata.',
+  },
+]
+
+const systemLayers = [
+  { name: 'Experience', value: 'Next.js dashboard with live readiness and analytics views' },
+  { name: 'Application', value: 'FastAPI services, Pydantic models, REST APIs, WebSocket broadcasts' },
+  { name: 'Streaming', value: 'Kafka topics decoupling event capture from downstream consumers' },
+  { name: 'Warehouse', value: 'Snowflake Streams, Tasks, and aggregates for trend analysis' },
+]
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="p-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 break-words">
-              Emergency Services Crew Readiness Dashboard
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Real-time workforce management platform with live staffing monitoring,
-              event streaming, and Snowflake-powered analytics.
-            </p>
-          </div>
-
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-32 h-32 gradient-bg opacity-10 rounded-full -mr-16 -mt-16"></div>
-              <div className="p-6 relative z-10">
-                <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mb-4 shadow-lg">
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Real-Time Monitoring</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Monitor shifts in real-time with WebSocket updates. See who's clocked in,
-                  identify understaffed shifts, and receive instant alerts.
+    <div className="ops-page">
+      <div className="ops-shell space-y-8">
+        <section className="hero-panel overflow-hidden">
+          <div className="hero-grid">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs uppercase tracking-[0.22em] text-slate-300">
+                Emergency Readiness Platform
+              </div>
+              <div className="space-y-4">
+                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl">
+                  Real-time command visibility for emergency staffing, readiness, and certification risk.
+                </h1>
+                <p className="max-w-2xl text-base leading-7 text-slate-300 md:text-lg">
+                  This system is strongest when it behaves like an operations product: clear risk framing,
+                  low-latency alerting, and analytics that explain whether crews can respond now and stay
+                  covered through the next operational window.
                 </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <a className="ops-button-primary" href="/readiness">
+                  Open readiness board
+                </a>
+                <a className="ops-button-secondary" href="/analytics">
+                  Review analytics
+                </a>
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-32 h-32 gradient-bg-2 opacity-10 rounded-full -mr-16 -mt-16"></div>
-              <div className="p-6 relative z-10">
-                <div className="w-12 h-12 gradient-bg-2 rounded-xl flex items-center justify-center mb-4 shadow-lg">
-                  <span className="text-2xl">📊</span>
+            <div className="grid gap-4 md:grid-cols-3">
+              {platformStats.map((item) => (
+                <div key={item.label} className="metric-card">
+                  <div className="metric-label">{item.label}</div>
+                  <div className="metric-value">{item.value}</div>
+                  <p className="metric-detail">{item.detail}</p>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Analytics & Insights</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Historical analytics powered by Snowflake. Track coverage patterns,
-                  overtime risks, and attendance trends over time.
-                </p>
-              </div>
-            </div>
-
-            <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-32 h-32 gradient-bg-3 opacity-10 rounded-full -mr-16 -mt-16"></div>
-              <div className="p-6 relative z-10">
-                <div className="w-12 h-12 gradient-bg-3 rounded-xl flex items-center justify-center mb-4 shadow-lg">
-                  <span className="text-2xl">🔄</span>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Event Streaming</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Built on Kafka (Confluent Cloud) for scalable event streaming.
-                  Decoupled architecture enables future microservices.
-                </p>
-              </div>
-            </div>
-
-            <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2">
-              <div className="absolute top-0 right-0 w-32 h-32 gradient-bg-4 opacity-10 rounded-full -mr-16 -mt-16"></div>
-              <div className="p-6 relative z-10">
-                <div className="w-12 h-12 gradient-bg-4 rounded-xl flex items-center justify-center mb-4 shadow-lg">
-                  <span className="text-2xl">❄️</span>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Data Warehouse</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Snowflake data warehouse with automated ETL via Streams & Tasks.
-                  Pre-aggregated views for fast dashboard queries.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
+        </section>
 
-          {/* Tech Stack Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 animate-fade-in">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <span className="mr-3">🛠️</span>
-              Tech Stack
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { label: 'Backend', value: 'FastAPI (Python) with WebSockets', icon: '⚙️' },
-                { label: 'Frontend', value: 'Next.js 14 (TypeScript + React)', icon: '⚛️' },
-                { label: 'Streaming', value: 'Kafka on Confluent Cloud', icon: '🌊' },
-                { label: 'Data Warehouse', value: 'Snowflake with Streams & Tasks', icon: '❄️' },
-                { label: 'Deployment', value: 'Render/Railway + Vercel', icon: '🚀' },
-                { label: 'Real-time', value: 'WebSocket connections', icon: '🔌' },
-              ].map((tech, idx) => (
-                <div key={idx} className="flex items-start space-x-3 p-4 rounded-xl hover:bg-indigo-50 transition-colors">
-                  <span className="text-2xl">{tech.icon}</span>
-                  <div>
-                    <div className="font-semibold text-gray-900">{tech.label}</div>
-                    <div className="text-sm text-gray-600">{tech.value}</div>
+        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="ops-panel">
+            <div className="panel-kicker">Product framing</div>
+            <h2 className="panel-title">What makes this dashboard meaningful</h2>
+            <div className="mt-6 grid gap-4">
+              {commandPriorities.map((priority) => (
+                <div key={priority.title} className="border border-white/8 bg-white/3 p-5">
+                  <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {priority.title}
                   </div>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">{priority.detail}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-8 text-white animate-fade-in">
-            <h3 className="text-2xl font-bold mb-4">Get Started</h3>
-            <p className="text-indigo-100 mb-6">
-              Start managing your workforce with real-time shift monitoring and analytics.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="/shifts"
-                className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-all transform hover:scale-105 shadow-lg"
-              >
-                View Live Shifts →
-              </a>
-              <a
-                href="/analytics"
-                className="bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-800 transition-all transform hover:scale-105 shadow-lg"
-              >
-                View Analytics →
-              </a>
+          <div className="ops-panel">
+            <div className="panel-kicker">Architecture</div>
+            <h2 className="panel-title">Modern event pipeline</h2>
+            <div className="mt-6 space-y-4">
+              {systemLayers.map((layer) => (
+                <div key={layer.name} className="border-l border-cyan-400/50 pl-4">
+                  <div className="text-sm font-medium uppercase tracking-[0.18em] text-slate-400">
+                    {layer.name}
+                  </div>
+                  <p className="mt-1 text-sm leading-7 text-slate-300">{layer.value}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="grid gap-6 md:grid-cols-3">
+          <div className="ops-panel">
+            <div className="panel-kicker">Readiness board</div>
+            <h2 className="panel-title">Current-state deployment posture</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Units should be ranked by operational confidence, not just raw headcount. The board needs
+              to emphasize critical units, certification blockers, and live staffing gaps.
+            </p>
+          </div>
+          <div className="ops-panel">
+            <div className="panel-kicker">Analytics</div>
+            <h2 className="panel-title">Trend and exposure review</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Snowflake should answer management questions: when do gaps open, which stations degrade,
+              and how many readiness points are being lost to credentials versus staffing.
+            </p>
+          </div>
+          <div className="ops-panel">
+            <div className="panel-kicker">Portfolio signal</div>
+            <h2 className="panel-title">Show enterprise judgement</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Stronger screenshots, better naming, and sharper metrics make the project read as an
+              applied operations platform instead of a generic dashboard exercise.
+            </p>
+          </div>
+        </section>
       </div>
     </div>
   )
 }
-

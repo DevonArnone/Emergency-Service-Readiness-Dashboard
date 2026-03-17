@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
+  { name: 'Overview', href: '/' },
   { name: 'Readiness', href: '/readiness' },
   { name: 'Personnel', href: '/personnel' },
   { name: 'Certificates', href: '/certifications-management' },
@@ -14,60 +15,54 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname()
 
-  const isDashboardActive = pathname === '/'
-
   return (
-    <div className="w-64 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white shadow-2xl flex flex-col h-screen">
-      <div className="p-6 border-b border-gray-700">
-      </div>
-      
-      {/* Dashboard Link - Separated at top */}
-      <div className="px-3 pt-6 pb-4 border-b border-gray-700">
-        <Link
-          href="/"
-          className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-            isDashboardActive
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg'
-              : 'hover:bg-gray-700'
-          }`}
-        >
-          <span className="text-xl">🏠</span>
-          <span className={`font-medium ${isDashboardActive ? 'text-white' : 'text-gray-300'}`}>
-            Dashboard
-          </span>
-        </Link>
+    <aside className="hidden w-72 shrink-0 border-r border-white/8 bg-[#0b1220] lg:flex lg:flex-col">
+      <div className="border-b border-white/8 px-6 py-6">
+        <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Shift Dashboard</div>
+        <div className="mt-2 text-xl font-semibold tracking-tight text-white">
+          Emergency readiness
+        </div>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Live unit posture, staffing gaps, credential exposure, and warehouse-backed operations analytics.
+        </p>
       </div>
 
-      {/* Other Navigation Links */}
-      <nav className="mt-4 px-3 flex-1">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center px-4 py-3 mb-2 rounded-xl transition-all duration-200 border ${
-                isActive
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg border-indigo-500'
-                  : 'bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600 hover:from-gray-700 hover:to-gray-600'
-              }`}
-            >
-              <span className={`font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>
-                {item.name}
-              </span>
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-4 py-6">
+        <div className="mb-3 px-3 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+          Navigation
+        </div>
+        <div className="space-y-1.5">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${
+                  isActive
+                    ? 'bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span>{item.name}</span>
+                {isActive ? <span className="h-2 w-2 rounded-full bg-cyan-400" /> : null}
+              </Link>
+            )
+          })}
+        </div>
       </nav>
-      <div className="p-6 border-t border-gray-700">
-        <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-xl p-4 border border-gray-600 shadow-lg">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400"></div>
-            <span className="text-xs text-gray-300 font-medium">System Online</span>
+
+      <div className="border-t border-white/8 px-6 py-6">
+        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/8 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            System online
           </div>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Designed for low-latency push updates and warehouse-backed command reporting.
+          </p>
         </div>
       </div>
-    </div>
+    </aside>
   )
 }
-

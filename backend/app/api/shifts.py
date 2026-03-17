@@ -318,7 +318,7 @@ async def analytics_health():
             else:
                 return {
                     "status": "not_configured",
-                    "message": "Snowflake not configured - using placeholder values",
+                    "message": "Snowflake not configured - using local fallback analytics and demo coverage when needed",
                     "configured": False,
                     "service_type": "mock"
                 }
@@ -364,4 +364,3 @@ async def analytics_health():
             "message": str(e),
             "configured": False
         }
-

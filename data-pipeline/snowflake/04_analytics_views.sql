@@ -1,83 +1,38 @@
--- Workforce & Shift Management Dashboard
--- Snowflake Analytics Views
--- Pre-aggregated views for fast dashboard queries
+-- Emergency Readiness Dashboard
+-- Snowflake analytics views aligned to the emergency-readiness data model
 
 USE DATABASE WORKFORCE_DB;
 USE SCHEMA ANALYTICS;
 
--- View for daily coverage summary by location
+-- Daily coverage summary by station/location
 CREATE OR REPLACE VIEW daily_coverage_summary AS
 SELECT
     date,
     location,
-    SUM(scheduled_headcount) as total_scheduled,
-    SUM(actual_headcount) as total_actual,
-    SUM(CASE WHEN understaffed_flag THEN 1 ELSE 0 END) as understaffed_hours,
-    SUM(CASE WHEN overtime_risk_flag THEN 1 ELSE 0 END) as overtime_risk_hours,
-    AVG(actual_headcount) as avg_headcount,
-    MIN(actual_headcount) as min_headcount,
-    MAX(actual_headcount) as max_headcount
+    SUM(scheduled_headcount) AS total_scheduled,
+    SUM(actual_headcount) AS total_actual,
+    SUM(CASE WHEN understaffed_flag THEN 1 ELSE 0 END) AS understaffed_hours,
+    SUM(CASE WHEN overtime_risk_flag THEN 1 ELSE 0 END) AS overtime_risk_hours,
+    AVG(IFF(scheduled_headcount = 0, 1, actual_headcount / NULLIF(scheduled_headcount, 0))) AS avg_coverage_ratio
 FROM SHIFT_COVERAGE_HOURLY
 GROUP BY date, location
 ORDER BY date DESC, location;
 
--- View for employee attendance patterns
-CREATE OR REPLACE VIEW employee_attendance_summary AS
-SELECT
-    e.employee_id,
-    e.name,
-    e.location,
-    e.role,
-    COUNT(DISTINCT DATE(se.event_time)) as days_worked,
-    COUNT(CASE WHEN se.event_type = 'CLOCK_IN' THEN 1 END) as total_clock_ins,
-    COUNT(CASE WHEN se.event_type = 'CLOCK_OUT' THEN 1 END) as total_clock_outs,
-    MIN(se.event_time) as first_shift,
-    MAX(se.event_time) as last_shift
-FROM RAW.EMPLOYEES e
-LEFT JOIN RAW.SHIFT_EVENTS se ON e.employee_id = se.employee_id
-WHERE se.event_type IN ('CLOCK_IN', 'CLOCK_OUT')
-GROUP BY e.employee_id, e.name, e.location, e.role;
-
--- View for shift performance metrics
-CREATE OR REPLACE VIEW shift_performance_metrics AS
-SELECT
-    s.shift_id,
-    s.location,
-    s.start_time,
-    s.end_time,
-    s.required_headcount,
-    COUNT(DISTINCT sa.employee_id) as assigned_count,
-    COUNT(DISTINCT CASE WHEN se.event_type = 'CLOCK_IN' THEN se.employee_id END) as clocked_in_count,
-    CASE
-        WHEN COUNT(DISTINCT CASE WHEN se.event_type = 'CLOCK_IN' THEN se.employee_id END) < s.required_headcount
-        THEN 'UNDERSTAFFED'
-        WHEN COUNT(DISTINCT CASE WHEN se.event_type = 'CLOCK_IN' THEN se.employee_id END) = s.required_headcount
-        THEN 'FULLY_STAFFED'
-        ELSE 'OVER_STAFFED'
-    END as staffing_status
-FROM RAW.SHIFTS s
-LEFT JOIN RAW.SHIFT_ASSIGNMENTS sa ON s.shift_id = sa.shift_id
-LEFT JOIN RAW.SHIFT_EVENTS se ON s.shift_id = se.shift_id
-GROUP BY s.shift_id, s.location, s.start_time, s.end_time, s.required_headcount;
-
--- View for location-level analytics
-CREATE OR REPLACE VIEW location_analytics AS
+-- Weekly coverage summary for command-level rollups
+CREATE OR REPLACE VIEW station_operational_summary AS
 SELECT
     location,
-    DATE_TRUNC('week', date) as week_start,
-    COUNT(DISTINCT date) as days_tracked,
-    AVG(total_scheduled) as avg_daily_scheduled,
-    AVG(total_actual) as avg_daily_actual,
-    AVG(understaffed_hours) as avg_understaffed_hours_per_day,
-    SUM(total_scheduled) as total_scheduled_hours,
-    SUM(total_actual) as total_actual_hours
+    DATE_TRUNC('week', date) AS week_start,
+    COUNT(DISTINCT date) AS tracked_days,
+    SUM(total_scheduled) AS scheduled_positions,
+    SUM(total_actual) AS staffed_positions,
+    SUM(total_scheduled - total_actual) AS readiness_gap,
+    AVG(avg_coverage_ratio) AS avg_coverage_ratio,
+    SUM(understaffed_hours) AS understaffed_hours,
+    SUM(overtime_risk_hours) AS overtime_risk_hours
 FROM daily_coverage_summary
 GROUP BY location, DATE_TRUNC('week', date)
 ORDER BY week_start DESC, location;
-
--- ============================================================================
--- PHASE 4: Emergency Services Readiness Analytics
--- ============================================================================
 
 -- Table for unit readiness aggregates (updated by tasks)
 CREATE OR REPLACE TABLE UNIT_READINESS_AGGREGATES (
@@ -96,7 +51,7 @@ CREATE OR REPLACE TABLE UNIT_READINESS_AGGREGATES (
     PRIMARY KEY (unit_id, date)
 );
 
--- View for current unit readiness (latest calculation per unit)
+-- Current unit-level readiness snapshot
 CREATE OR REPLACE VIEW current_unit_readiness AS
 SELECT
     ura.unit_id,
@@ -114,90 +69,119 @@ SELECT
         WHEN ura.readiness_score >= 85 THEN 'READY'
         WHEN ura.readiness_score >= 60 THEN 'NEEDS_ATTENTION'
         ELSE 'CRITICAL'
-    END as readiness_status
+    END AS readiness_status
 FROM UNIT_READINESS_AGGREGATES ura
 JOIN RAW.UNITS u ON ura.unit_id = u.unit_id
 WHERE ura.date = CURRENT_DATE()
-    AND ura.calculated_at = (
-        SELECT MAX(calculated_at)
-        FROM UNIT_READINESS_AGGREGATES
-        WHERE unit_id = ura.unit_id
-            AND date = CURRENT_DATE()
-    );
+  AND ura.calculated_at = (
+      SELECT MAX(inner_ura.calculated_at)
+      FROM UNIT_READINESS_AGGREGATES inner_ura
+      WHERE inner_ura.unit_id = ura.unit_id
+        AND inner_ura.date = CURRENT_DATE()
+  );
 
--- View for certification expiration tracking
+-- Certification expiration tracking tied to personnel records
 CREATE OR REPLACE VIEW certification_expiration_summary AS
 SELECT
     p.personnel_id,
     p.name,
     p.role,
     p.station_id,
-    cert.key::STRING as certification_name,
-    cert.value::STRING::TIMESTAMP_NTZ as expiration_date,
-    DATEDIFF(day, CURRENT_TIMESTAMP(), cert.value::STRING::TIMESTAMP_NTZ) as days_until_expiry,
+    cert.key::STRING AS certification_name,
+    cert.value::STRING::TIMESTAMP_NTZ AS expiration_date,
+    DATEDIFF(day, CURRENT_TIMESTAMP(), cert.value::STRING::TIMESTAMP_NTZ) AS days_until_expiry,
     CASE
         WHEN cert.value::STRING::TIMESTAMP_NTZ < CURRENT_TIMESTAMP() THEN 'EXPIRED'
         WHEN DATEDIFF(day, CURRENT_TIMESTAMP(), cert.value::STRING::TIMESTAMP_NTZ) <= 30 THEN 'EXPIRING_SOON'
         ELSE 'VALID'
-    END as status
+    END AS status
 FROM RAW.PERSONNEL p,
 LATERAL FLATTEN(INPUT => p.cert_expirations) cert
 ORDER BY expiration_date ASC;
 
--- View for station-level readiness summary
+-- Unit staffing snapshot with current staffing gap and cert exposure
+CREATE OR REPLACE VIEW unit_staffing_snapshot AS
+WITH active_assignments AS (
+    SELECT
+        ua.unit_id,
+        ua.personnel_id,
+        ua.shift_start,
+        ua.shift_end
+    FROM RAW.UNIT_ASSIGNMENTS ua
+    WHERE ua.assignment_status = 'ON_SHIFT'
+      AND CURRENT_TIMESTAMP() BETWEEN ua.shift_start AND ua.shift_end
+),
+unit_personnel AS (
+    SELECT
+        aa.unit_id,
+        COUNT(DISTINCT aa.personnel_id) AS staffed_positions,
+        COUNT(DISTINCT CASE WHEN p.availability_status = 'AVAILABLE' THEN aa.personnel_id END) AS available_positions
+    FROM active_assignments aa
+    LEFT JOIN RAW.PERSONNEL p ON aa.personnel_id = p.personnel_id
+    GROUP BY aa.unit_id
+)
+SELECT
+    u.unit_id,
+    u.unit_name,
+    u.type,
+    u.station_id,
+    u.minimum_staff,
+    COALESCE(up.staffed_positions, 0) AS staffed_positions,
+    COALESCE(up.available_positions, 0) AS available_positions,
+    GREATEST(u.minimum_staff - COALESCE(up.staffed_positions, 0), 0) AS staffing_gap,
+    IFF(u.minimum_staff = 0, 1, COALESCE(up.staffed_positions, 0) / NULLIF(u.minimum_staff, 0)) AS staffing_ratio
+FROM RAW.UNITS u
+LEFT JOIN unit_personnel up ON u.unit_id = up.unit_id;
+
+-- Station-level readiness summary
 CREATE OR REPLACE VIEW station_readiness_summary AS
 SELECT
     u.station_id,
-    COUNT(DISTINCT ura.unit_id) as total_units,
-    COUNT(DISTINCT CASE WHEN ura.readiness_score >= 85 THEN ura.unit_id END) as ready_units,
-    COUNT(DISTINCT CASE WHEN ura.readiness_score < 60 THEN ura.unit_id END) as critical_units,
-    AVG(ura.readiness_score) as avg_readiness_score,
-    SUM(CASE WHEN ura.understaffed_flag THEN 1 ELSE 0 END) as understaffed_units,
-    MAX(ura.calculated_at) as last_calculated
+    COUNT(DISTINCT ura.unit_id) AS total_units,
+    COUNT(DISTINCT CASE WHEN ura.readiness_score >= 85 THEN ura.unit_id END) AS ready_units,
+    COUNT(DISTINCT CASE WHEN ura.readiness_score < 60 THEN ura.unit_id END) AS critical_units,
+    AVG(ura.readiness_score) AS avg_readiness_score,
+    SUM(CASE WHEN ura.understaffed_flag THEN 1 ELSE 0 END) AS understaffed_units,
+    MAX(ura.calculated_at) AS last_calculated
 FROM UNIT_READINESS_AGGREGATES ura
 JOIN RAW.UNITS u ON ura.unit_id = u.unit_id
 WHERE ura.date = CURRENT_DATE()
-    AND u.station_id IS NOT NULL
+  AND u.station_id IS NOT NULL
 GROUP BY u.station_id;
 
--- View for historical readiness trends
+-- Historical readiness trends by day and unit type
 CREATE OR REPLACE VIEW readiness_trends AS
 SELECT
     ura.date,
     ura.type,
-    COUNT(DISTINCT ura.unit_id) as unit_count,
-    AVG(ura.readiness_score) as avg_readiness,
-    MIN(ura.readiness_score) as min_readiness,
-    MAX(ura.readiness_score) as max_readiness,
-    SUM(CASE WHEN ura.understaffed_flag THEN 1 ELSE 0 END) as understaffed_count,
-    AVG(ura.current_staff) as avg_staffing,
-    AVG(ura.minimum_staff) as avg_required_staff
+    COUNT(DISTINCT ura.unit_id) AS unit_count,
+    AVG(ura.readiness_score) AS avg_readiness,
+    MIN(ura.readiness_score) AS min_readiness,
+    MAX(ura.readiness_score) AS max_readiness,
+    SUM(CASE WHEN ura.understaffed_flag THEN 1 ELSE 0 END) AS understaffed_count,
+    AVG(ura.current_staff) AS avg_staffing,
+    AVG(ura.minimum_staff) AS avg_required_staff
 FROM UNIT_READINESS_AGGREGATES ura
 GROUP BY ura.date, ura.type
 ORDER BY ura.date DESC, ura.type;
 
--- Stored procedure to recalculate readiness for all units
+-- Stored procedure hook for task orchestration
 CREATE OR REPLACE PROCEDURE RECALCULATE_READINESS()
 RETURNS STRING
 LANGUAGE SQL
 AS
 $$
 BEGIN
-    -- This will be called by the task to force recalculation
-    -- The actual logic is in the task itself
     RETURN 'Readiness recalculation triggered';
 END;
 $$;
 
--- Comments for documentation
-COMMENT ON VIEW daily_coverage_summary IS 'Daily summary of shift coverage by location';
-COMMENT ON VIEW employee_attendance_summary IS 'Employee attendance patterns and statistics';
-COMMENT ON VIEW shift_performance_metrics IS 'Performance metrics for individual shifts';
-COMMENT ON VIEW location_analytics IS 'Weekly analytics aggregated by location';
-COMMENT ON TABLE UNIT_READINESS_AGGREGATES IS 'Aggregated unit readiness scores calculated by tasks';
-COMMENT ON VIEW current_unit_readiness IS 'Current readiness status for all units (latest calculation)';
-COMMENT ON VIEW certification_expiration_summary IS 'Summary of all certifications with expiration dates and status';
-COMMENT ON VIEW station_readiness_summary IS 'Station-level readiness aggregation';
-COMMENT ON VIEW readiness_trends IS 'Historical readiness trends by date and unit type';
-COMMENT ON PROCEDURE RECALCULATE_READINESS IS 'Stored procedure to trigger readiness recalculation';
-
+COMMENT ON VIEW daily_coverage_summary IS 'Daily summary of coverage positions versus staffed positions by station/location';
+COMMENT ON VIEW station_operational_summary IS 'Weekly command rollup of staffing gaps, coverage ratio, and overtime exposure by location';
+COMMENT ON TABLE UNIT_READINESS_AGGREGATES IS 'Aggregated unit readiness scores calculated by Snowflake tasks';
+COMMENT ON VIEW current_unit_readiness IS 'Latest readiness snapshot for each unit';
+COMMENT ON VIEW certification_expiration_summary IS 'Certification expiration and exposure summary by person';
+COMMENT ON VIEW unit_staffing_snapshot IS 'Current staffing ratio and staffing gap for each unit';
+COMMENT ON VIEW station_readiness_summary IS 'Station-level readiness rollup for current day';
+COMMENT ON VIEW readiness_trends IS 'Historical readiness trend by unit type and day';
+COMMENT ON PROCEDURE RECALCULATE_READINESS IS 'Procedure hook used by task orchestration to recalculate readiness';

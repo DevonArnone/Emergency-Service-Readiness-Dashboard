@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { FormEvent, ReactNode } from 'react'
 
 interface CreateModalProps {
   isOpen: boolean
   onClose: () => void
   title: string
-  children: React.ReactNode
-  onSubmit: (e: FormEvent) => Promise<void>
+  children: ReactNode
+  onSubmit: (e: FormEvent<HTMLFormElement>) => Promise<void>
   submitLabel?: string
 }
 
@@ -21,7 +21,7 @@ export default function CreateModal({
 }: CreateModalProps) {
   if (!isOpen) return null
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     await onSubmit(e)
   }
@@ -62,4 +62,3 @@ export default function CreateModal({
     </div>
   )
 }
-

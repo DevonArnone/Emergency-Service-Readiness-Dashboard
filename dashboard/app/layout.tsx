@@ -1,31 +1,25 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import Sidebar from '@/components/Sidebar'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
-  title: 'Workforce & Shift Management Dashboard',
-  description: 'Real-time workforce and shift management with analytics',
+  title: 'Emergency Readiness Dashboard',
+  description: 'Real-time emergency staffing, certification readiness, and Snowflake-backed command analytics.',
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="flex h-screen bg-gray-50">
+      <body>
+        <div className="min-h-screen bg-[#07111f] text-slate-100 lg:flex">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
+          <main className="min-h-screen flex-1">{children}</main>
         </div>
       </body>
     </html>
   )
 }
-

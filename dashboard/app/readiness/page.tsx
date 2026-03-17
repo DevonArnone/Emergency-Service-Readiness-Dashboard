@@ -152,7 +152,11 @@ export default function ReadinessPage() {
       const ws = new WebSocket(`${wsUrl}/ws/unit-readiness/${unit.unit_id}`)
 
       ws.onopen = () => {
-        setWsConnected((prev) => new Set([...prev, unit.unit_id]))
+        setWsConnected((prev) => {
+          const next = new Set(prev)
+          next.add(unit.unit_id)
+          return next
+        })
       }
 
       ws.onmessage = (event) => {

@@ -41,16 +41,28 @@ CREATE OR REPLACE TASK process_unit_coverage_task
             FROM active_assignments
             WHERE HOUR(shift_start) >= 0 AND HOUR(shift_start) < 24
         ),
-        hourly_aggregates AS (
+        unit_hourly AS (
             SELECT
                 coverage_date as date,
                 location,
                 hour,
-                COUNT(DISTINCT unit_id) as scheduled_headcount,
-                COUNT(DISTINCT personnel_id) as actual_headcount,
-                SUM(minimum_staff) as total_required
+                unit_id,
+                MAX(minimum_staff) as required_staff,
+                COUNT(DISTINCT personnel_id) as staffed_positions,
+                MAX(CASE WHEN TIMESTAMPDIFF(HOUR, shift_start, shift_end) >= 12 THEN 1 ELSE 0 END) as overtime_risk_unit
             FROM hourly_breakdown
-            GROUP BY coverage_date, location, hour
+            GROUP BY coverage_date, location, hour, unit_id
+        ),
+        hourly_aggregates AS (
+            SELECT
+                date,
+                location,
+                hour,
+                SUM(required_staff) as scheduled_headcount,
+                SUM(staffed_positions) as actual_headcount,
+                MAX(overtime_risk_unit) = 1 as overtime_risk_flag
+            FROM unit_hourly
+            GROUP BY date, location, hour
         )
         SELECT
             date,
@@ -58,11 +70,8 @@ CREATE OR REPLACE TASK process_unit_coverage_task
             hour,
             scheduled_headcount,
             actual_headcount,
-            CASE 
-                WHEN actual_headcount < total_required THEN TRUE 
-                ELSE FALSE 
-            END as understaffed_flag,
-            FALSE as overtime_risk_flag
+            CASE WHEN actual_headcount < scheduled_headcount THEN TRUE ELSE FALSE END as understaffed_flag,
+            overtime_risk_flag
         FROM hourly_aggregates
     ) AS source
     ON target.date = source.date
@@ -92,4 +101,3 @@ ALTER TASK process_unit_coverage_task RESUME;
 
 -- Check task status
 SHOW TASKS LIKE 'process_unit_coverage_task';
-
