@@ -1,4 +1,4 @@
-"""Pydantic models for the Workforce & Shift Management system."""
+"""Pydantic models for the Emergency Readiness platform."""
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List, Dict, Union
@@ -6,7 +6,6 @@ from enum import Enum
 
 
 class EventType(str, Enum):
-    """Types of shift events."""
     CREATED = "CREATED"
     ASSIGNED = "ASSIGNED"
     CLOCK_IN = "CLOCK_IN"
@@ -16,66 +15,59 @@ class EventType(str, Enum):
 
 
 class Employee(BaseModel):
-    """Employee model."""
     employee_id: Optional[str] = None
     name: str
     role: str
     location: str
     hire_date: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class Shift(BaseModel):
-    """Shift model."""
     shift_id: Optional[str] = None
     location: str
     start_time: datetime
     end_time: datetime
-    required_headcount: int = Field(gt=0, description="Minimum number of employees needed")
+    required_headcount: int = Field(gt=0)
     created_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class ShiftAssignment(BaseModel):
-    """Shift assignment model."""
     assignment_id: Optional[str] = None
     shift_id: str
     employee_id: str
     assigned_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class ShiftEvent(BaseModel):
-    """Shift event model for event streaming."""
     event_id: Optional[str] = None
     shift_id: str
     employee_id: Optional[str] = None
     event_type: EventType
     event_time: datetime
     payload: Optional[Dict] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class ClockInRequest(BaseModel):
-    """Clock-in request model."""
     employee_id: str
 
 
 class ClockOutRequest(BaseModel):
-    """Clock-out request model."""
     employee_id: str
 
 
 class LiveShiftStatus(BaseModel):
-    """Live shift status model."""
     shift_id: str
     location: str
     start_time: datetime
@@ -88,7 +80,6 @@ class LiveShiftStatus(BaseModel):
 
 
 class CoverageSummary(BaseModel):
-    """Coverage summary model for analytics."""
     location: str
     hour: int
     scheduled_headcount: int
@@ -98,7 +89,8 @@ class CoverageSummary(BaseModel):
     date: datetime
 
 
-# Emergency Services Models
+# ── Emergency Services core models ──────────────────────────────────────────
+
 class AvailabilityStatus(str, Enum):
     AVAILABLE = "AVAILABLE"
     OFF = "OFF"
@@ -138,32 +130,27 @@ class Personnel(BaseModel):
     @field_validator('cert_expirations', mode='before')
     @classmethod
     def parse_cert_expirations(cls, v):
-        """Parse cert_expirations, converting string dates to datetime objects."""
         if not isinstance(v, dict):
             return v
         result = {}
         for cert_name, exp_date in v.items():
             if isinstance(exp_date, str):
                 try:
-                    # Handle ISO format with Z
                     if exp_date.endswith('Z'):
                         exp_date = exp_date.replace('Z', '+00:00')
-                    # Try parsing ISO format
                     if 'T' in exp_date:
                         result[cert_name] = datetime.fromisoformat(exp_date)
                     else:
-                        # If it's just a date (YYYY-MM-DD), add time at end of day UTC
                         result[cert_name] = datetime.fromisoformat(exp_date + 'T23:59:59+00:00')
                 except (ValueError, AttributeError, TypeError) as e:
-                    # If parsing fails, log and keep as string (will be handled by readiness service)
                     import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"Failed to parse expiration date '{exp_date}' for cert '{cert_name}': {e}")
+                    logging.getLogger(__name__).warning(
+                        f"Failed to parse expiration date '{exp_date}' for cert '{cert_name}': {e}"
+                    )
                     result[cert_name] = exp_date
             elif isinstance(exp_date, datetime):
                 result[cert_name] = exp_date
             else:
-                # Unknown type, keep as is
                 result[cert_name] = exp_date
         return result
 
@@ -196,7 +183,6 @@ class UnitAssignment(BaseModel):
 
 
 class UnitReadinessStatus(BaseModel):
-    """Unit readiness status model."""
     unit_id: str
     unit_name: str
     unit_type: str
@@ -212,13 +198,138 @@ class UnitReadinessStatus(BaseModel):
 
 
 class Certification(BaseModel):
-    """Certification definition model."""
     certification_id: Optional[str] = None
     name: str
     description: Optional[str] = None
-    category: Optional[str] = None  # e.g., "Fire", "EMS", "Rescue"
-    typical_validity_days: Optional[int] = None  # Typical validity period in days
+    category: Optional[str] = None
+    typical_validity_days: Optional[int] = None
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+# ── Station ──────────────────────────────────────────────────────────────────
+
+class Station(BaseModel):
+    station_id: Optional[str] = None
+    name: str
+    district: Optional[str] = None
+    address: Optional[str] = None
+    unit_ids: List[str] = Field(default_factory=list)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── Alerts ───────────────────────────────────────────────────────────────────
+
+class AlertType(str, Enum):
+    UNDERSTAFFED_UNIT = "UNDERSTAFFED_UNIT"
+    EXPIRED_CERTIFICATION = "EXPIRED_CERTIFICATION"
+    EXPIRING_CERTIFICATION = "EXPIRING_CERTIFICATION"
+    OVERTIME_RISK = "OVERTIME_RISK"
+    UNIT_OFFLINE = "UNIT_OFFLINE"
+
+
+class AlertState(str, Enum):
+    OPEN = "OPEN"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    RESOLVED = "RESOLVED"
+
+
+class ReadinessAlert(BaseModel):
+    alert_id: Optional[str] = None
+    alert_type: AlertType
+    state: AlertState = AlertState.OPEN
+    unit_id: Optional[str] = None
+    station_id: Optional[str] = None
+    personnel_id: Optional[str] = None
+    message: str
+    details: Optional[Dict] = None
+    created_at: Optional[datetime] = None
+    acknowledged_at: Optional[datetime] = None
+    acknowledged_by: Optional[str] = None
+    acknowledged_note: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AcknowledgeAlertRequest(BaseModel):
+    acknowledged_by: str
+    note: Optional[str] = None
+
+
+# ── Incidents ─────────────────────────────────────────────────────────────────
+
+class IncidentPriority(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class OperationalIncident(BaseModel):
+    incident_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    priority: IncidentPriority = IncidentPriority.MEDIUM
+    station_id: Optional[str] = None
+    unit_id: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── Recommendations ───────────────────────────────────────────────────────────
+
+class ReadinessRecommendation(BaseModel):
+    recommendation_id: Optional[str] = None
+    unit_id: str
+    action_type: str  # REASSIGN | ESCALATE | RENEW_CERT
+    message: str
+    details: Optional[Dict] = None
+    priority: str = "MEDIUM"
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── Dashboard summary ─────────────────────────────────────────────────────────
+
+class DashboardSummary(BaseModel):
+    total_units: int
+    ready_units: int
+    degraded_units: int
+    critical_units: int
+    open_alerts: int
+    active_incidents: int
+    overall_readiness_pct: float
+    station_summaries: List[Dict] = Field(default_factory=list)
+    timestamp: str
+
+
+# ── Simulation ────────────────────────────────────────────────────────────────
+
+class SimulationRequest(BaseModel):
+    unit_id: Optional[str] = None
+    station_id: Optional[str] = None
+    scenario: str  # "callout" | "unit_offline"
+    personnel_to_remove: List[str] = Field(default_factory=list)
+
+
+class SimulationResult(BaseModel):
+    scenario: str
+    original_readiness: List[Dict]
+    degraded_readiness: List[Dict]
+    impacted_units: List[str]
+    recovery_actions: List[str]
+    timestamp: str
