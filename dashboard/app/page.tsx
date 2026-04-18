@@ -60,16 +60,29 @@ function useCountUp(target: number, duration = 700) {
   return value
 }
 
+function RingGauge({ score, size = 80 }: { score: number; size?: number }) {
+  const sw = Math.max(5, Math.round(size * 0.08))
+  const r = (size - sw) / 2
+  const circ = 2 * Math.PI * r
+  const fill = (score / 100) * circ
+  const color = score >= 85 ? '#34d399' : score >= 60 ? '#fbbf24' : score > 0 ? '#f87171' : '#1e293b'
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={sw} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none" stroke={color} strokeWidth={sw}
+        strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 0.9s ease-out' }}
+      />
+    </svg>
+  )
+}
+
 function readinessColor(score: number) {
   if (score >= 85) return 'text-emerald-400'
   if (score >= 60) return 'text-amber-400'
   return 'text-red-400'
-}
-
-function readinessBg(score: number) {
-  if (score >= 85) return 'bg-emerald-400'
-  if (score >= 60) return 'bg-amber-400'
-  return 'bg-red-400'
 }
 
 function alertBadge(type: string) {
@@ -158,14 +171,23 @@ export default function Home() {
             {/* Right: readiness widget */}
             {summary && (
               <div className="hidden lg:flex flex-col items-center gap-3 min-w-[172px]">
-                <div className="flex flex-col items-center gap-2 rounded-[28px] border border-white/[0.1] bg-white/[0.04] px-8 py-7">
-                  <div className={`text-5xl font-semibold tabular-nums ${readinessColor(summary.overall_readiness_pct)}`}>
-                    {animatedReadiness}%
+                <div className="relative flex items-center justify-center">
+                  <RingGauge score={summary.overall_readiness_pct} size={148} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className={`text-4xl font-semibold tabular-nums ${readinessColor(summary.overall_readiness_pct)}`}>
+                      {animatedReadiness}%
+                    </div>
+                    <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">Readiness</div>
                   </div>
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Fleet Readiness</div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    <span className="text-emerald-400">{animatedReady}</span> ready ·{' '}
-                    <span className="text-red-400">{animatedCritical}</span> critical
+                </div>
+                <div className="grid grid-cols-2 gap-2.5 text-center">
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5">
+                    <div className="text-base font-semibold tabular-nums text-emerald-400">{animatedReady}</div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-slate-500">Ready</div>
+                  </div>
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.06] px-3 py-2.5">
+                    <div className="text-base font-semibold tabular-nums text-red-400">{animatedCritical}</div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-slate-500">Critical</div>
                   </div>
                 </div>
               </div>
@@ -199,26 +221,27 @@ export default function Home() {
             <div className="grid gap-4 md:grid-cols-3">
               {summary.station_summaries.map((st) => (
                 <div key={st.station_id} className="ops-panel">
-                  <div className="flex items-start justify-between">
-                    <div>
+                  <div className="flex items-center gap-5">
+                    <div className="relative shrink-0">
+                      <RingGauge score={st.avg_readiness} size={72} />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={`text-xs font-semibold tabular-nums ${readinessColor(st.avg_readiness)}`}>
+                          {st.avg_readiness}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{st.station_id.toUpperCase()}</div>
-                      <div className="mt-1 text-sm font-semibold text-white">{st.station_name.split('—')[1]?.trim() ?? st.station_name}</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-white">
+                        {st.station_name.split('—')[1]?.trim() ?? st.station_name}
+                      </div>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+                        <span>{st.unit_count} units</span>
+                        {st.critical_units > 0 && (
+                          <span className="text-red-400">{st.critical_units} critical</span>
+                        )}
+                      </div>
                     </div>
-                    <div className={`text-2xl font-semibold ${readinessColor(st.avg_readiness)}`}>
-                      {st.avg_readiness}%
-                    </div>
-                  </div>
-                  <div className="mt-4 h-1.5 w-full rounded-full bg-white/10">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${readinessBg(st.avg_readiness)}`}
-                      style={{ width: `${st.avg_readiness}%` }}
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                    <span>{st.unit_count} units</span>
-                    {st.critical_units > 0 && (
-                      <span className="text-red-400">{st.critical_units} critical</span>
-                    )}
                   </div>
                 </div>
               ))}
