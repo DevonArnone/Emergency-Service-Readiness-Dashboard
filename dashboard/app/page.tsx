@@ -38,31 +38,6 @@ interface Incident {
   is_active: boolean
 }
 
-const stackLayers = [
-  { label: 'Experience',   desc: 'Next.js 14 · React 18 · Tailwind · Recharts · WebSocket push' },
-  { label: 'API',          desc: 'FastAPI · Pydantic v2 · 40+ validated REST endpoints' },
-  { label: 'Streaming',    desc: 'Kafka event capture · WebSocket broadcast · aggregated ops channel' },
-  { label: 'Warehouse',    desc: 'Snowflake Streams & Tasks · hourly coverage · readiness aggregates' },
-]
-
-const proofPoints = [
-  {
-    label: 'Operational readiness',
-    desc: 'Each unit scored 0–100 against staffing ratios, missing certifications, and expired credentials — not just headcount.',
-  },
-  {
-    label: 'Live alert lifecycle',
-    desc: 'Alerts move through OPEN → ACKNOWLEDGED → RESOLVED with metadata: who acted, when, and why.',
-  },
-  {
-    label: 'Recommendation engine',
-    desc: 'Rules engine surfaces REASSIGN, ESCALATE, and RENEW_CERT actions automatically when readiness degrades.',
-  },
-  {
-    label: 'What-if simulation',
-    desc: 'POST /api/simulations/staffing-gap shows how readiness degrades if specific crew call out, and which recovery actions apply.',
-  },
-]
 
 function readinessColor(score: number) {
   if (score >= 85) return 'text-emerald-400'
@@ -251,44 +226,56 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Platform proof points ──────────────────────────────────────── */}
+        {/* ── System Health + API Reference ─────────────────────────────── */}
         <section className="grid gap-6 lg:grid-cols-2">
           <div className="ops-panel">
-            <div className="panel-kicker">Design Rationale</div>
-            <h2 className="panel-title text-xl">What makes this platform meaningful</h2>
-            <div className="mt-5 space-y-4">
-              {proofPoints.map((pt) => (
-                <div key={pt.label} className="border-l-2 border-cyan-400/40 pl-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{pt.label}</div>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">{pt.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="ops-panel">
-            <div className="panel-kicker">Architecture</div>
-            <h2 className="panel-title text-xl">Full-stack event pipeline</h2>
-            <div className="mt-5 space-y-5">
-              {stackLayers.map((layer) => (
-                <div key={layer.label} className="flex gap-4">
-                  <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-400" />
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{layer.label}</div>
-                    <p className="mt-1 text-sm leading-6 text-slate-300">{layer.desc}</p>
+            <div className="panel-kicker">System Health</div>
+            <h2 className="panel-title text-xl">Infrastructure Status</h2>
+            <div className="mt-5 space-y-2.5">
+              {[
+                { name: 'REST API' },
+                { name: 'WebSocket Push' },
+                { name: 'Kafka Event Pipeline' },
+                { name: 'Snowflake Analytics' },
+              ].map((svc) => (
+                <div key={svc.name} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                  <span className="text-sm text-slate-300">{svc.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 rounded-full ${summary ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
+                    <span className={`text-xs font-medium ${summary ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      {summary ? 'Online' : 'Offline'}
+                    </span>
                   </div>
                 </div>
               ))}
-
-              <div className="mt-6 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-2">Quick demo</div>
-                <code className="block text-[11px] leading-6 text-cyan-300">
-                  POST /api/demo/reset<br />
-                  GET  /api/dashboard/summary<br />
-                  GET  /api/alerts<br />
-                  POST /api/simulations/staffing-gap
-                </code>
+            </div>
+            {summary?.timestamp && (
+              <div className="mt-4 border-t border-white/[0.06] pt-4 text-xs text-slate-500">
+                Last sync: {new Date(summary.timestamp).toLocaleTimeString()}
               </div>
+            )}
+          </div>
+
+          <div className="ops-panel">
+            <div className="panel-kicker">API Reference</div>
+            <h2 className="panel-title text-xl">Operational Endpoints</h2>
+            <div className="mt-5 space-y-2.5">
+              {[
+                { method: 'GET',  endpoint: '/api/dashboard/summary',        label: 'Fleet readiness snapshot' },
+                { method: 'GET',  endpoint: '/api/alerts?state=OPEN',        label: 'Open alert queue' },
+                { method: 'POST', endpoint: '/api/simulations/staffing-gap', label: 'What-if staffing analysis' },
+                { method: 'POST', endpoint: '/api/demo/reset',               label: 'Reload demo scenarios' },
+              ].map((ep) => (
+                <div key={ep.endpoint} className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                  <span className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ep.method === 'GET' ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'}`}>
+                    {ep.method}
+                  </span>
+                  <div>
+                    <code className="text-[11px] text-cyan-300">{ep.endpoint}</code>
+                    <p className="mt-0.5 text-xs text-slate-500">{ep.label}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
