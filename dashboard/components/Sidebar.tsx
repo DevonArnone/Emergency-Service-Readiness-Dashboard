@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const navigation = [
   { name: 'Overview',    href: '/',                        icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -17,8 +17,22 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [resetting, setResetting] = useState(false)
+  const [openAlerts, setOpenAlerts] = useState(0)
+  const [certAlerts, setCertAlerts] = useState(0)
+
+  useEffect(() => {
+    fetch(`${apiBase}/api/dashboard/summary`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setOpenAlerts(data.open_alerts ?? 0) })
+      .catch(() => {})
+    fetch(`${apiBase}/api/alerts?state=OPEN`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: Array<{ alert_type: string }> | null) => {
+        if (data) setCertAlerts(data.filter(a => a.alert_type.includes('CERT')).length)
+      })
+      .catch(() => {})
+  }, [])
 
   const resetDemo = async () => {
     setResetting(true)
@@ -65,7 +79,17 @@ export default function Sidebar() {
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
                 <span>{item.name}</span>
-                {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-400" />}
+                {item.name === 'Operations' && openAlerts > 0 ? (
+                  <span className="ml-auto flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500/80 px-1 text-[9px] font-bold text-white">
+                    {openAlerts > 9 ? '9+' : openAlerts}
+                  </span>
+                ) : item.name === 'Credentials' && certAlerts > 0 ? (
+                  <span className="ml-auto flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500/80 px-1 text-[9px] font-bold text-white">
+                    {certAlerts > 9 ? '9+' : certAlerts}
+                  </span>
+                ) : isActive ? (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                ) : null}
               </Link>
             )
           })}
