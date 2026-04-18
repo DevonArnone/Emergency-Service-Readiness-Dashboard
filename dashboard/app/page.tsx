@@ -143,20 +143,20 @@ export default function Home() {
             )}
           </div>
 
-          {/* Live summary strip */}
+          {/* Command strip */}
           {summary && (
             <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
-                { label: 'Total Units',      value: summary.total_units,      color: 'text-white' },
-                { label: 'Ready',            value: summary.ready_units,      color: 'text-emerald-400' },
-                { label: 'Degraded',         value: summary.degraded_units,   color: 'text-amber-400' },
-                { label: 'Critical',         value: summary.critical_units,   color: 'text-red-400' },
-                { label: 'Open Alerts',      value: summary.open_alerts,      color: 'text-orange-400' },
-                { label: 'Active Incidents', value: summary.active_incidents, color: 'text-rose-400' },
+                { label: 'Total Units', value: summary.total_units,      color: 'text-white',       cls: 'border-white/[0.08] bg-white/[0.03]' },
+                { label: 'Ready',       value: summary.ready_units,      color: 'text-emerald-400', cls: 'border-emerald-500/20 bg-emerald-500/[0.06]' },
+                { label: 'Degraded',    value: summary.degraded_units,   color: 'text-amber-400',   cls: 'border-amber-500/20 bg-amber-500/[0.06]' },
+                { label: 'Critical',    value: summary.critical_units,   color: 'text-red-400',     cls: 'border-red-500/20 bg-red-500/[0.06]' },
+                { label: 'Open Alerts', value: summary.open_alerts,      color: 'text-orange-400',  cls: 'border-orange-500/20 bg-orange-500/[0.06]' },
+                { label: 'Incidents',   value: summary.active_incidents, color: 'text-rose-400',    cls: 'border-rose-500/20 bg-rose-500/[0.06]' },
               ].map((s) => (
-                <div key={s.label} className="metric-card text-center">
-                  <div className={`text-3xl font-semibold ${s.color}`}>{s.value}</div>
-                  <div className="metric-label mt-2">{s.label}</div>
+                <div key={s.label} className={`rounded-[20px] border px-4 py-4 text-center ${s.cls}`}>
+                  <div className={`text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
+                  <div className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-400">{s.label}</div>
                 </div>
               ))}
             </div>
