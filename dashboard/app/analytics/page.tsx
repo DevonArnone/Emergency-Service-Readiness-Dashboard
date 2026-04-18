@@ -285,6 +285,51 @@ export default function AnalyticsPage() {
                 })}
               </div>
             )}
+
+            {/* Per-station snapshot */}
+            {stationKeys.length > 0 && gaps.length > 0 && (
+              <div className="mt-5">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Station Snapshot</div>
+                <div className="space-y-2">
+                  {stationKeys.map((k) => {
+                    const stUnits = gaps.filter((g) => g.station_id === k)
+                    const understaffed = stUnits.filter((g) => g.gap > 0).length
+                    const ready = stUnits.filter((g) => g.readiness_score >= 85).length
+                    const stCertRisk = certRisk.filter((r) => r.station_id === k)
+                    const expiredCount = stCertRisk.filter((r) => r.status === 'EXPIRED').length
+                    const criticalCount = stCertRisk.filter((r) => r.status === 'CRITICAL').length
+                    return (
+                      <div key={k} className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full" style={{ background: STATION_COLORS[k] ?? '#94a3b8' }} />
+                            <span className="text-xs font-medium text-white">{k.toUpperCase()}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500">{stUnits.length} unit{stUnits.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex gap-3 text-[10px]">
+                          <span className={ready === stUnits.length ? 'text-emerald-400' : 'text-slate-400'}>
+                            {ready}/{stUnits.length} ready
+                          </span>
+                          {understaffed > 0 && (
+                            <span className="text-red-400">{understaffed} understaffed</span>
+                          )}
+                          {expiredCount > 0 && (
+                            <span className="text-red-400">{expiredCount} cert expired</span>
+                          )}
+                          {criticalCount > 0 && (
+                            <span className="text-orange-400">{criticalCount} cert critical</span>
+                          )}
+                          {understaffed === 0 && expiredCount === 0 && criticalCount === 0 && (
+                            <span className="text-emerald-400">No issues</span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

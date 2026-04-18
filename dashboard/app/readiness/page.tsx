@@ -109,7 +109,7 @@ export default function OperationsPage() {
         fetch(`${apiBase}/api/alerts`),
         fetch(`${apiBase}/api/recommendations`),
       ])
-      if (unitRes.ok) setUnits(await unitRes.ok ? unitRes.json() : [])
+      if (unitRes.ok) setUnits(await unitRes.json())
       if (alertRes.ok) setAlerts(await alertRes.json())
       if (recRes.ok) setRecommendations(await recRes.json())
     } catch { /* backend unavailable */ }
