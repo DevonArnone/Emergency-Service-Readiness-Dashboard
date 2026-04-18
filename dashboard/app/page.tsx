@@ -101,38 +101,58 @@ export default function Home() {
       <div className="ops-shell space-y-8">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
-        <section className="hero-panel overflow-hidden">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
-              Emergency Readiness Platform
+        <section className="hero-panel relative overflow-hidden">
+          <div className="hero-glow-sweep" aria-hidden="true" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            {/* Left: copy + CTAs */}
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Emergency Readiness Platform
+              </div>
+              <div className="space-y-4">
+                <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                  Real-time command visibility for staffing, readiness, and credential risk.
+                </h1>
+                <p className="max-w-xl text-base leading-7 text-slate-400">
+                  Live unit posture, alert lifecycle, certification exposure, and Snowflake-backed trend analytics for emergency services.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <a className="ops-button-primary" href="/readiness">Open Operations Board</a>
+                <a className="ops-button-secondary" href="/analytics">View Analytics</a>
+                <a className="ops-button-secondary" href="/personnel">Workforce</a>
+              </div>
             </div>
-            <div className="space-y-4">
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white md:text-5xl">
-                Real-time command visibility for staffing, readiness, and credential risk.
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-300 md:text-lg">
-                Full-stack operations platform for emergency services. Live unit posture,
-                alert lifecycle, certification exposure, and Snowflake-backed trend analytics —
-                designed as a recruiter-grade portfolio and functional ops tool.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <a className="ops-button-primary" href="/readiness">Open Operations Board</a>
-              <a className="ops-button-secondary" href="/analytics">View Analytics</a>
-              <a className="ops-button-secondary" href="/workforce">Workforce</a>
-            </div>
+
+            {/* Right: readiness widget */}
+            {summary && (
+              <div className="hidden lg:flex flex-col items-center gap-3 min-w-[172px]">
+                <div className="flex flex-col items-center gap-2 rounded-[28px] border border-white/[0.1] bg-white/[0.04] px-8 py-7">
+                  <div className={`text-5xl font-semibold tabular-nums ${readinessColor(summary.overall_readiness_pct)}`}>
+                    {summary.overall_readiness_pct}%
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Fleet Readiness</div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    <span className="text-emerald-400">{summary.ready_units}</span> ready ·{' '}
+                    <span className="text-red-400">{summary.critical_units}</span> critical
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Live summary strip */}
           {summary && (
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
-                { label: 'Total Units',      value: summary.total_units,           color: 'text-white' },
-                { label: 'Ready',            value: summary.ready_units,           color: 'text-emerald-400' },
-                { label: 'Degraded',         value: summary.degraded_units,        color: 'text-amber-400' },
-                { label: 'Critical',         value: summary.critical_units,        color: 'text-red-400' },
-                { label: 'Open Alerts',      value: summary.open_alerts,           color: 'text-orange-400' },
-                { label: 'Active Incidents', value: summary.active_incidents,      color: 'text-rose-400' },
+                { label: 'Total Units',      value: summary.total_units,      color: 'text-white' },
+                { label: 'Ready',            value: summary.ready_units,      color: 'text-emerald-400' },
+                { label: 'Degraded',         value: summary.degraded_units,   color: 'text-amber-400' },
+                { label: 'Critical',         value: summary.critical_units,   color: 'text-red-400' },
+                { label: 'Open Alerts',      value: summary.open_alerts,      color: 'text-orange-400' },
+                { label: 'Active Incidents', value: summary.active_incidents, color: 'text-rose-400' },
               ].map((s) => (
                 <div key={s.label} className="metric-card text-center">
                   <div className={`text-3xl font-semibold ${s.color}`}>{s.value}</div>
