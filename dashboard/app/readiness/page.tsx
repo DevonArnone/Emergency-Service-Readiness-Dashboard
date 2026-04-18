@@ -117,14 +117,16 @@ export default function OperationsPage() {
   }, [apiBase])
 
   const fetchSupportData = useCallback(async () => {
-    const [cRes, pRes, uRes] = await Promise.all([
-      fetch(`${apiBase}/api/certifications`),
-      fetch(`${apiBase}/api/personnel`),
-      fetch(`${apiBase}/api/units`),
-    ])
-    if (cRes.ok) setCertsList(await cRes.json())
-    if (pRes.ok) setPersonnelList(await pRes.json())
-    if (uRes.ok) setUnitsList(await uRes.json())
+    try {
+      const [cRes, pRes, uRes] = await Promise.all([
+        fetch(`${apiBase}/api/certifications`),
+        fetch(`${apiBase}/api/personnel`),
+        fetch(`${apiBase}/api/units`),
+      ])
+      if (cRes.ok) setCertsList(await cRes.json())
+      if (pRes.ok) setPersonnelList(await pRes.json())
+      if (uRes.ok) setUnitsList(await uRes.json())
+    } catch { /* backend unavailable */ }
   }, [apiBase])
 
   useEffect(() => { fetchAll(); fetchSupportData() }, [fetchAll, fetchSupportData])
