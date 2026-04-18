@@ -94,6 +94,14 @@ export default function WorkforcePage() {
     setLoading(false)
   }, [apiBase])
 
+  const resetDemo = useCallback(async () => {
+    setLoading(true)
+    try {
+      await fetch(`${apiBase}/api/demo/reset`, { method: 'POST' })
+    } catch { /* ignore */ }
+    await fetchAll()
+  }, [apiBase, fetchAll])
+
   useEffect(() => { fetchAll() }, [fetchAll])
 
   const stations = Array.from(new Set(personnel.map((p) => p.station_id).filter(Boolean)))
@@ -141,8 +149,24 @@ export default function WorkforcePage() {
             <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Workforce</h1>
             <p className="mt-1 text-sm text-slate-400">Personnel status, qualification matrix, and credential exposure.</p>
           </div>
-          <button onClick={() => setShowAddPersonnel(true)} className="ops-button-primary text-sm">+ Add Personnel</button>
+          <div className="flex gap-2">
+            <button onClick={resetDemo} className="ops-button-secondary text-sm">↺ Load Demo Data</button>
+            <button onClick={() => setShowAddPersonnel(true)} className="ops-button-primary text-sm">+ Add Personnel</button>
+          </div>
         </div>
+
+        {/* Empty state banner */}
+        {personnel.length === 0 && (
+          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-6 py-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-cyan-300">No personnel loaded</p>
+              <p className="mt-0.5 text-xs text-slate-400">Click "Load Demo Data" to populate the workforce with demo workers.</p>
+            </div>
+            <button onClick={resetDemo} className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-medium text-cyan-300 hover:bg-cyan-400/20 transition">
+              Load Demo Data
+            </button>
+          </div>
+        )}
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -201,7 +225,11 @@ export default function WorkforcePage() {
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
                     {filteredPersonnel.length === 0 && (
-                      <tr><td colSpan={6} className="py-8 text-center text-slate-500">No personnel found</td></tr>
+                      <tr><td colSpan={6} className="py-8 text-center text-slate-500">
+                        {personnel.length === 0
+                          ? <span>No data — <button onClick={() => fetchAll()} className="text-cyan-400 underline hover:no-underline">reload</button> or use Reset Demo Data in the sidebar</span>
+                          : 'No personnel match current filters'}
+                      </td></tr>
                     )}
                     {filteredPersonnel.map((p) => {
                       const hasExpired = Object.values(p.cert_expirations ?? {}).some(isExpired)

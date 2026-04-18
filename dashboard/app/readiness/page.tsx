@@ -129,6 +129,13 @@ export default function OperationsPage() {
     } catch { /* backend unavailable */ }
   }, [apiBase])
 
+  const resetDemo = useCallback(async () => {
+    setLoading(true)
+    try { await fetch(`${apiBase}/api/demo/reset`, { method: 'POST' }) } catch { /* ignore */ }
+    await fetchAll()
+    await fetchSupportData()
+  }, [apiBase, fetchAll, fetchSupportData])
+
   useEffect(() => { fetchAll(); fetchSupportData() }, [fetchAll, fetchSupportData])
 
   // Per-unit WebSockets
@@ -228,6 +235,7 @@ export default function OperationsPage() {
               <p className="mt-1 text-sm text-slate-400">Live unit posture, alert queue, and deployment readiness.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button onClick={resetDemo} className="ops-button-secondary text-xs py-2 px-4">↺ Load Demo Data</button>
               <button onClick={() => setShowCreatePersonnel(true)} className="ops-button-secondary text-xs py-2 px-4">+ Personnel</button>
               <button onClick={() => setShowCreateUnit(true)} className="ops-button-secondary text-xs py-2 px-4">+ Unit</button>
               <button onClick={() => setShowCreateAssignment(true)} className="ops-button-secondary text-xs py-2 px-4">+ Assignment</button>
