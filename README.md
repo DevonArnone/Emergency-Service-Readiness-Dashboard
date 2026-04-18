@@ -1,195 +1,199 @@
-# Emergency Readiness Dashboard
+# Emergency Readiness Platform
 
-An operations-focused full-stack platform for monitoring emergency crew readiness, staffing gaps, certification exposure, and warehouse-backed trend analytics with live updates.
+A full-stack emergency operations command center built to demonstrate production-grade architecture: real-time WebSocket push, event-driven Kafka pipeline, Snowflake warehouse analytics, and a FastAPI + Next.js 14 application layer — all grounded in realistic emergency-services domain logic.
 
-## Project Positioning
+**Live demo district:** Ridgecrest Emergency Services District (3 stations, 8 units, 25 personnel, seeded automatically on startup).
 
-This project is strongest when it is presented as a command-and-readiness product, not a generic dashboard. The core story is:
-
-- Real-time readiness scoring for emergency units.
-- Event-driven backend architecture with Kafka and WebSockets.
-- Snowflake analytics used to explain risk windows, staffing degradation, and certification impact.
-- FastAPI and Pydantic used to keep contracts strict and operational workflows reliable.
-
-## Screenshots
-
-### Command Overview
-
-![Command Overview](./docs/screenshots/overview_revamp.png)
-
-### Live Readiness Board
-
-![Live Readiness Board](./docs/screenshots/readiness_revamp.png)
-
-### Operational Analytics
-
-![Operational Analytics](./docs/screenshots/analytics_revamp.png)
+---
 
 ## Tech Stack
 
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14 · React 18 · TypeScript · Tailwind CSS · Recharts |
+| API | FastAPI · Pydantic v2 · Python 3.11+ |
+| Streaming | Apache Kafka (Confluent) · WebSockets (3 channels) |
+| Warehouse | Snowflake · Streams & Tasks · SQL aggregation pipeline |
+| Data store | In-memory (dev/demo) · Snowflake RAW schema (production) |
+
+---
+
+## Architecture
+
+```
+Browser ──WebSocket──▶ FastAPI ──Kafka producer──▶ Snowflake (via Snowpipe)
+                          │                               │
+                   REST API (40+)              Streams & Tasks → ANALYTICS views
+                          │
+                   In-memory stores (dev) / Snowflake RAW (prod)
+```
+
+Three WebSocket channels:
+- `/ws/shifts` — shift-level clock-in/out and alert events
+- `/ws/unit-readiness/{unit_id}` — per-unit readiness push
+- `/ws/operations` — aggregated dashboard summary (10s heartbeat)
+
+---
+
+## Features
+
+### Operations Board (`/readiness`)
+- Unit grid sorted by readiness score (0–100) with filter by state and unit type
+- Readiness scoring: staffing ratio − cert penalties − expired cert penalties
+- Alert queue: OPEN → ACKNOWLEDGED → RESOLVED lifecycle with actor metadata
+- Per-unit action drawer: crew list, issues, rules-based recommendations
+- Real-time updates via per-unit WebSocket connections
+
+### Workforce (`/personnel`)
+- Personnel status table with deployable / constrained / training-only classification
+- Credential expiration state per person (expired, expiring soon, OK)
+- Unit grid with required certification display
+- Inline personnel creation with cert + expiration date assignment
+
+### Shifts (`/shifts`)
+- 12-hour staffing timeline bar chart with gap markers
+- Live shift status cards with clock-in/required ratio and progress bar
+- Real-time event log via `/ws/shifts` WebSocket
+- Unit assignment table for today's roster
+
+### Analytics (`/analytics`)
+- 14-day readiness trend by station (area chart)
+- Station comparison line chart
+- Staffing gap breakdown by unit (bar chart + table)
+- Certification risk forecast: all personnel with certs expiring within 90 days
+- Hourly scheduled vs. actual coverage from Snowflake (date-selectable)
+
+### Credentials (`/certifications-management`)
+- Certification library with category filters
+- Expiring and expired credential tracker with configurable lookahead
+- Create / edit / delete certification definitions
+
+### Alert Lifecycle
+```
+OPEN → ACKNOWLEDGED (actor + note) → RESOLVED
+```
+Alert types: `UNDERSTAFFED_UNIT`, `EXPIRED_CERTIFICATION`, `EXPIRING_CERTIFICATION`, `OVERTIME_RISK`, `UNIT_OFFLINE`
+
+### Recommendation Engine
+Rules-based engine fires on every readiness check:
+- **REASSIGN** — available qualified personnel found for understaffed unit
+- **ESCALATE** — no qualified replacements; triggers mutual-aid recommendation
+- **RENEW_CERT** — expired or expiring credential requires renewal scheduling
+
+### What-If Simulation
+`POST /api/simulations/staffing-gap` — specify personnel to remove or a unit offline scenario; returns original vs. degraded readiness per unit and recommended recovery actions.
+
+---
+
+## API Reference (key endpoints)
+
+```
+GET  /api/dashboard/summary          — overall readiness, alerts, incidents, station summaries
+GET  /api/alerts                     — all alerts (filter by ?state=OPEN|ACKNOWLEDGED|RESOLVED)
+POST /api/alerts/{id}/acknowledge    — acknowledge with actor and note
+POST /api/alerts/{id}/resolve        — resolve alert
+GET  /api/stations                   — station list
+GET  /api/incidents                  — active operational incidents
+GET  /api/recommendations            — rules-based recommendations (optional ?unit_id=)
+GET  /api/analytics/readiness-trends — 14-day readiness by station
+GET  /api/analytics/certification-risk — cert risk rows expiring within 90 days
+GET  /api/analytics/staffing-gaps    — staffing gap by unit
+POST /api/simulations/staffing-gap   — what-if simulation
+POST /api/demo/reset                 — reset and re-seed Ridgecrest demo data
+GET  /api/readiness/units            — live unit readiness scores
+GET  /api/personnel                  — personnel list
+GET  /api/certifications/expiring    — certs expiring within N days
+```
+
+Full Swagger docs at `http://localhost:8000/docs`.
+
+---
+
+## Local Setup
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- (Optional) Confluent Kafka credentials
+- (Optional) Snowflake account
+
 ### Backend
-- **FastAPI**: REST API surface and WebSocket endpoints
-- **Pydantic**: strict schema validation for operational entities and API contracts
-- **Kafka**: event streaming backbone for low-latency data flow
-- **Snowflake**: warehouse and analytics layer
-- **SQLite**: lightweight local development persistence
+
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+Demo data seeds automatically on startup. Reset at any time:
+```bash
+curl -X POST http://localhost:8000/api/demo/reset
+```
 
 ### Frontend
-- **Next.js 14** with TypeScript
-- **React** client components for live dashboards
-- **WebSockets** for push-based readiness updates
-- **Recharts** for analytics visualizations
 
-### Data Pipeline
-- **Snowflake Streams & Tasks** for automated transformation
-- **Warehouse aggregates** for hourly coverage and readiness trend analysis
-
-## 🚀 Quick Start
-
-See [SETUP.md](./SETUP.md) for detailed setup instructions.
-
-**Quick commands:**
 ```bash
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Frontend (new terminal)
 cd dashboard
 npm install
-echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > .env.local
 npm run dev
 ```
 
-Open **http://localhost:3000** to view the dashboard.
+Open [http://localhost:3000](http://localhost:3000).
 
-**Note:** The app works with mock Kafka/Snowflake services for development. See [SETUP.md](./SETUP.md) for configuring real services.
+### Environment Variables
+
+**Backend** (`.env` in `backend/`):
+```
+KAFKA_BOOTSTRAP_SERVERS=placeholder   # leave as placeholder for local dev
+SNOWFLAKE_ACCOUNT=placeholder         # leave as placeholder for local dev
+```
+When set to `placeholder`, Kafka and Snowflake fall back to mock implementations — the app runs fully without external services.
+
+**Frontend** (`.env.local` in `dashboard/`):
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+---
+
+## Snowflake Pipeline (optional)
+
+The `data-pipeline/snowflake/` directory contains SQL scripts for:
+1. RAW schema tables (SHIFT_EVENTS, PERSONNEL, UNITS, UNIT_ASSIGNMENTS)
+2. Snowpipe ingestion from Kafka
+3. Streams and Tasks for automated ETL
+4. ANALYTICS views (SHIFT_COVERAGE_HOURLY, UNIT_READINESS_AGGREGATES)
+
+See [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) for configuration steps.
+
+---
 
 ## Project Structure
 
 ```
-workforce-shift-dashboard/
 ├── backend/
-│   ├── app/
-│   │   ├── api/          # REST API routers
-│   │   ├── models/       # Pydantic models
-│   │   ├── services/     # Business logic (Kafka, Snowflake)
-│   │   └── websocket/    # WebSocket manager
-│   ├── tests/
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env.example
-├── data-pipeline/
-│   └── snowflake/
-│       ├── 01_schema.sql
-│       ├── 02_stage_and_pipe.sql
-│       ├── 03_streams_and_tasks.sql
-│       └── 04_analytics_views.sql
+│   └── app/
+│       ├── api/           # REST routes (shifts, readiness, operations)
+│       ├── services/      # Readiness, certification, recommendation, demo, Kafka, Snowflake
+│       ├── websocket/     # WebSocket connection managers
+│       ├── models.py      # Pydantic domain models
+│       ├── stores.py      # In-memory data stores
+│       └── main.py        # FastAPI app, startup seed, WebSocket endpoints
 ├── dashboard/
-│   ├── app/              # Next.js app directory
-│   ├── components/       # React components
-│   ├── package.json
-│   └── .env.example
-└── docs/
-    └── architecture.md
+│   └── app/
+│       ├── page.tsx                       # Overview (hero + live stats + alerts)
+│       ├── readiness/page.tsx             # Operations board
+│       ├── personnel/page.tsx             # Workforce workspace
+│       ├── shifts/page.tsx                # Shift operations
+│       ├── analytics/page.tsx             # Analytics suite
+│       └── certifications-management/    # Credentials library
+└── data-pipeline/
+    └── snowflake/                         # SQL pipeline scripts
 ```
 
-## Environment Variables
+---
 
-### Backend (.env)
-```bash
-# Kafka (Confluent Cloud)
-KAFKA_BOOTSTRAP_SERVERS=pkc-xxxxx.region.provider.confluent.cloud:9092
-KAFKA_USERNAME=your_api_key
-KAFKA_PASSWORD=your_api_secret
+## License
 
-# Snowflake
-SNOWFLAKE_ACCOUNT=your_account_identifier
-SNOWFLAKE_USER=your_username
-SNOWFLAKE_PASSWORD=your_password
-SNOWFLAKE_ROLE=ACCOUNTADMIN
-SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-SNOWFLAKE_DATABASE=WORKFORCE_DB
-SNOWFLAKE_SCHEMA=RAW
-
-# Application
-JWT_SECRET=your-secret-key
-CORS_ORIGINS=http://localhost:3000,https://your-frontend.vercel.app
-```
-
-### Frontend (.env.local)
-```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-```
-
-## Deployment
-
-### Backend (Render/Railway)
-
-1. Push code to GitHub
-2. Create new service in Render/Railway
-3. Connect GitHub repository
-4. Set build command: `cd backend && pip install -r requirements.txt`
-5. Set start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-6. Configure all environment variables
-7. Deploy
-
-### Frontend (Vercel)
-
-1. Push code to GitHub
-2. Import project in Vercel (select `dashboard/` folder)
-3. Set environment variable: `NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com`
-4. Deploy
-
-## What The Product Should Demonstrate
-
-- **Real-time command visibility**: show which units are deployable right now and which ones are degraded.
-- **Operational analytics**: identify where scheduled staffing diverges from actual staffing and when risk windows open.
-- **Credential-aware readiness**: treat certifications as a deployment constraint, not just profile metadata.
-- **Scalable backend design**: separate ingestion, processing, and presentation layers with Kafka and Snowflake.
-- **Strict API contracts**: use Pydantic models to validate mission-critical input before it reaches persistence layers.
-
-## Local Demo Behavior
-
-- When Snowflake is unavailable, the backend now falls back to local readiness-derived analytics instead of returning empty arrays.
-- If no local assignments exist yet, the analytics page shows deterministic demo coverage so the product still presents a meaningful operational story during portfolio review.
-- Once Snowflake is configured and the warehouse tables are populated, the UI automatically uses real warehouse data.
-
-## API Endpoints
-
-### REST API
-- `POST /api/personnel` - Create personnel profile
-- `GET /api/personnel` - List all personnel
-- `POST /api/units` - Create unit definition
-- `GET /api/units` - List all units
-- `POST /api/unit-assignments` - Assign personnel to unit
-- `GET /api/readiness/units/{unit_id}` - Get unit readiness status
-- `GET /api/readiness/all-units` - Get all units readiness
-- `GET /api/certifications/expiring` - Get expiring certifications
-- `GET /api/certifications/expired` - Get expired certifications
-
-### WebSocket
-- `ws://<backend_url>/ws/unit-readiness/{unit_id}` - Real-time unit readiness updates
-
-See http://localhost:8000/docs for full interactive API documentation.
-
-## Documentation
-
-- [SETUP.md](./SETUP.md) - Detailed setup and installation guide
-- [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) - Snowflake configuration and data pipeline setup
-- [docs/architecture.md](./docs/architecture.md) - System architecture and design
-
-## Recommended Next Improvements
-
-- Replace basic scheduled-vs-actual analytics with station-level readiness gap, coverage rate, and risk-hour metrics.
-- Add historical readiness trend endpoints so the analytics page can compare current posture against prior days.
-- Normalize Snowflake schemas and naming so `RAW`, `ANALYTICS`, and API contracts describe the same entities consistently.
-- Regenerate screenshots after the UI refresh so the GitHub presentation matches the current product quality.
-
-## Contributing
-
-This is a portfolio project demonstrating real-time systems, analytics engineering, and full-stack application design. Fork and extend as needed.
+MIT © Devon Arnone
