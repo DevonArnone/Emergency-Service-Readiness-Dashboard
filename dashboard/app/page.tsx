@@ -130,6 +130,7 @@ export default function Home() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
+  const [loading, setLoading] = useState(true)
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
   const animatedReadiness = useCountUp(summary?.overall_readiness_pct ?? 0)
@@ -152,7 +153,9 @@ export default function Home() {
         if (alertRes.ok) setAlerts(await alertRes.json())
         if (incRes.ok) setIncidents(await incRes.json())
       } catch {
-        // backend not available — static fallback
+        // backend not available
+      } finally {
+        setLoading(false)
       }
     }
     load()
@@ -215,9 +218,13 @@ export default function Home() {
           </div>
 
           {/* Command strip */}
-          {summary && (
+          {(loading || summary) && (
             <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {[
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="skeleton-card h-[72px] rounded-[20px]" />
+                ))
+              ) : summary ? [
                 { label: 'Total Units', value: animatedTotal,     color: 'text-white',       cls: 'border-white/[0.08] bg-white/[0.03]' },
                 { label: 'Ready',       value: animatedReady,     color: 'text-emerald-400', cls: 'border-emerald-500/20 bg-emerald-500/[0.06]' },
                 { label: 'Degraded',    value: animatedDegraded,  color: 'text-amber-400',   cls: 'border-amber-500/20 bg-amber-500/[0.06]' },
@@ -229,7 +236,7 @@ export default function Home() {
                   <div className={`text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
                   <div className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-400">{s.label}</div>
                 </div>
-              ))}
+              )) : null}
             </div>
           )}
         </section>
@@ -276,7 +283,11 @@ export default function Home() {
             <div className="panel-kicker">Live Alerts</div>
             <h2 className="panel-title text-xl">Open Readiness Alerts</h2>
             <div className="mt-5 space-y-3">
-              {alerts.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="skeleton-card h-12 rounded-xl" />
+                ))
+              ) : alerts.length === 0 ? (
                 <p className="py-4 text-center text-sm text-slate-500">No open alerts</p>
               ) : (
                 alerts.slice(0, 5).map((a) => (
@@ -299,7 +310,11 @@ export default function Home() {
             <div className="panel-kicker">Active Incidents</div>
             <h2 className="panel-title text-xl">Dispatched Units</h2>
             <div className="mt-5 space-y-3">
-              {incidents.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="skeleton-card h-12 rounded-xl" />
+                ))
+              ) : incidents.length === 0 ? (
                 <p className="py-4 text-center text-sm text-slate-500">No active incidents</p>
               ) : (
                 incidents.map((inc) => (

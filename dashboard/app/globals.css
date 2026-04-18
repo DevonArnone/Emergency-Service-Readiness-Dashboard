@@ -181,3 +181,14 @@ a {
   0%, 100% { transform: scale(1) translate(0, 0); }
   50%       { transform: scale(1.3) translate(-28px, 32px); }
 }
+
+/* Skeleton loading */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.65; }
+}
+
+.skeleton-card {
+  background: rgba(255, 255, 255, 0.06);
+  animation: skeletonPulse 1.6s ease-in-out infinite;
+}
