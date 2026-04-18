@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface DashboardSummary {
   total_units: number
@@ -38,6 +38,27 @@ interface Incident {
   is_active: boolean
 }
 
+
+function useCountUp(target: number, duration = 700) {
+  const [value, setValue] = useState(0)
+  const rafRef = useRef<number>()
+
+  useEffect(() => {
+    if (target === 0) { setValue(0); return }
+    const startTime = performance.now()
+    const step = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setValue(Math.round(target * eased))
+      if (progress < 1) rafRef.current = requestAnimationFrame(step)
+    }
+    rafRef.current = requestAnimationFrame(step)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [target, duration])
+
+  return value
+}
 
 function readinessColor(score: number) {
   if (score >= 85) return 'text-emerald-400'
@@ -78,6 +99,14 @@ export default function Home() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
+  const animatedReadiness = useCountUp(summary?.overall_readiness_pct ?? 0)
+  const animatedTotal     = useCountUp(summary?.total_units ?? 0)
+  const animatedReady     = useCountUp(summary?.ready_units ?? 0)
+  const animatedDegraded  = useCountUp(summary?.degraded_units ?? 0)
+  const animatedCritical  = useCountUp(summary?.critical_units ?? 0)
+  const animatedAlerts    = useCountUp(summary?.open_alerts ?? 0)
+  const animatedIncidents = useCountUp(summary?.active_incidents ?? 0)
+
   useEffect(() => {
     async function load() {
       try {
@@ -97,7 +126,7 @@ export default function Home() {
   }, [apiBase])
 
   return (
-    <div className="ops-page">
+    <div className="ops-page page-enter">
       <div className="ops-shell space-y-8">
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -131,12 +160,12 @@ export default function Home() {
               <div className="hidden lg:flex flex-col items-center gap-3 min-w-[172px]">
                 <div className="flex flex-col items-center gap-2 rounded-[28px] border border-white/[0.1] bg-white/[0.04] px-8 py-7">
                   <div className={`text-5xl font-semibold tabular-nums ${readinessColor(summary.overall_readiness_pct)}`}>
-                    {summary.overall_readiness_pct}%
+                    {animatedReadiness}%
                   </div>
                   <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Fleet Readiness</div>
                   <div className="mt-1 text-xs text-slate-400">
-                    <span className="text-emerald-400">{summary.ready_units}</span> ready ·{' '}
-                    <span className="text-red-400">{summary.critical_units}</span> critical
+                    <span className="text-emerald-400">{animatedReady}</span> ready ·{' '}
+                    <span className="text-red-400">{animatedCritical}</span> critical
                   </div>
                 </div>
               </div>
@@ -147,12 +176,12 @@ export default function Home() {
           {summary && (
             <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
-                { label: 'Total Units', value: summary.total_units,      color: 'text-white',       cls: 'border-white/[0.08] bg-white/[0.03]' },
-                { label: 'Ready',       value: summary.ready_units,      color: 'text-emerald-400', cls: 'border-emerald-500/20 bg-emerald-500/[0.06]' },
-                { label: 'Degraded',    value: summary.degraded_units,   color: 'text-amber-400',   cls: 'border-amber-500/20 bg-amber-500/[0.06]' },
-                { label: 'Critical',    value: summary.critical_units,   color: 'text-red-400',     cls: 'border-red-500/20 bg-red-500/[0.06]' },
-                { label: 'Open Alerts', value: summary.open_alerts,      color: 'text-orange-400',  cls: 'border-orange-500/20 bg-orange-500/[0.06]' },
-                { label: 'Incidents',   value: summary.active_incidents, color: 'text-rose-400',    cls: 'border-rose-500/20 bg-rose-500/[0.06]' },
+                { label: 'Total Units', value: animatedTotal,     color: 'text-white',       cls: 'border-white/[0.08] bg-white/[0.03]' },
+                { label: 'Ready',       value: animatedReady,     color: 'text-emerald-400', cls: 'border-emerald-500/20 bg-emerald-500/[0.06]' },
+                { label: 'Degraded',    value: animatedDegraded,  color: 'text-amber-400',   cls: 'border-amber-500/20 bg-amber-500/[0.06]' },
+                { label: 'Critical',    value: animatedCritical,  color: 'text-red-400',     cls: 'border-red-500/20 bg-red-500/[0.06]' },
+                { label: 'Open Alerts', value: animatedAlerts,    color: 'text-orange-400',  cls: 'border-orange-500/20 bg-orange-500/[0.06]' },
+                { label: 'Incidents',   value: animatedIncidents, color: 'text-rose-400',    cls: 'border-rose-500/20 bg-rose-500/[0.06]' },
               ].map((s) => (
                 <div key={s.label} className={`rounded-[20px] border px-4 py-4 text-center ${s.cls}`}>
                   <div className={`text-2xl font-semibold tabular-nums ${s.color}`}>{s.value}</div>
