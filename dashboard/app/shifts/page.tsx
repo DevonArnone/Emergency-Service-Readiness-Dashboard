@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import CreateModal from '@/components/CreateModal'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import ToastContainer, { ToastMessage } from '@/components/ToastContainer'
 
 interface LiveShiftStatus {
   shift_id: string
@@ -16,425 +15,299 @@ interface LiveShiftStatus {
   alerts: string[]
 }
 
+interface ShiftEvent {
+  event_id?: string
+  shift_id: string
+  employee_id?: string
+  event_type: string
+  event_time: string
+  payload?: Record<string, unknown>
+}
+
+interface UnitAssignment {
+  assignment_id: string
+  unit_id: string
+  personnel_id: string
+  shift_start: string
+  shift_end: string
+  assignment_status: string
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  fully_staffed: 'border-emerald-400/30 bg-emerald-400/[0.07] text-emerald-300',
+  understaffed:  'border-red-400/30 bg-red-400/[0.07] text-red-300',
+  over_staffed:  'border-cyan-400/30 bg-cyan-400/[0.07] text-cyan-300',
+}
+
+const EVENT_STYLES: Record<string, string> = {
+  CLOCK_IN:            'text-emerald-400',
+  CLOCK_OUT:           'text-slate-400',
+  ALERT_UNDERSTAFFED:  'text-red-400',
+  ALERT_OVERTIME_RISK: 'text-amber-400',
+  ASSIGNED:            'text-cyan-400',
+  CREATED:             'text-slate-500',
+}
+
+function fmt(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+}
+
+function fmtFull(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
 export default function ShiftsPage() {
   const [shifts, setShifts] = useState<LiveShiftStatus[]>([])
+  const [events, setEvents] = useState<ShiftEvent[]>([])
+  const [assignments, setAssignments] = useState<UnitAssignment[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [wsConnected, setWsConnected] = useState(false)
-  const [showCreateShift, setShowCreateShift] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const wsRef = useRef<WebSocket | null>(null)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+
+  const addToast = (msg: string, type: ToastMessage['type'] = 'info') => {
+    const id = Math.random().toString(36).slice(2, 9)
+    setToasts((p) => [...p, { id, message: msg, type }])
+  }
+
+  const fetchShifts = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/shifts/live`)
+      if (res.ok) setShifts(await res.json())
+    } catch { /* offline */ }
+    setLoading(false)
+  }, [apiBase])
+
+  const fetchAssignments = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/unit-assignments`)
+      if (res.ok) setAssignments(await res.json())
+    } catch { /* offline */ }
+  }, [apiBase])
+
+  useEffect(() => { fetchShifts(); fetchAssignments() }, [fetchShifts, fetchAssignments])
 
   useEffect(() => {
-    fetchShifts()
-
-    // Connect to WebSocket for real-time updates
-    const wsUrl = apiBaseUrl.replace('http://', 'ws://').replace('https://', 'wss://')
+    const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
     const ws = new WebSocket(`${wsUrl}/ws/shifts`)
-
-    ws.onopen = () => {
-      console.log('WebSocket connected')
-      setWsConnected(true)
-    }
-
-    ws.onmessage = (event) => {
+    wsRef.current = ws
+    ws.onopen = () => setWsConnected(true)
+    ws.onclose = () => setWsConnected(false)
+    ws.onerror = () => setWsConnected(false)
+    ws.onmessage = (ev) => {
       try {
-        const message = JSON.parse(event.data)
-        if (message.type === 'shift_event') {
-          // Refresh shifts when event is received
-          fetchShifts()
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err)
-      }
+        const msg: ShiftEvent = JSON.parse(ev.data)
+        setEvents((p) => [msg, ...p].slice(0, 50))
+        if (msg.event_type === 'ALERT_UNDERSTAFFED') { addToast(`Understaffing alert on shift ${msg.shift_id}`, 'error'); fetchShifts() }
+        if (['CLOCK_IN', 'CLOCK_OUT'].includes(msg.event_type)) fetchShifts()
+      } catch { /* non-JSON */ }
     }
+    return () => { ws.close(); wsRef.current = null }
+  }, [apiBase, fetchShifts]) // eslint-disable-line
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      setWsConnected(false)
-    }
+  const now = new Date()
+  const hours = Array.from({ length: 12 }, (_, i) => (now.getHours() - 5 + i + 24) % 24)
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected')
-      setWsConnected(false)
-    }
-
-    return () => {
-      ws.close()
-    }
-  }, [apiBaseUrl])
-
-  const getStatusConfig = (status: string) => {
-    const configs = {
-      understaffed: {
-        bg: 'bg-red-50',
-        border: 'border-red-200',
-        text: 'text-red-800',
-        badge: 'bg-red-100 text-red-800 border-red-300',
-        icon: '⚠️',
-        progress: 'bg-red-500',
-      },
-      fully_staffed: {
-        bg: 'bg-green-50',
-        border: 'border-green-200',
-        text: 'text-green-800',
-        badge: 'bg-green-100 text-green-800 border-green-300',
-        icon: '✅',
-        progress: 'bg-green-500',
-      },
-      over_staffed: {
-        bg: 'bg-blue-50',
-        border: 'border-blue-200',
-        text: 'text-blue-800',
-        badge: 'bg-blue-100 text-blue-800 border-blue-300',
-        icon: '📊',
-        progress: 'bg-blue-500',
-      },
-    }
-    return configs[status as keyof typeof configs] || {
-      bg: 'bg-gray-50',
-      border: 'border-gray-200',
-      text: 'text-gray-800',
-      badge: 'bg-gray-100 text-gray-800 border-gray-300',
-      icon: '⏸️',
-      progress: 'bg-gray-500',
-    }
+  function assignedAtHour(h: number) {
+    return assignments.filter((a) => {
+      const s = new Date(a.shift_start).getHours()
+      const e = new Date(a.shift_end).getHours()
+      return a.assignment_status === 'ON_SHIFT' && s <= h && h < e
+    }).length
   }
 
-  const getCoveragePercentage = (clockedIn: number, required: number) => {
-    if (required === 0) return 0
-    return Math.min((clockedIn / required) * 100, 100)
-  }
-
-  const fetchShifts = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/shifts/live`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch shifts')
-      }
-      const data = await response.json()
-      setShifts(data)
-      setLoading(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      setLoading(false)
-    }
-  }
-
-  const handleCreateShift = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setCreating(true)
-    
-    const formData = new FormData(e.currentTarget)
-    const shiftData = {
-      location: formData.get('location') as string,
-      start_time: new Date(`${formData.get('date')}T${formData.get('start_time')}`).toISOString(),
-      end_time: new Date(`${formData.get('date')}T${formData.get('end_time')}`).toISOString(),
-      required_headcount: parseInt(formData.get('required_headcount') as string),
-    }
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/shifts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(shiftData),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create shift')
-      }
-
-      setShowCreateShift(false)
-      await fetchShifts()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create shift')
-    } finally {
-      setCreating(false)
-    }
-  }
+  const maxStaff = Math.max(...hours.map(assignedAtHour), 1)
+  const totalOnShift = assignments.filter((a) => a.assignment_status === 'ON_SHIFT').length
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading shifts...</p>
-            </div>
+      <div className="ops-page">
+        <div className="ops-shell flex items-center justify-center" style={{ minHeight: '50vh' }}>
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <p className="text-sm text-slate-400">Loading shift board…</p>
           </div>
         </div>
       </div>
     )
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center space-x-3">
-              <span className="text-3xl">❌</span>
-              <div>
-                <h3 className="text-lg font-bold text-red-900">Error</h3>
-                <p className="text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const totalShifts = shifts.length
-  const fullyStaffed = shifts.filter(s => s.status === 'fully_staffed').length
-  const understaffed = shifts.filter(s => s.status === 'understaffed').length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
+    <>
+      <ToastContainer toasts={toasts} onRemove={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
+
+      <div className="ops-page">
+        <div className="ops-shell space-y-6">
+
+          {/* Header */}
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-                Live Shifts
-              </h1>
-              <p className="text-gray-600 text-lg">
-                Real-time monitoring of today's shifts
-              </p>
+              <div className="panel-kicker">Ridgecrest ESD</div>
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Shifts</h1>
+              <p className="mt-1 text-sm text-slate-400">Live staffing timeline, clock-in events, and gap markers.</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowCreateShift(true)}
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2"
-              >
-                <span>+</span>
-                <span>Create Shift</span>
-              </button>
-              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl shadow-lg">
-                <div className={`w-3 h-3 rounded-full ${wsConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                <span className="text-sm font-medium text-gray-700">
-                  {wsConnected ? 'Live' : 'Disconnected'}
-                </span>
-              </div>
+            <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected ? 'border-emerald-400/30 bg-emerald-400/[0.07] text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
+              {wsConnected ? 'Live feed connected' : 'Connecting…'}
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 transform hover:scale-105 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Total Shifts</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{totalShifts}</p>
-                </div>
-                <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center">
-                  <span className="text-3xl">📅</span>
-                </div>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Active Shifts',  value: shifts.length,                                          cls: 'text-white' },
+              { label: 'On Shift Now',   value: totalOnShift,                                           cls: 'text-emerald-400' },
+              { label: 'Understaffed',   value: shifts.filter((s) => s.status === 'understaffed').length, cls: 'text-red-400' },
+              { label: 'Events Today',   value: events.length,                                          cls: 'text-cyan-400' },
+            ].map((s) => (
+              <div key={s.label} className="stat-panel">
+                <div className="stat-label">{s.label}</div>
+                <div className={`stat-value ${s.cls}`}>{s.value}</div>
               </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500 transform hover:scale-105 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Fully Staffed</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{fullyStaffed}</p>
-                </div>
-                <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center">
-                  <span className="text-3xl">✅</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500 transform hover:scale-105 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm font-medium">Understaffed</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{understaffed}</p>
-                </div>
-                <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center">
-                  <span className="text-3xl">⚠️</span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
 
-        {/* Shifts Grid */}
-        {shifts.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl p-12 text-center animate-fade-in">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">📋</span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No Shifts Scheduled</h3>
-            <p className="text-gray-600 mb-4">Create your first shift to get started</p>
-            <button
-              onClick={() => setShowCreateShift(true)}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Create Your First Shift
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {shifts.map((shift, index) => {
-              const config = getStatusConfig(shift.status)
-              const coverage = getCoveragePercentage(shift.clocked_in_count, shift.required_headcount)
-              
-              return (
-                <div
-                  key={shift.shift_id}
-                  className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 ${config.border} transform hover:scale-105 transition-all animate-fade-in`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className={`${config.bg} p-6`}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-1">{shift.location}</h3>
-                        <p className="text-gray-600 flex items-center space-x-2">
-                          <span>🕐</span>
-                          <span>
-                            {format(new Date(shift.start_time), 'h:mm a')} -{' '}
-                            {format(new Date(shift.end_time), 'h:mm a')}
-                          </span>
-                        </p>
-                      </div>
-                      <div className={`px-4 py-2 rounded-xl border ${config.badge} flex items-center space-x-2`}>
-                        <span>{config.icon}</span>
-                        <span className="font-semibold text-sm">
-                          {shift.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
+          {/* Staffing timeline */}
+          <div className="ops-panel">
+            <div className="panel-kicker">Staffing Timeline</div>
+            <h2 className="mt-1 text-sm font-semibold text-white mb-5">Assigned personnel by hour · today</h2>
+            <div className="flex items-end gap-1" style={{ height: '80px' }}>
+              {hours.map((h) => {
+                const count = assignedAtHour(h)
+                const pct = (count / maxStaff) * 100
+                const isNow = h === now.getHours()
+                return (
+                  <div key={h} className="group relative flex flex-1 flex-col items-center justify-end gap-0.5" style={{ height: '100%' }}>
+                    <div className="absolute -top-7 left-1/2 hidden -translate-x-1/2 group-hover:block z-10 rounded bg-slate-800 border border-white/10 px-2 py-0.5 text-[10px] text-white whitespace-nowrap">
+                      {`${String(h).padStart(2, '0')}:00 · ${count} staff`}
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Coverage</span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {shift.clocked_in_count} / {shift.required_headcount}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                        <div
-                          className={`h-full ${config.progress} transition-all duration-500 rounded-full`}
-                          style={{ width: `${coverage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-white rounded-xl">
-                        <p className="text-2xl font-bold text-gray-900">{shift.required_headcount}</p>
-                        <p className="text-xs text-gray-600 mt-1">Required</p>
-                      </div>
-                      <div className="text-center p-3 bg-white rounded-xl">
-                        <p className="text-2xl font-bold text-gray-900">{shift.assigned_count}</p>
-                        <p className="text-xs text-gray-600 mt-1">Assigned</p>
-                      </div>
-                      <div className="text-center p-3 bg-white rounded-xl">
-                        <p className="text-2xl font-bold text-indigo-600">{shift.clocked_in_count}</p>
-                        <p className="text-xs text-gray-600 mt-1">Clocked In</p>
-                      </div>
-                    </div>
-
-                    {/* Alerts */}
-                    {shift.alerts.length > 0 && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-red-600">🚨</span>
-                          <span className="text-sm font-medium text-red-800">
-                            {shift.alerts.join(', ')}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    <div
+                      className={`w-full rounded-sm transition-all duration-300 ${isNow ? 'bg-cyan-400' : count === 0 ? 'bg-red-400/50' : 'bg-slate-500/70'}`}
+                      style={{ height: `${Math.max(pct, count === 0 ? 10 : 4)}%` }}
+                    />
+                    <span className={`text-[9px] ${isNow ? 'font-bold text-cyan-400' : 'text-slate-600'}`}>
+                      {String(h).padStart(2, '0')}
+                    </span>
                   </div>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex gap-4 text-[10px] text-slate-500">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-cyan-400" /> Current hour</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-red-400/50" /> Gap</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-slate-500/70" /> Staffed</span>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            {/* Shift cards */}
+            <div className="space-y-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Live Shifts</div>
+              {shifts.length === 0 ? (
+                <div className="ops-panel py-10 text-center">
+                  <p className="text-sm text-slate-500">No active shifts. Seed demo or create via POST /api/shifts.</p>
                 </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Create Shift Modal */}
-        <CreateModal
-          isOpen={showCreateShift}
-          onClose={() => setShowCreateShift(false)}
-          title="Create New Shift"
-          onSubmit={handleCreateShift}
-          submitLabel={creating ? 'Creating...' : 'Create Shift'}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location
-              </label>
-              <input
-                type="text"
-                name="location"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g., Station 1, Downtown Office"
-              />
+              ) : (
+                shifts.map((shift) => {
+                  const pct = shift.required_headcount === 0 ? 100 : Math.min(100, Math.round((shift.clocked_in_count / shift.required_headcount) * 100))
+                  const style = STATUS_STYLES[shift.status] ?? STATUS_STYLES['understaffed']
+                  return (
+                    <div key={shift.shift_id} className={`ops-panel border ${style}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{shift.location}</div>
+                          <h3 className="mt-0.5 text-sm font-semibold text-white">{fmt(shift.start_time)} – {fmt(shift.end_time)}</h3>
+                        </div>
+                        <span className={`rounded-full border px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style}`}>
+                          {shift.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+                          <span>Clocked in: <span className="text-white font-medium">{shift.clocked_in_count}</span> / {shift.required_headcount}</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-white/10">
+                          <div className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-emerald-400' : pct >= 75 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="mt-1.5 text-xs text-slate-500">Assigned: {shift.assigned_count}</div>
+                      </div>
+                      {shift.alerts.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          {shift.alerts.map((a, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs text-red-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />{a}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                required
-                defaultValue={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  name="start_time"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Time
-                </label>
-                <input
-                  type="time"
-                  name="end_time"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Required Headcount
-              </label>
-              <input
-                type="number"
-                name="required_headcount"
-                required
-                min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Minimum number of staff needed"
-              />
+            {/* Event log */}
+            <div className="ops-panel">
+              <div className="panel-kicker mb-3">Event Log</div>
+              {events.length === 0 ? (
+                <p className="py-8 text-center text-xs text-slate-500">
+                  Waiting for events…<br />
+                  <span className="text-slate-600">Clock-ins, alerts appear here live.</span>
+                </p>
+              ) : (
+                <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
+                  {events.map((ev, i) => (
+                    <div key={ev.event_id ?? i} className="flex gap-3">
+                      <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${(EVENT_STYLES[ev.event_type] ?? 'text-slate-500').replace('text-', 'bg-')}`} />
+                      <div>
+                        <div className={`text-xs font-medium ${EVENT_STYLES[ev.event_type] ?? 'text-slate-400'}`}>
+                          {ev.event_type.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">{fmtFull(ev.event_time)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </CreateModal>
+
+          {/* Assignments table */}
+          <div className="ops-panel overflow-hidden p-0">
+            <div className="border-b border-white/[0.06] px-6 py-4">
+              <div className="panel-kicker">Today's Unit Assignments</div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="data-table w-full">
+                <thead><tr><th>Unit</th><th>Personnel</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
+                <tbody className="divide-y divide-white/[0.05]">
+                  {assignments.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-slate-500">No assignments</td></tr>}
+                  {assignments.slice(0, 25).map((a) => {
+                    const sc = a.assignment_status === 'ON_SHIFT'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                      : a.assignment_status === 'ABSENT'
+                      ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                      : 'border-slate-500/30 bg-slate-500/10 text-slate-400'
+                    return (
+                      <tr key={a.assignment_id}>
+                        <td className="font-mono text-xs text-slate-400">{a.unit_id.slice(-8)}</td>
+                        <td className="font-mono text-xs text-slate-400">{a.personnel_id.slice(-8)}</td>
+                        <td>{fmt(a.shift_start)}</td>
+                        <td>{fmt(a.shift_end)}</td>
+                        <td><span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${sc}`}>{a.assignment_status}</span></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import ToastContainer, { ToastMessage } from '@/components/ToastContainer'
 import CreateModal from '@/components/CreateModal'
 
@@ -15,916 +15,514 @@ interface UnitReadiness {
   expired_certifications: string[]
   is_understaffed: boolean
   issues: string[]
-  assigned_personnel: Array<{
-    personnel_id: string
-    name: string
-    role: string
-    certifications: string[]
-  }>
+  assigned_personnel: Array<{ personnel_id: string; name: string; role: string; certifications: string[] }>
   timestamp: string
 }
 
-export default function ReadinessPage() {
+interface Alert {
+  alert_id: string
+  alert_type: string
+  state: string
+  message: string
+  unit_id?: string
+  station_id?: string
+  created_at?: string
+}
+
+interface Recommendation {
+  recommendation_id: string
+  unit_id: string
+  action_type: string
+  message: string
+  priority: string
+}
+
+type FilterType = 'ALL' | 'CRITICAL' | 'DEGRADED' | 'READY'
+type UnitTypeFilter = 'ALL' | 'ENGINE' | 'LADDER' | 'RESCUE' | 'MEDIC' | 'SAR_TEAM'
+
+const UNIT_TYPE_LABELS: Record<string, string> = {
+  ENGINE: 'Engine', LADDER: 'Ladder', RESCUE: 'Rescue', MEDIC: 'Medic', SAR_TEAM: 'SAR',
+}
+
+function scoreColor(score: number) {
+  if (score >= 85) return 'text-emerald-400'
+  if (score >= 60) return 'text-amber-400'
+  return 'text-red-400'
+}
+
+function scoreBg(score: number) {
+  if (score >= 85) return 'bg-emerald-400'
+  if (score >= 60) return 'bg-amber-400'
+  return 'bg-red-400'
+}
+
+function scoreBorder(score: number) {
+  if (score >= 85) return 'border-emerald-400/20'
+  if (score >= 60) return 'border-amber-400/20'
+  return 'border-red-400/30'
+}
+
+function alertTypeBadge(type: string) {
+  if (type === 'UNDERSTAFFED_UNIT') return 'bg-red-500/10 text-red-300 border-red-500/30'
+  if (type.includes('CERT')) return 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+  return 'bg-slate-500/10 text-slate-300 border-slate-500/30'
+}
+
+function priorityBadge(p: string) {
+  if (p === 'CRITICAL') return 'bg-red-500/10 text-red-300 border-red-500/30'
+  if (p === 'HIGH') return 'bg-orange-500/10 text-orange-300 border-orange-500/30'
+  return 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+}
+
+export default function OperationsPage() {
   const [units, setUnits] = useState<UnitReadiness[]>([])
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
+  const [selectedUnit, setSelectedUnit] = useState<UnitReadiness | null>(null)
+  const [filter, setFilter] = useState<FilterType>('ALL')
+  const [typeFilter, setTypeFilter] = useState<UnitTypeFilter>('ALL')
   const [wsConnected, setWsConnected] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [showCreatePersonnel, setShowCreatePersonnel] = useState(false)
   const [showCreateUnit, setShowCreateUnit] = useState(false)
   const [showCreateAssignment, setShowCreateAssignment] = useState(false)
+  const [certsList, setCertsList] = useState<any[]>([])
   const [personnelList, setPersonnelList] = useState<any[]>([])
   const [unitsList, setUnitsList] = useState<any[]>([])
-  const [certificationsList, setCertificationsList] = useState<any[]>([])
-  const [selectedCertExpirations, setSelectedCertExpirations] = useState<Record<string, boolean>>({})
+  const [selectedCertExp, setSelectedCertExp] = useState<Record<string, boolean>>({})
   const [creating, setCreating] = useState(false)
-  const wsConnectionsRef = useRef<Map<string, WebSocket>>(new Map())
+  const wsRef = useRef<Map<string, WebSocket>>(new Map())
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
   const addToast = (message: string, type: ToastMessage['type'] = 'warning') => {
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = Math.random().toString(36).slice(2, 9)
     setToasts((prev) => [...prev, { id, message, type }])
   }
+  const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id))
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }
-
-  const fetchReadiness = async () => {
+  const fetchAll = useCallback(async () => {
     try {
-      setError(null)
-      const response = await fetch(`${apiBaseUrl}/api/readiness/units`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Failed to fetch readiness data: ${response.status} ${errorText}`)
-      }
-      const data = await response.json()
-      setUnits(data)
-      setLoading(false)
-    } catch (err) {
-      console.error('Error fetching readiness:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      setLoading(false)
-    }
-  }
+      const [unitRes, alertRes, recRes] = await Promise.all([
+        fetch(`${apiBase}/api/readiness/units`),
+        fetch(`${apiBase}/api/alerts`),
+        fetch(`${apiBase}/api/recommendations`),
+      ])
+      if (unitRes.ok) setUnits(await unitRes.ok ? unitRes.json() : [])
+      if (alertRes.ok) setAlerts(await alertRes.json())
+      if (recRes.ok) setRecommendations(await recRes.json())
+    } catch { /* backend unavailable */ }
+    setLoading(false)
+  }, [apiBase])
 
-  const fetchPersonnel = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/personnel`)
-      if (response.ok) {
-        const data = await response.json()
-        setPersonnelList(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch personnel:', err)
-    }
-  }
+  const fetchSupportData = useCallback(async () => {
+    const [cRes, pRes, uRes] = await Promise.all([
+      fetch(`${apiBase}/api/certifications`),
+      fetch(`${apiBase}/api/personnel`),
+      fetch(`${apiBase}/api/units`),
+    ])
+    if (cRes.ok) setCertsList(await cRes.json())
+    if (pRes.ok) setPersonnelList(await pRes.json())
+    if (uRes.ok) setUnitsList(await uRes.json())
+  }, [apiBase])
 
-  const fetchUnits = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/units`)
-      if (response.ok) {
-        const data = await response.json()
-        setUnitsList(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch units:', err)
-    }
-  }
+  useEffect(() => { fetchAll(); fetchSupportData() }, [fetchAll, fetchSupportData])
 
-  const fetchCertifications = async () => {
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/certifications`)
-      if (response.ok) {
-        const data = await response.json()
-        setCertificationsList(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch certifications:', err)
-    }
-  }
-
-  // Fetch initial readiness data
+  // Per-unit WebSockets
   useEffect(() => {
-    fetchReadiness()
-    fetchPersonnel()
-    fetchUnits()
-    fetchCertifications()
-  }, [apiBaseUrl])
+    if (!units.length) return
+    const currentIds = new Set(units.map((u) => u.unit_id))
 
-  // Connect WebSockets after units are loaded (only create new connections, don't recreate existing ones)
-  useEffect(() => {
-    if (units.length === 0) return
-
-    const currentUnitIds = new Set(units.map(u => u.unit_id))
-    
-    // Close connections for units that no longer exist
-    wsConnectionsRef.current.forEach((ws, unitId) => {
-      if (!currentUnitIds.has(unitId)) {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-          ws.close()
-        }
-        wsConnectionsRef.current.delete(unitId)
-        setWsConnected((prev) => {
-          const next = new Set(prev)
-          next.delete(unitId)
-          return next
-        })
-      }
+    wsRef.current.forEach((ws, uid) => {
+      if (!currentIds.has(uid)) { ws.close(); wsRef.current.delete(uid) }
     })
 
-    // Create connections for new units only
     units.forEach((unit) => {
-      // Skip if connection already exists
-      if (wsConnectionsRef.current.has(unit.unit_id)) {
-        const existingWs = wsConnectionsRef.current.get(unit.unit_id)
-        if (existingWs && existingWs.readyState === WebSocket.OPEN) {
-          return // Already connected
-        }
-      }
-
-      const wsUrl = apiBaseUrl.replace('http://', 'ws://').replace('https://', 'wss://')
+      if (wsRef.current.has(unit.unit_id)) return
+      const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
       const ws = new WebSocket(`${wsUrl}/ws/unit-readiness/${unit.unit_id}`)
-
-      ws.onopen = () => {
-        setWsConnected((prev) => {
-          const next = new Set(prev)
-          next.add(unit.unit_id)
-          return next
-        })
-      }
-
-      ws.onmessage = (event) => {
+      ws.onopen = () => setWsConnected((p) => new Set([...p, unit.unit_id]))
+      ws.onclose = () => { setWsConnected((p) => { const n = new Set(p); n.delete(unit.unit_id); return n }); wsRef.current.delete(unit.unit_id) }
+      ws.onmessage = (ev) => {
         try {
-          const message = JSON.parse(event.data)
-          if (message.type === 'unit_readiness') {
-            const newData = message.data
-            // Update the specific unit in the list
+          const msg = JSON.parse(ev.data)
+          if (msg.type === 'unit_readiness') {
             setUnits((prev) => {
-              const oldUnit = prev.find((u) => u.unit_id === newData.unit_id)
-              const updated = prev.map((u) =>
-                u.unit_id === newData.unit_id ? newData : u
-              )
-
-              // Show alerts for critical changes
-              if (oldUnit) {
-                if (newData.is_understaffed && !oldUnit.is_understaffed) {
-                  addToast(`🚨 ${newData.unit_name} is now UNDERSTAFFED!`, 'error')
-                }
-                if (newData.expired_certifications.length > oldUnit.expired_certifications.length) {
-                  addToast(`⏰ ${newData.unit_name} has expired certifications!`, 'warning')
-                }
-                if (newData.certifications_missing.length > oldUnit.certifications_missing.length) {
-                  addToast(`📛 ${newData.unit_name} is missing required certifications!`, 'warning')
-                }
-              }
-
-              return updated
+              const old = prev.find((u) => u.unit_id === msg.data.unit_id)
+              if (old?.is_understaffed === false && msg.data.is_understaffed)
+                addToast(`${msg.data.unit_name} is now UNDERSTAFFED`, 'error')
+              return prev.map((u) => u.unit_id === msg.data.unit_id ? msg.data : u)
             })
           }
-        } catch (err) {
-          console.error('Error parsing WebSocket message:', err)
-        }
+        } catch { /* ignore */ }
       }
-
-      ws.onerror = () => {
-        setWsConnected((prev) => {
-          const next = new Set(prev)
-          next.delete(unit.unit_id)
-          return next
-        })
-      }
-
-      ws.onclose = () => {
-        setWsConnected((prev) => {
-          const next = new Set(prev)
-          next.delete(unit.unit_id)
-          return next
-        })
-        wsConnectionsRef.current.delete(unit.unit_id)
-      }
-
-      wsConnectionsRef.current.set(unit.unit_id, ws)
+      wsRef.current.set(unit.unit_id, ws)
     })
 
-    // Cleanup on unmount
-    return () => {
-      wsConnectionsRef.current.forEach((ws) => {
-        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-          ws.close()
-        }
+    return () => { wsRef.current.forEach((ws) => ws.close()); wsRef.current.clear() }
+  }, [apiBase, units.map((u) => u.unit_id).sort().join(',')])  // eslint-disable-line
+
+  const acknowledgeAlert = async (alertId: string) => {
+    try {
+      await fetch(`${apiBase}/api/alerts/${alertId}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acknowledged_by: 'Duty Officer' }),
       })
-      wsConnectionsRef.current.clear()
-    }
-  }, [apiBaseUrl, units.map(u => u.unit_id).sort().join(',')]) // Only depend on sorted unit IDs
-
-  const getReadinessColor = (score: number) => {
-    if (score >= 85) return 'green'
-    if (score >= 60) return 'yellow'
-    return 'red'
+      fetchAll()
+      addToast('Alert acknowledged', 'success')
+    } catch { addToast('Failed to acknowledge alert', 'error') }
   }
 
-  const getUnitTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      ENGINE: 'from-red-500 to-red-700',
-      LADDER: 'from-red-600 to-red-800',
-      RESCUE: 'from-orange-500 to-orange-700',
-      MEDIC: 'from-blue-500 to-blue-700',
-      SAR_TEAM: 'from-orange-600 to-orange-800',
-    }
-    return colors[type] || 'from-gray-500 to-gray-700'
+  const resolveAlert = async (alertId: string) => {
+    try {
+      await fetch(`${apiBase}/api/alerts/${alertId}/resolve`, { method: 'POST' })
+      fetchAll()
+      addToast('Alert resolved', 'success')
+    } catch { addToast('Failed to resolve alert', 'error') }
   }
 
-  const getUnitTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      ENGINE: '🔥',
-      LADDER: '🚒',
-      RESCUE: '🚑',
-      MEDIC: '💙',
-      SAR_TEAM: '🧭',
-    }
-    return icons[type] || '🚨'
-  }
+  // Filtering
+  const filtered = units.filter((u) => {
+    const stateOk =
+      filter === 'ALL' ||
+      (filter === 'CRITICAL' && u.readiness_score < 60) ||
+      (filter === 'DEGRADED' && u.readiness_score >= 60 && u.readiness_score < 85) ||
+      (filter === 'READY' && u.readiness_score >= 85)
+    const typeOk = typeFilter === 'ALL' || u.unit_type === typeFilter
+    return stateOk && typeOk
+  })
+
+  const openAlerts = alerts.filter((a) => a.state === 'OPEN')
+  const ackAlerts = alerts.filter((a) => a.state === 'ACKNOWLEDGED')
+  const unitRecs = selectedUnit ? recommendations.filter((r) => r.unit_id === selectedUnit.unit_id) : []
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading unit readiness...</p>
-            </div>
+      <div className="ops-page">
+        <div className="ops-shell flex items-center justify-center" style={{ minHeight: '50vh' }}>
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <p className="text-sm text-slate-400">Loading operations board…</p>
           </div>
         </div>
       </div>
     )
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center space-x-3">
-              <span className="text-3xl">❌</span>
-              <div>
-                <h3 className="text-lg font-bold text-red-900">Error</h3>
-                <p className="text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const totalUnits = units.length
-  const readyUnits = units.filter((u) => u.readiness_score >= 85).length
-  const understaffedUnits = units.filter((u) => u.is_understaffed).length
 
   return (
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
+
+      <div className="ops-page">
+        <div className="ops-shell space-y-6">
+
           {/* Header */}
-          <div className="mb-8 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-                  Crew Readiness Dashboard
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Real-time emergency services unit readiness monitoring
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setShowCreatePersonnel(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    + Personnel
-                  </button>
-                  <button
-                    onClick={() => setShowCreateUnit(true)}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                  >
-                    + Unit
-                  </button>
-                  <button
-                    onClick={() => setShowCreateAssignment(true)}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                  >
-                    + Assignment
-                  </button>
-                </div>
-                <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl shadow-lg">
-                  <div className={`w-3 h-3 rounded-full ${wsConnected.size > 0 ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    {wsConnected.size} units live
-                  </span>
-                </div>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="panel-kicker">Ridgecrest ESD</div>
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Operations Board</h1>
+              <p className="mt-1 text-sm text-slate-400">Live unit posture, alert queue, and deployment readiness.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setShowCreatePersonnel(true)} className="ops-button-secondary text-xs py-2 px-4">+ Personnel</button>
+              <button onClick={() => setShowCreateUnit(true)} className="ops-button-secondary text-xs py-2 px-4">+ Unit</button>
+              <button onClick={() => setShowCreateAssignment(true)} className="ops-button-secondary text-xs py-2 px-4">+ Assignment</button>
+              <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected.size > 0 ? 'border-emerald-400/30 bg-emerald-400/8 text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${wsConnected.size > 0 ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
+                {wsConnected.size} live
               </div>
             </div>
+          </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 transform hover:scale-105 transition-all">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Units</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{totalUnits}</p>
-                  </div>
-                  <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center">
-                    <span className="text-3xl">🚨</span>
-                  </div>
-                </div>
+          {/* Summary stats */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Total Units', value: units.length, cls: 'text-white' },
+              { label: 'Ready (≥85%)', value: units.filter((u) => u.readiness_score >= 85).length, cls: 'text-emerald-400' },
+              { label: 'Degraded',    value: units.filter((u) => u.readiness_score >= 60 && u.readiness_score < 85).length, cls: 'text-amber-400' },
+              { label: 'Critical',   value: units.filter((u) => u.readiness_score < 60).length, cls: 'text-red-400' },
+            ].map((s) => (
+              <div key={s.label} className="stat-panel">
+                <div className="stat-label">{s.label}</div>
+                <div className={`stat-value ${s.cls}`}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            {/* ── Left: Unit grid ─────────────────────────────────────────── */}
+            <div className="space-y-4">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2">
+                {(['ALL', 'CRITICAL', 'DEGRADED', 'READY'] as FilterType[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${filter === f ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}
+                  >
+                    {f}
+                  </button>
+                ))}
+                <span className="mx-1 text-slate-700">|</span>
+                {(['ALL', 'ENGINE', 'LADDER', 'RESCUE', 'MEDIC', 'SAR_TEAM'] as UnitTypeFilter[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(t)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${typeFilter === t ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}
+                  >
+                    {t === 'ALL' ? 'All Types' : UNIT_TYPE_LABELS[t]}
+                  </button>
+                ))}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500 transform hover:scale-105 transition-all">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Ready Units</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{readyUnits}</p>
-                  </div>
-                  <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center">
-                    <span className="text-3xl">✅</span>
-                  </div>
+              {filtered.length === 0 ? (
+                <div className="ops-panel py-12 text-center">
+                  <p className="text-sm text-slate-500">No units match the current filters.</p>
+                  {units.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-600">Use the buttons above to create units or reset demo data via POST /api/demo/reset.</p>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {filtered.sort((a, b) => a.readiness_score - b.readiness_score).map((unit) => {
+                    const isSelected = selectedUnit?.unit_id === unit.unit_id
+                    const unitAlerts = openAlerts.filter((a) => a.unit_id === unit.unit_id)
+                    return (
+                      <button
+                        key={unit.unit_id}
+                        onClick={() => setSelectedUnit(isSelected ? null : unit)}
+                        className={`ops-panel w-full text-left transition hover:border-white/20 ${scoreBorder(unit.readiness_score)} ${isSelected ? 'ring-1 ring-cyan-400/30' : ''}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                              {UNIT_TYPE_LABELS[unit.unit_type] ?? unit.unit_type}
+                            </div>
+                            <div className="mt-0.5 truncate text-sm font-semibold text-white">{unit.unit_name}</div>
+                          </div>
+                          <div className={`shrink-0 text-2xl font-semibold ${scoreColor(unit.readiness_score)}`}>
+                            {unit.readiness_score}%
+                          </div>
+                        </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500 transform hover:scale-105 transition-all">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Understaffed</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{understaffedUnits}</p>
-                  </div>
-                  <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center">
-                    <span className="text-3xl">⚠️</span>
-                  </div>
+                        <div className="mt-3 h-1 w-full rounded-full bg-white/10">
+                          <div className={`h-full rounded-full ${scoreBg(unit.readiness_score)}`} style={{ width: `${unit.readiness_score}%` }} />
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                          <span>Staff {unit.staff_present}/{unit.staff_required}</span>
+                          <div className="flex items-center gap-1.5">
+                            {unitAlerts.length > 0 && (
+                              <span className="rounded border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 text-[10px] text-red-400">{unitAlerts.length} alert{unitAlerts.length > 1 ? 's' : ''}</span>
+                            )}
+                            {wsConnected.has(unit.unit_id) && (
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── Right: Alert queue ───────────────────────────────────────── */}
+            <div className="space-y-4">
+              <div className="ops-panel">
+                <div className="panel-kicker">Alert Queue</div>
+                <div className="mt-3 space-y-2">
+                  {openAlerts.length === 0 && ackAlerts.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-slate-500">No alerts</p>
+                  ) : (
+                    <>
+                      {openAlerts.map((a) => (
+                        <div key={a.alert_id} className={`rounded-xl border p-3 text-xs ${alertTypeBadge(a.alert_type)}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="leading-5">{a.message}</p>
+                          </div>
+                          <div className="mt-2 flex gap-1.5">
+                            <button onClick={() => acknowledgeAlert(a.alert_id)} className="rounded border border-current px-2 py-0.5 text-[10px] hover:bg-white/10">Ack</button>
+                            <button onClick={() => resolveAlert(a.alert_id)} className="rounded border border-current px-2 py-0.5 text-[10px] hover:bg-white/10">Resolve</button>
+                          </div>
+                        </div>
+                      ))}
+                      {ackAlerts.map((a) => (
+                        <div key={a.alert_id} className="rounded-xl border border-slate-700 bg-slate-700/20 p-3 text-xs text-slate-400">
+                          <p className="leading-5">{a.message}</p>
+                          <div className="mt-1 text-[10px] text-slate-600">Acknowledged · {a.acknowledged_by ?? 'Unknown'}</div>
+                          <button onClick={() => resolveAlert(a.alert_id)} className="mt-1.5 rounded border border-slate-600 px-2 py-0.5 text-[10px] hover:bg-white/5">Resolve</button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Crew Readiness Cards */}
-          {units.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-xl p-12 text-center animate-fade-in">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🚨</span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No Units Configured</h3>
-              <p className="text-gray-600">Create units to start monitoring readiness</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {units.map((unit, index) => {
-                const readinessColor = getReadinessColor(unit.readiness_score)
-                const typeGradient = getUnitTypeColor(unit.unit_type)
-                const typeIcon = getUnitTypeIcon(unit.unit_type)
-                const isConnected = wsConnected.has(unit.unit_id)
-
-                return (
-                  <div
-                    key={unit.unit_id}
-                    className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 ${
-                      unit.is_understaffed
-                        ? 'border-red-300 shadow-red-200 animate-pulse'
-                        : readinessColor === 'green'
-                        ? 'border-green-300'
-                        : 'border-yellow-300'
-                    } transform hover:scale-105 transition-all cursor-pointer animate-fade-in`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                    onClick={() => setSelectedUnit(unit.unit_id)}
-                  >
-                    {/* Header with gradient */}
-                    <div className={`bg-gradient-to-r ${typeGradient} p-6 text-white`}>
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="text-3xl">{typeIcon}</span>
-                            <h3 className="text-2xl font-bold">{unit.unit_name}</h3>
-                          </div>
-                          <p className="text-sm opacity-90">{unit.unit_type}</p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-lg ${isConnected ? 'bg-green-500' : 'bg-gray-500'}`}>
-                          <span className="text-xs font-semibold">
-                            {isConnected ? 'LIVE' : 'OFF'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Readiness Score */}
-                      <div className="text-center">
-                        <div className="text-5xl font-extrabold mb-2">
-                          {unit.readiness_score}%
-                        </div>
-                        <div className="w-full bg-white/20 rounded-full h-3 mb-2">
-                          <div
-                            className={`h-full rounded-full ${
-                              readinessColor === 'green'
-                                ? 'bg-green-300'
-                                : readinessColor === 'yellow'
-                                ? 'bg-yellow-300'
-                                : 'bg-red-300'
-                            } transition-all duration-500`}
-                            style={{ width: `${unit.readiness_score}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs opacity-90">Readiness Score</p>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      {/* Staff Count */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">👥 Staff Onboard</span>
-                          <span className="text-lg font-bold text-gray-900">
-                            {unit.staff_present} / {unit.staff_required}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-full rounded-full ${
-                              unit.staff_present >= unit.staff_required
-                                ? 'bg-green-500'
-                                : 'bg-red-500'
-                            } transition-all`}
-                            style={{
-                              width: `${Math.min(100, (unit.staff_present / unit.staff_required) * 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Missing Certifications */}
-                      {unit.certifications_missing.length > 0 && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-red-600">📛</span>
-                            <span className="text-sm font-semibold text-red-800">Missing:</span>
-                          </div>
-                          <p className="text-xs text-red-700">
-                            {unit.certifications_missing.join(', ')}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Expired Certifications */}
-                      {unit.expired_certifications.length > 0 && (
-                        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-orange-600">⏰</span>
-                            <span className="text-sm font-semibold text-orange-800">Expired:</span>
-                          </div>
-                          <p className="text-xs text-orange-700">
-                            {unit.expired_certifications.slice(0, 2).join(', ')}
-                            {unit.expired_certifications.length > 2 &&
-                              ` +${unit.expired_certifications.length - 2} more`}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Status Badge */}
-                      <div className="mt-4">
-                        {unit.is_understaffed ? (
-                          <div className="px-4 py-2 bg-red-100 border-2 border-red-300 rounded-xl text-center">
-                            <span className="text-sm font-bold text-red-800 flex items-center justify-center space-x-2">
-                              <span>⚠️</span>
-                              <span>UNDERSTAFFED</span>
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="px-4 py-2 bg-green-100 border-2 border-green-300 rounded-xl text-center">
-                            <span className="text-sm font-bold text-green-800 flex items-center justify-center space-x-2">
-                              <span>✅</span>
-                              <span>FULLY STAFFED</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Unit Breakdown Modal */}
+          {/* ── Unit action drawer ─────────────────────────────────────────── */}
           {selectedUnit && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-              onClick={() => setSelectedUnit(null)}
-            >
-              <div
-                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {(() => {
-                  const unit = units.find((u) => u.unit_id === selectedUnit)
-                  if (!unit) return null
+            <div className="ops-panel">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="panel-kicker">Unit Detail</div>
+                  <h2 className="mt-1 text-lg font-semibold text-white">{selectedUnit.unit_name}</h2>
+                </div>
+                <button onClick={() => setSelectedUnit(null)} className="text-slate-500 hover:text-slate-300 text-sm">✕ Close</button>
+              </div>
 
-                  return (
-                    <>
-                      <div className={`bg-gradient-to-r ${getUnitTypeColor(unit.unit_type)} p-6 text-white sticky top-0`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h2 className="text-3xl font-bold mb-2">{unit.unit_name}</h2>
-                            <p className="text-lg opacity-90">Unit Breakdown</p>
-                          </div>
-                          <button
-                            onClick={() => setSelectedUnit(null)}
-                            className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
-                          >
-                            <span className="text-2xl">✕</span>
-                          </button>
-                        </div>
-                      </div>
+              <div className="mt-5 grid gap-6 md:grid-cols-3">
+                {/* Staffing */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Staffing</div>
+                  <div className={`text-3xl font-semibold mb-1 ${scoreColor(selectedUnit.readiness_score)}`}>{selectedUnit.readiness_score}%</div>
+                  <div className="text-sm text-slate-400 mb-3">{selectedUnit.staff_present} of {selectedUnit.staff_required} required</div>
+                  {selectedUnit.issues.map((iss, i) => (
+                    <div key={i} className="mt-1 flex items-center gap-2 text-xs text-red-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                      {iss}
+                    </div>
+                  ))}
+                </div>
 
-                      <div className="p-6">
-                        {/* Readiness Summary */}
-                        <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-600">Readiness Score</p>
-                              <p className="text-3xl font-bold text-gray-900">{unit.readiness_score}%</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Staff Status</p>
-                              <p className="text-3xl font-bold text-gray-900">
-                                {unit.staff_present}/{unit.staff_required}
-                              </p>
-                            </div>
+                {/* Crew */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Assigned Crew</div>
+                  {selectedUnit.assigned_personnel.length === 0 ? (
+                    <p className="text-xs text-slate-500">No crew assigned</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedUnit.assigned_personnel.map((p) => (
+                        <div key={p.personnel_id} className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                          <div className="text-xs font-medium text-white">{p.name}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{p.role}</div>
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {p.certifications.slice(0, 4).map((c) => (
+                              <span key={c} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-300">{c}</span>
+                            ))}
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                        {/* Assigned Personnel */}
-                        <div className="mb-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-4">Assigned Personnel</h3>
-                          {unit.assigned_personnel.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">No personnel assigned</p>
-                          ) : (
-                            <div className="space-y-3">
-                              {unit.assigned_personnel.map((person) => (
-                                <div
-                                  key={person.personnel_id}
-                                  className="p-4 bg-gray-50 rounded-xl border border-gray-200"
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <p className="font-semibold text-gray-900">{person.name}</p>
-                                      <p className="text-sm text-gray-600">{person.role}</p>
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        {person.certifications.map((cert) => (
-                                          <span
-                                            key={cert}
-                                            className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                                          >
-                                            {cert}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                {/* Recommendations */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Recommended Actions</div>
+                  {unitRecs.length === 0 ? (
+                    <p className="text-xs text-slate-500">No actions recommended</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {unitRecs.map((r) => (
+                        <div key={r.recommendation_id} className={`rounded-lg border px-3 py-2 text-xs ${priorityBadge(r.priority)}`}>
+                          <div className="font-medium uppercase tracking-wide text-[10px] mb-1">{r.action_type}</div>
+                          <p className="leading-5">{r.message}</p>
                         </div>
-
-                        {/* Issues */}
-                        {unit.issues.length > 0 && (
-                          <div className="mb-6">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4">Issues</h3>
-                            <div className="space-y-2">
-                              {unit.issues.map((issue, idx) => (
-                                <div
-                                  key={idx}
-                                  className="p-3 bg-red-50 border border-red-200 rounded-xl"
-                                >
-                                  <p className="text-sm text-red-800">⚠️ {issue}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )
-                })()}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Create Personnel Modal */}
-      <CreateModal
-        isOpen={showCreatePersonnel}
-        onClose={() => {
-          setShowCreatePersonnel(false)
-          setSelectedCertExpirations({})
-        }}
-        title="Create Personnel"
+      {/* Create modals (same forms as before, dark-styled) */}
+      <CreateModal isOpen={showCreatePersonnel} onClose={() => { setShowCreatePersonnel(false); setSelectedCertExp({}) }} title="Add Personnel"
         onSubmit={async (e) => {
-          e.preventDefault()
-          setCreating(true)
-          const formData = new FormData(e.currentTarget)
-          const selectedCerts = formData.getAll('certifications') as string[]
-          
-          // Build cert_expirations from selected certifications and their dates
+          e.preventDefault(); setCreating(true)
+          const fd = new FormData(e.currentTarget)
+          const certs = fd.getAll('certifications') as string[]
           const cert_expirations: Record<string, string> = {}
-          selectedCerts.forEach((certName) => {
-            const expirationDate = formData.get(`cert_expiration_${certName}`) as string
-            if (expirationDate && expirationDate.trim() !== '') {
-              try {
-                // Convert date string (YYYY-MM-DD) to ISO datetime string for backend
-                const date = new Date(expirationDate + 'T23:59:59.000Z')
-                if (!isNaN(date.getTime())) {
-                  cert_expirations[certName] = date.toISOString()
-                }
-              } catch (e) {
-                console.error(`Failed to parse expiration date for ${certName}:`, e)
-              }
-            }
+          certs.forEach((name) => {
+            const d = fd.get(`cert_expiration_${name}`) as string
+            if (d) { try { cert_expirations[name] = new Date(d + 'T23:59:59.000Z').toISOString() } catch { } }
           })
-          
-          const personnelData: any = {
-            name: formData.get('name') as string,
-            rank: formData.get('rank') as string || undefined,
-            role: formData.get('role') as string,
-            certifications: selectedCerts,
-            availability_status: formData.get('availability_status') as string || 'AVAILABLE',
-            station_id: formData.get('station_id') as string || undefined,
-          }
-          
-          // Only include cert_expirations if there are valid dates
-          if (Object.keys(cert_expirations).length > 0) {
-            personnelData.cert_expirations = cert_expirations
-          }
           try {
-            const response = await fetch(`${apiBaseUrl}/api/personnel`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(personnelData),
+            const res = await fetch(`${apiBase}/api/personnel`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: fd.get('name'), rank: fd.get('rank') || undefined, role: fd.get('role'), certifications: certs, cert_expirations, availability_status: fd.get('availability_status') || 'AVAILABLE', station_id: fd.get('station_id') || undefined }),
             })
-            if (!response.ok) {
-              const errorText = await response.text()
-              throw new Error(`Failed to create personnel: ${errorText}`)
-            }
-            setShowCreatePersonnel(false)
-            setSelectedCertExpirations({})
-            await fetchPersonnel()
-            await fetchReadiness()
-            addToast('Personnel created successfully!', 'success')
-          } catch (err) {
-            console.error('Error creating personnel:', err)
-            addToast(err instanceof Error ? err.message : 'Failed to create personnel', 'error')
-          } finally {
-            setCreating(false)
-          }
-        }}
-        submitLabel={creating ? 'Creating...' : 'Create Personnel'}
-      >
+            if (!res.ok) throw new Error(await res.text())
+            setShowCreatePersonnel(false); fetchAll(); fetchSupportData(); addToast('Personnel created', 'success')
+          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
+          setCreating(false)
+        }} submitLabel={creating ? 'Saving…' : 'Create'}>
         <div className="space-y-4">
+          <div><label className="block text-xs text-slate-400 mb-1">Name *</label><input required name="name" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Rank</label><input name="rank" placeholder="Captain, Lieutenant…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Role *</label><input required name="role" placeholder="Firefighter, Paramedic…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-            <input type="text" name="name" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rank</label>
-            <input type="text" name="rank" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Captain, Lieutenant" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
-            <input type="text" name="role" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Firefighter, EMT-P" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
-            <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-3">
-              {certificationsList.length === 0 ? (
-                <p className="text-sm text-gray-500">No certifications available. Create them in Certification Management.</p>
-              ) : (
-                certificationsList.map((cert) => {
-                  const expirationKey = `cert_expiration_${cert.name}`
-                  return (
-                    <div key={cert.certification_id} className="border-b border-gray-200 pb-2 last:border-b-0">
-                      <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                        <input
-                          type="checkbox"
-                          name="certifications"
-                          value={cert.name}
-                          onChange={(e) => {
-                            setSelectedCertExpirations(prev => ({
-                              ...prev,
-                              [cert.name]: e.target.checked
-                            }))
-                          }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700 flex-1">{cert.name}</span>
-                        {cert.category && (
-                          <span className="text-xs text-gray-500">({cert.category})</span>
-                        )}
-                      </label>
-                      {selectedCertExpirations[cert.name] && (
-                        <div className="ml-6 mt-1">
-                          <label className="block text-xs text-gray-600 mb-1">Expiration Date</label>
-                          <input
-                            type="date"
-                            name={expirationKey}
-                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-              )}
+            <label className="block text-xs text-slate-400 mb-1">Certifications</label>
+            <div className="max-h-48 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-2">
+              {certsList.map((c) => (
+                <div key={c.certification_id}>
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <input type="checkbox" name="certifications" value={c.name} onChange={(ev) => setSelectedCertExp((prev) => ({ ...prev, [c.name]: ev.target.checked }))} className="accent-cyan-400" />
+                    {c.name} {c.category && <span className="text-slate-500">({c.category})</span>}
+                  </label>
+                  {selectedCertExp[c.name] && (
+                    <div className="ml-5 mt-1"><label className="text-[10px] text-slate-500">Expiration</label><input type="date" name={`cert_expiration_${c.name}`} className="ml-2 rounded bg-white/[0.05] border border-white/10 px-2 py-0.5 text-xs text-white" /></div>
+                  )}
+                </div>
+              ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Select certifications and set expiration dates</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Availability Status</label>
-            <select name="availability_status" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              <option value="AVAILABLE">Available</option>
-              <option value="OFF">Off</option>
-              <option value="IN_TRAINING">In Training</option>
-              <option value="DEPLOYED">Deployed</option>
-              <option value="ON_CALL">On Call</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Station ID</label>
-            <input type="text" name="station_id" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., station-001" />
-          </div>
+          <div><label className="block text-xs text-slate-400 mb-1">Status</label><select name="availability_status" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="AVAILABLE">Available</option><option value="OFF">Off</option><option value="IN_TRAINING">In Training</option><option value="DEPLOYED">Deployed</option><option value="ON_CALL">On Call</option></select></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
         </div>
       </CreateModal>
 
-      {/* Create Unit Modal */}
-      <CreateModal
-        isOpen={showCreateUnit}
-        onClose={() => setShowCreateUnit(false)}
-        title="Create Unit"
+      <CreateModal isOpen={showCreateUnit} onClose={() => setShowCreateUnit(false)} title="Add Unit"
         onSubmit={async (e) => {
-          e.preventDefault()
-          setCreating(true)
-          const formData = new FormData(e.currentTarget)
-            const selectedCerts = formData.getAll('required_certifications') as string[]
-            const unitData = {
-              unit_name: formData.get('unit_name') as string,
-              type: formData.get('type') as string,
-              minimum_staff: parseInt(formData.get('minimum_staff') as string),
-              required_certifications: selectedCerts,
-              station_id: formData.get('station_id') as string || undefined,
-            }
+          e.preventDefault(); setCreating(true)
+          const fd = new FormData(e.currentTarget)
           try {
-            const response = await fetch(`${apiBaseUrl}/api/units`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(unitData),
-            })
-            if (!response.ok) throw new Error('Failed to create unit')
-            setShowCreateUnit(false)
-            await fetchUnits()
-            await fetchReadiness()
-            addToast('Unit created successfully!', 'success')
-          } catch (err) {
-            addToast(err instanceof Error ? err.message : 'Failed to create unit', 'error')
-          } finally {
-            setCreating(false)
-          }
-        }}
-        submitLabel={creating ? 'Creating...' : 'Create Unit'}
-      >
+            const res = await fetch(`${apiBase}/api/units`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit_name: fd.get('unit_name'), type: fd.get('type'), minimum_staff: parseInt(fd.get('minimum_staff') as string), required_certifications: fd.getAll('required_certifications'), station_id: fd.get('station_id') || undefined }) })
+            if (!res.ok) throw new Error(await res.text())
+            setShowCreateUnit(false); fetchAll(); fetchSupportData(); addToast('Unit created', 'success')
+          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
+          setCreating(false)
+        }} submitLabel={creating ? 'Saving…' : 'Create'}>
         <div className="space-y-4">
+          <div><label className="block text-xs text-slate-400 mb-1">Unit Name *</label><input required name="unit_name" placeholder="Engine 1, Medic 5…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Type *</label><select required name="type" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="ENGINE">Engine</option><option value="LADDER">Ladder</option><option value="RESCUE">Rescue</option><option value="MEDIC">Medic</option><option value="SAR_TEAM">SAR Team</option></select></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Min Staff *</label><input required type="number" name="minimum_staff" min="1" defaultValue="3" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit Name *</label>
-            <input type="text" name="unit_name" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" placeholder="e.g., Engine 1, Medic 5" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit Type *</label>
-            <select name="type" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
-              <option value="ENGINE">Engine</option>
-              <option value="LADDER">Ladder</option>
-              <option value="RESCUE">Rescue</option>
-              <option value="MEDIC">Medic</option>
-              <option value="SAR_TEAM">SAR Team</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Staff *</label>
-            <input type="number" name="minimum_staff" required min="1" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" />
-          </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Required Certifications</label>
-              <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
-                {certificationsList.length === 0 ? (
-                  <p className="text-sm text-gray-500">No certifications available. Create them in Certification Management.</p>
-                ) : (
-                  certificationsList.map((cert) => (
-                    <label key={cert.certification_id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                      <input
-                        type="checkbox"
-                        name="required_certifications"
-                        value={cert.name}
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                      <span className="text-sm text-gray-700">{cert.name}</span>
-                      {cert.category && (
-                        <span className="text-xs text-gray-500">({cert.category})</span>
-                      )}
-                    </label>
-                  ))
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Select certifications required for this unit</p>
+            <label className="block text-xs text-slate-400 mb-1">Required Certifications</label>
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-1">
+              {certsList.map((c) => (
+                <label key={c.certification_id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" name="required_certifications" value={c.name} className="accent-cyan-400" />{c.name}</label>
+              ))}
             </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Station ID</label>
-            <input type="text" name="station_id" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" placeholder="e.g., station-001" />
           </div>
+          <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
         </div>
       </CreateModal>
 
-      {/* Create Assignment Modal */}
-      <CreateModal
-        isOpen={showCreateAssignment}
-        onClose={() => setShowCreateAssignment(false)}
-        title="Create Unit Assignment"
+      <CreateModal isOpen={showCreateAssignment} onClose={() => setShowCreateAssignment(false)} title="Assign Personnel"
         onSubmit={async (e) => {
-          e.preventDefault()
-          setCreating(true)
-          const formData = new FormData(e.currentTarget)
-          const assignmentData = {
-            unit_id: formData.get('unit_id') as string,
-            personnel_id: formData.get('personnel_id') as string,
-            shift_start: new Date(`${formData.get('date')}T${formData.get('start_time')}`).toISOString(),
-            shift_end: new Date(`${formData.get('date')}T${formData.get('end_time')}`).toISOString(),
-            assignment_status: 'ON_SHIFT',
-          }
+          e.preventDefault(); setCreating(true)
+          const fd = new FormData(e.currentTarget)
           try {
-            const response = await fetch(`${apiBaseUrl}/api/unit-assignments`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(assignmentData),
-            })
-            if (!response.ok) {
-              const error = await response.json()
-              throw new Error(error.detail || 'Failed to create assignment')
-            }
-            setShowCreateAssignment(false)
-            await fetchReadiness()
-            addToast('Assignment created successfully!', 'success')
-          } catch (err) {
-            addToast(err instanceof Error ? err.message : 'Failed to create assignment', 'error')
-          } finally {
-            setCreating(false)
-          }
-        }}
-        submitLabel={creating ? 'Creating...' : 'Create Assignment'}
-      >
+            const res = await fetch(`${apiBase}/api/unit-assignments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit_id: fd.get('unit_id'), personnel_id: fd.get('personnel_id'), shift_start: new Date(`${fd.get('date')}T${fd.get('start_time')}`).toISOString(), shift_end: new Date(`${fd.get('date')}T${fd.get('end_time')}`).toISOString(), assignment_status: 'ON_SHIFT' }) })
+            if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Error') }
+            setShowCreateAssignment(false); fetchAll(); addToast('Assignment created', 'success')
+          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
+          setCreating(false)
+        }} submitLabel={creating ? 'Saving…' : 'Assign'}>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
-            <select name="unit_id" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-              <option value="">Select a unit</option>
-              {unitsList.map(unit => (
-                <option key={unit.unit_id} value={unit.unit_id}>{unit.unit_name} ({unit.type})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Personnel *</label>
-            <select name="personnel_id" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-              <option value="">Select personnel</option>
-              {personnelList.map(person => (
-                <option key={person.personnel_id} value={person.personnel_id}>{person.name} ({person.role})</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-            <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-              <input type="time" name="start_time" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
-              <input type="time" name="end_time" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-            </div>
+          <div><label className="block text-xs text-slate-400 mb-1">Unit *</label><select required name="unit_id" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="">Select unit</option>{unitsList.map((u) => <option key={u.unit_id} value={u.unit_id}>{u.unit_name}</option>)}</select></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Personnel *</label><select required name="personnel_id" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="">Select person</option>{personnelList.map((p) => <option key={p.personnel_id} value={p.personnel_id}>{p.name}</option>)}</select></div>
+          <div><label className="block text-xs text-slate-400 mb-1">Date *</label><input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs text-slate-400 mb-1">Start *</label><input type="time" name="start_time" required className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+            <div><label className="block text-xs text-slate-400 mb-1">End *</label><input type="time" name="end_time" required className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
           </div>
         </div>
       </CreateModal>
