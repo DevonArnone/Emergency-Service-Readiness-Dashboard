@@ -85,6 +85,26 @@ function readinessColor(score: number) {
   return 'text-red-400'
 }
 
+function AlertIcon({ type }: { type: string }) {
+  if (type === 'UNDERSTAFFED_UNIT')
+    return (
+      <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      </svg>
+    )
+  if (type.includes('CERT'))
+    return (
+      <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )
+  return (
+    <svg className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+    </svg>
+  )
+}
+
 function alertBadge(type: string) {
   const map: Record<string, string> = {
     UNDERSTAFFED_UNIT: 'border-red-500/40 bg-red-500/10 text-red-300',
@@ -261,10 +281,7 @@ export default function Home() {
               ) : (
                 alerts.slice(0, 5).map((a) => (
                   <div key={a.alert_id} className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${alertBadge(a.alert_type)}`}>
-                    <span className="mt-0.5 shrink-0 text-base">
-                      {a.alert_type === 'UNDERSTAFFED_UNIT' ? '⚠' :
-                       a.alert_type.includes('CERT') ? '⏱' : '!'}
-                    </span>
+                    <AlertIcon type={a.alert_type} />
                     <p className="leading-5">{a.message}</p>
                   </div>
                 ))
@@ -352,17 +369,41 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Page cards ────────────────────────────────────────────────── */}
+        {/* ── Page nav cards ────────────────────────────────────────────── */}
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            { href: '/readiness',  kicker: 'Operations Board', title: 'Unit deployment posture',  desc: 'Sortable unit grid with alert queue, staffing gaps, and per-unit action drawer.' },
-            { href: '/personnel',  kicker: 'Workforce',        title: 'Personnel readiness matrix', desc: 'Qualification view: deployable, constrained, training-only, and expiring credentials.' },
-            { href: '/analytics',  kicker: 'Analytics',        title: 'Trend & forecast views',   desc: 'Readiness trends, cert-risk forecast, staffing gap decomposition, and station comparison.' },
+            {
+              href: '/readiness',
+              kicker: 'Operations Board',
+              title: 'Unit deployment posture',
+              desc: 'Sortable unit grid with alert queue, staffing gaps, and per-unit action drawer.',
+              stat: summary ? `${animatedReady} ready · ${animatedTotal} total` : null,
+              statColor: 'text-emerald-400',
+            },
+            {
+              href: '/personnel',
+              kicker: 'Workforce',
+              title: 'Personnel readiness matrix',
+              desc: 'Qualification view: deployable, constrained, training-only, and expiring credentials.',
+              stat: summary ? `${animatedReadiness}% avg fleet readiness` : null,
+              statColor: readinessColor(summary?.overall_readiness_pct ?? 0),
+            },
+            {
+              href: '/analytics',
+              kicker: 'Analytics',
+              title: 'Trend & forecast views',
+              desc: 'Readiness trends, cert-risk forecast, staffing gap decomposition, and station comparison.',
+              stat: summary ? `${animatedAlerts} open alert${summary.open_alerts !== 1 ? 's' : ''}` : null,
+              statColor: summary && summary.open_alerts > 0 ? 'text-orange-400' : 'text-slate-400',
+            },
           ].map((card) => (
             <a key={card.href} href={card.href} className="ops-panel block transition hover:border-cyan-400/30 hover:shadow-[0_0_0_1px_rgba(103,232,249,0.12)]">
               <div className="panel-kicker">{card.kicker}</div>
               <h3 className="mt-2 text-base font-semibold text-white">{card.title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-400">{card.desc}</p>
+              {card.stat && (
+                <div className={`mt-3 text-xs font-medium tabular-nums ${card.statColor}`}>{card.stat}</div>
+              )}
             </a>
           ))}
         </section>
