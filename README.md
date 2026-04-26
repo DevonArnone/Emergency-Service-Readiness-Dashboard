@@ -4,6 +4,21 @@ A full-stack emergency operations command center built to demonstrate production
 
 **Live demo district:** Ridgecrest Emergency Services District (3 stations, 8 units, 25 personnel, seeded automatically on startup).
 
+## Operations Board View
+![Operations board view](pictures/operations-view.png)
+
+## Workforce View
+![Workforce view](pictures/workforce-view.png)
+
+## Credentials View
+![Credentials view](pictures/credentials-view.png)
+
+## Shifts View
+![Shifts view](pictures/shifts-view.png)
+
+## Analytics View
+![Analytics view](pictures/analytics-view.png)
+
 ---
 
 ## Tech Stack
