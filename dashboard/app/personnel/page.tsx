@@ -143,10 +143,10 @@ export default function WorkforcePage() {
       <div className="ops-shell space-y-6">
 
         {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="surface-header">
           <div>
             <div className="panel-kicker">Ridgecrest ESD</div>
-            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Workforce</h1>
+            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Workforce</h1>
             <p className="mt-1 text-sm text-slate-400">Personnel status, qualification matrix, and credential exposure.</p>
           </div>
           <div className="flex gap-2">
@@ -160,7 +160,7 @@ export default function WorkforcePage() {
           <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-6 py-5 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-cyan-300">No personnel loaded</p>
-              <p className="mt-0.5 text-xs text-slate-400">Click "Load Demo Data" to populate the workforce with demo workers.</p>
+              <p className="mt-0.5 text-xs text-slate-400">Click Load Demo Data to populate the workforce with demo workers.</p>
             </div>
             <button onClick={resetDemo} className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-medium text-cyan-300 hover:bg-cyan-400/20 transition">
               Load Demo Data
@@ -184,9 +184,9 @@ export default function WorkforcePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-xl border border-white/8 bg-white/[0.03] p-1 w-fit">
+        <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 w-fit">
           {(['personnel', 'units'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-4 py-1.5 text-sm font-medium capitalize transition ${tab === t ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}>
+            <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition ${tab === t ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
               {t === 'personnel' ? 'Personnel' : 'Units'}
             </button>
           ))}
@@ -196,14 +196,14 @@ export default function WorkforcePage() {
           <>
             {/* Filters */}
             <div className="flex flex-wrap gap-2 items-center">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or role…" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or role…" className="form-control py-1.5" />
               {['ALL', 'AVAILABLE', 'OFF', 'IN_TRAINING', 'DEPLOYED', 'ON_CALL'].map((s) => (
-                <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-full border px-3 py-1 text-xs font-medium transition ${statusFilter === s ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}>
+                <button key={s} onClick={() => setStatusFilter(s)} className={`filter-chip ${statusFilter === s ? 'filter-chip-active' : ''}`}>
                   {s === 'ALL' ? 'All Status' : STATUS_LABELS[s] ?? s}
                 </button>
               ))}
               {stations.map((st) => (
-                <button key={st} onClick={() => setStationFilter(stationFilter === st ? 'ALL' : st!)} className={`rounded-full border px-3 py-1 text-xs font-medium transition ${stationFilter === st ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}>
+                <button key={st} onClick={() => setStationFilter(stationFilter === st ? 'ALL' : st!)} className={`filter-chip ${stationFilter === st ? 'filter-chip-active' : ''}`}>
                   {st}
                 </button>
               ))}
@@ -290,7 +290,7 @@ export default function WorkforcePage() {
                           const expired = isExpired(exp)
                           const soon = isExpiringSoon(exp)
                           return (
-                            <div key={c} className="flex items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                            <div key={c} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
                               <span className="text-xs text-slate-200">{c}</span>
                               {exp && (
                                 <span className={`text-[10px] ${expired ? 'text-red-400' : soon ? 'text-amber-400' : 'text-slate-500'}`}>
@@ -348,8 +348,8 @@ export default function WorkforcePage() {
 
       {/* Add personnel modal */}
       {showAddPersonnel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowAddPersonnel(false)}>
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0d1928] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xl" onClick={() => setShowAddPersonnel(false)}>
+          <div className="w-full max-w-lg rounded-[26px] border border-white/10 bg-slate-950/90 p-6 shadow-[0_34px_120px_rgba(0,0,0,0.58)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-semibold text-white">Add Personnel</h2>
               <button onClick={() => setShowAddPersonnel(false)} className="text-slate-500 hover:text-slate-300">✕</button>
@@ -373,9 +373,9 @@ export default function WorkforcePage() {
               } catch { /* ignore */ }
               setCreating(false)
             }} className="space-y-4">
-              <div><label className="block text-xs text-slate-400 mb-1">Name *</label><input required name="name" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Rank</label><input name="rank" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Role *</label><input required name="role" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Name *</label><input required name="name" className="form-control w-full" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Rank</label><input name="rank" className="form-control w-full" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Role *</label><input required name="role" className="form-control w-full" /></div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Certifications</label>
                 <div className="max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-1.5">
@@ -387,8 +387,8 @@ export default function WorkforcePage() {
                   ))}
                 </div>
               </div>
-              <div><label className="block text-xs text-slate-400 mb-1">Status</label><select name="availability_status" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="AVAILABLE">Deployable</option><option value="OFF">Off Duty</option><option value="IN_TRAINING">Training</option><option value="DEPLOYED">Deployed</option><option value="ON_CALL">On Call</option></select></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Status</label><select name="availability_status" className="form-control w-full"><option value="AVAILABLE">Deployable</option><option value="OFF">Off Duty</option><option value="IN_TRAINING">Training</option><option value="DEPLOYED">Deployed</option><option value="ON_CALL">On Call</option></select></div>
+              <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="form-control w-full" /></div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowAddPersonnel(false)} className="ops-button-secondary text-sm py-2 px-4">Cancel</button>
                 <button type="submit" disabled={creating} className="ops-button-primary text-sm py-2 px-4">{creating ? 'Saving…' : 'Create'}</button>

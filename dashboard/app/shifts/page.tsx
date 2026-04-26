@@ -142,10 +142,10 @@ export default function ShiftsPage() {
         <div className="ops-shell space-y-6">
 
           {/* Header */}
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="surface-header">
             <div>
               <div className="panel-kicker">Ridgecrest ESD</div>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Shifts</h1>
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Shifts</h1>
               <p className="mt-1 text-sm text-slate-400">Live staffing timeline, clock-in events, and gap markers.</p>
             </div>
             <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected ? 'border-emerald-400/30 bg-emerald-400/[0.07] text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
@@ -278,7 +278,7 @@ export default function ShiftsPage() {
           {/* Assignments table */}
           <div className="ops-panel overflow-hidden p-0">
             <div className="border-b border-white/[0.06] px-6 py-4">
-              <div className="panel-kicker">Today's Unit Assignments</div>
+              <div className="panel-kicker">Today&apos;s Unit Assignments</div>
             </div>
             <div className="overflow-x-auto">
               <table className="data-table w-full">

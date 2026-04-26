@@ -17,7 +17,7 @@ export default function ToastContainer({ toasts, onRemove }: ToastContainerProps
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed top-4 right-4 z-50 max-w-md w-full space-y-2">
+    <div className="fixed right-4 top-24 z-50 w-[calc(100%-2rem)] max-w-md space-y-2 lg:top-4">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
@@ -29,4 +29,3 @@ export default function ToastContainer({ toasts, onRemove }: ToastContainerProps
     </div>
   )
 }
-

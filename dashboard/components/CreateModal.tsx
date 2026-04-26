@@ -27,32 +27,36 @@ export default function CreateModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xl">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[26px] border border-white/10 bg-slate-950/90 shadow-[0_34px_120px_rgba(0,0,0,0.58)]">
+        <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-slate-950/90 px-6 py-4 backdrop-blur-xl">
+          <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            aria-label="Close modal"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/10 hover:text-white"
           >
-            ×
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6">
           {children}
           
-          <div className="flex items-center justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-white/10 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="ops-button-secondary px-5 py-2 text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+              className="ops-button-primary px-5 py-2 text-sm"
             >
               {submitLabel}
             </button>

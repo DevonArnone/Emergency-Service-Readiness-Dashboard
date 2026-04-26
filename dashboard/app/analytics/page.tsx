@@ -145,10 +145,12 @@ export default function AnalyticsPage() {
       <div className="ops-shell space-y-6">
 
         {/* Header */}
-        <div>
+        <div className="surface-header">
+          <div>
           <div className="panel-kicker">Ridgecrest ESD</div>
-          <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Analytics</h1>
+          <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Analytics</h1>
           <p className="mt-1 text-sm text-slate-400">Readiness trends, certification risk forecast, staffing gaps, and coverage analysis.</p>
+          </div>
         </div>
 
         {/* Executive summary strip */}
@@ -383,7 +385,7 @@ export default function AnalyticsPage() {
                 type="date"
                 value={coverageDate}
                 onChange={(e) => setCoverageDate(e.target.value)}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                className="form-control py-1.5"
               />
             </div>
           </div>

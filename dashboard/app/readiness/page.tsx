@@ -27,6 +27,7 @@ interface Alert {
   unit_id?: string
   station_id?: string
   created_at?: string
+  acknowledged_by?: string
 }
 
 interface Recommendation {
@@ -151,7 +152,11 @@ export default function OperationsPage() {
       if (wsRef.current.has(unit.unit_id)) return
       const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
       const ws = new WebSocket(`${wsUrl}/ws/unit-readiness/${unit.unit_id}`)
-      ws.onopen = () => setWsConnected((p) => new Set([...p, unit.unit_id]))
+      ws.onopen = () => setWsConnected((p) => {
+        const next = new Set(p)
+        next.add(unit.unit_id)
+        return next
+      })
       ws.onclose = () => { setWsConnected((p) => { const n = new Set(p); n.delete(unit.unit_id); return n }); wsRef.current.delete(unit.unit_id) }
       ws.onmessage = (ev) => {
         try {
@@ -169,7 +174,8 @@ export default function OperationsPage() {
       wsRef.current.set(unit.unit_id, ws)
     })
 
-    return () => { wsRef.current.forEach((ws) => ws.close()); wsRef.current.clear() }
+    const connections = wsRef.current
+    return () => { connections.forEach((ws) => ws.close()); connections.clear() }
   }, [apiBase, units.map((u) => u.unit_id).sort().join(',')])  // eslint-disable-line
 
   const acknowledgeAlert = async (alertId: string) => {
@@ -228,10 +234,10 @@ export default function OperationsPage() {
         <div className="ops-shell space-y-6">
 
           {/* Header */}
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="surface-header">
             <div>
               <div className="panel-kicker">Ridgecrest ESD</div>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Operations Board</h1>
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Operations Board</h1>
               <p className="mt-1 text-sm text-slate-400">Live unit posture, alert queue, and deployment readiness.</p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -239,7 +245,7 @@ export default function OperationsPage() {
               <button onClick={() => setShowCreatePersonnel(true)} className="ops-button-secondary text-xs py-2 px-4">+ Personnel</button>
               <button onClick={() => setShowCreateUnit(true)} className="ops-button-secondary text-xs py-2 px-4">+ Unit</button>
               <button onClick={() => setShowCreateAssignment(true)} className="ops-button-secondary text-xs py-2 px-4">+ Assignment</button>
-              <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected.size > 0 ? 'border-emerald-400/30 bg-emerald-400/8 text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
+              <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected.size > 0 ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${wsConnected.size > 0 ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
                 {wsConnected.size} live
               </div>
@@ -270,7 +276,7 @@ export default function OperationsPage() {
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${filter === f ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}
+                    className={`filter-chip ${filter === f ? 'filter-chip-active' : ''}`}
                   >
                     {f}
                   </button>
@@ -280,7 +286,7 @@ export default function OperationsPage() {
                   <button
                     key={t}
                     onClick={() => setTypeFilter(t)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${typeFilter === t ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-300' : 'border-white/10 text-slate-400 hover:border-white/20'}`}
+                    className={`filter-chip ${typeFilter === t ? 'filter-chip-active' : ''}`}
                   >
                     {t === 'ALL' ? 'All Types' : UNIT_TYPE_LABELS[t]}
                   </button>
@@ -406,7 +412,7 @@ export default function OperationsPage() {
                   ) : (
                     <div className="space-y-2">
                       {selectedUnit.assigned_personnel.map((p) => (
-                        <div key={p.personnel_id} className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <div key={p.personnel_id} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
                           <div className="text-xs font-medium text-white">{p.name}</div>
                           <div className="text-[10px] text-slate-500 mt-0.5">{p.role}</div>
                           <div className="mt-1.5 flex flex-wrap gap-1">

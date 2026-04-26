@@ -77,12 +77,12 @@ export default function CertificationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
+      <div className="ops-page">
+        <div className="ops-shell">
+          <div className="flex h-96 items-center justify-center">
             <div className="text-center">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading certifications...</p>
+              <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-sky-300 border-t-transparent"></div>
+              <p className="text-sm text-slate-400">Loading certifications...</p>
             </div>
           </div>
         </div>
@@ -92,14 +92,18 @@ export default function CertificationsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center space-x-3">
-              <span className="text-3xl">❌</span>
+      <div className="ops-page">
+        <div className="ops-shell">
+          <div className="ops-panel border-red-400/25 bg-red-500/[0.08]">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/25 bg-red-500/10 text-red-200">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3h.007M10.29 3.86 1.82 18a1.5 1.5 0 0 0 1.29 2.25h17.78A1.5 1.5 0 0 0 22.18 18L13.71 3.86a1.5 1.5 0 0 0-2.42 0Z" />
+                </svg>
+              </span>
               <div>
-                <h3 className="text-lg font-bold text-red-900">Error</h3>
-                <p className="text-red-700">{error}</p>
+                <h3 className="text-base font-semibold text-white">Error</h3>
+                <p className="mt-1 text-sm text-red-200">{error}</p>
               </div>
             </div>
           </div>
@@ -133,141 +137,141 @@ export default function CertificationsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="ops-page page-enter">
+      <div className="ops-shell space-y-6">
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            Certifications Management
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Track certification expirations and compliance
-          </p>
+        <div className="surface-header">
+          <div>
+            <div className="panel-kicker">Ridgecrest ESD</div>
+            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">
+              Certifications Management
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Track certification expirations and compliance
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-300/20 bg-sky-300/[0.08] px-4 py-3 text-right">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-sky-200/80">Refresh</div>
+            <div className="mt-1 text-sm font-semibold text-white">Every 30 seconds</div>
+          </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="stat-panel border-red-400/20 bg-red-500/[0.07]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Expired</p>
-                <p className="text-3xl font-bold text-red-600 mt-2">{expiredCount}</p>
+                <p className="stat-label">Expired</p>
+                <p className="stat-value text-red-300">{expiredCount}</p>
               </div>
-              <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center">
-                <span className="text-3xl">⏰</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/25 bg-red-500/10 text-red-200">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500">
+          <div className="stat-panel border-amber-400/20 bg-amber-500/[0.07]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Expiring Soon</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">{expiringCount}</p>
+                <p className="stat-label">Expiring Soon</p>
+                <p className="stat-value text-amber-300">{expiringCount}</p>
               </div>
-              <div className="w-16 h-16 bg-orange-100 rounded-xl flex items-center justify-center">
-                <span className="text-3xl">⚠️</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-500/10 text-amber-200">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 3h.007M10.29 3.86 1.82 18a1.5 1.5 0 0 0 1.29 2.25h17.78A1.5 1.5 0 0 0 22.18 18L13.71 3.86a1.5 1.5 0 0 0-2.42 0Z" />
+                </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+          <div className="stat-panel border-sky-400/20 bg-sky-500/[0.07]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Days Lookahead</p>
+                <p className="stat-label">Days Lookahead</p>
                 <input
                   type="number"
                   value={daysAhead}
                   onChange={(e) => setDaysAhead(parseInt(e.target.value) || 30)}
-                  className="text-3xl font-bold text-blue-600 mt-2 w-20 border-0 border-b-2 border-blue-300 focus:border-blue-500 outline-none"
+                  className="mt-2 w-24 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-3xl font-semibold text-sky-200 outline-none transition focus:border-sky-300/50 focus:ring-2 focus:ring-sky-300/20"
                   min="1"
                   max="365"
                 />
               </div>
-              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                <span className="text-3xl">📅</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/25 bg-sky-500/10 text-sky-200">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15 12h13.5A1.5 1.5 0 0 0 20.25 19.5V6.75a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5V19.5A1.5 1.5 0 0 0 5.25 21Z" />
+                </svg>
               </div>
             </div>
           </div>
         </div>
 
         {/* Filter Buttons */}
-        <div className="mb-6 flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {[
-            { key: 'all', label: 'All', icon: '📋' },
-            { key: 'expiring', label: 'Expiring Soon', icon: '⚠️' },
-            { key: 'expired', label: 'Expired', icon: '⏰' },
+            { key: 'all', label: 'All' },
+            { key: 'expiring', label: 'Expiring Soon' },
+            { key: 'expired', label: 'Expired' },
           ].map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key as any)}
-              className={`px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+              className={`filter-chip ${
                 filter === f.key
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 shadow hover:shadow-lg'
+                  ? 'filter-chip-active'
+                  : ''
               }`}
             >
-              <span className="mr-2">{f.icon}</span>
               {f.label}
             </button>
           ))}
         </div>
 
         {/* Certifications Table */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in">
-          <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-              <span className="mr-3">📛</span>
+        <div className="ops-panel overflow-hidden p-0">
+          <div className="border-b border-white/10 px-6 py-5">
+            <h2 className="flex items-center text-base font-semibold text-white">
               Certification Status
             </h2>
           </div>
           <div className="overflow-x-auto">
             {filteredData.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                <span className="text-4xl mb-4 block">✅</span>
-                <p className="text-lg">No certifications match the selected filter</p>
+              <div className="p-12 text-center text-slate-500">
+                <p className="text-sm">No certifications match the selected filter</p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="data-table w-full">
+                <thead>
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Certification
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Expiration Date
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Days
-                    </th>
+                    <th>Name</th>
+                    <th>Certification</th>
+                    <th>Expiration Date</th>
+                    <th>Status</th>
+                    <th>Days</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-white/[0.05]">
                   {filteredData.map((cert, index) => (
                     <tr
                       key={`${cert.personnel_id}-${cert.certification}-${index}`}
-                      className="hover:bg-indigo-50 transition-colors"
+                      className="transition-colors hover:bg-white/[0.035]"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div className="flex items-center space-x-2">
+                      <td className="whitespace-nowrap font-medium text-white">
+                        <div className="flex items-center gap-2">
                           <span>{cert.name}</span>
                           {personnelCertCounts.has(cert.name) && (() => {
                             const counts = personnelCertCounts.get(cert.name)!
                             const total = counts.expiring + counts.expired
                             if (total > 0) {
                               return (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
                                   counts.expired > 0
-                                    ? 'bg-red-100 text-red-800'
+                                    ? 'border-red-400/30 bg-red-500/10 text-red-300'
                                     : counts.expiring > 0
-                                    ? 'bg-orange-100 text-orange-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'border-amber-400/30 bg-amber-500/10 text-amber-300'
+                                    : 'border-slate-400/30 bg-slate-500/10 text-slate-300'
                                 }`}>
                                   {counts.expired > 0 && `${counts.expired} expired`}
                                   {counts.expired > 0 && counts.expiring > 0 && ' • '}
@@ -279,30 +283,30 @@ export default function CertificationsPage() {
                           })()}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <td className="whitespace-nowrap text-slate-300">
                         {cert.certification}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <td className="whitespace-nowrap text-slate-400">
                         {new Date(cert.expiration_date).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="whitespace-nowrap">
                         {'is_expired' in cert && cert.is_expired ? (
-                          <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
+                          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
                             EXPIRED
                           </span>
                         ) : (
-                          <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
+                          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
                             EXPIRING
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="whitespace-nowrap">
                         {'is_expired' in cert && cert.is_expired ? (
-                          <span className="font-semibold text-red-600">
+                          <span className="font-semibold text-red-300">
                             -{Math.abs('days_until_expiry' in cert ? cert.days_until_expiry : 0)} days
                           </span>
                         ) : (
-                          <span className="font-semibold text-orange-600">
+                          <span className="font-semibold text-amber-300">
                             {'days_until_expiry' in cert ? cert.days_until_expiry : 0} days
                           </span>
                         )}
@@ -318,4 +322,3 @@ export default function CertificationsPage() {
     </div>
   )
 }
-
