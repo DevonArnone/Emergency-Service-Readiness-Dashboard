@@ -33,6 +33,16 @@ Three WebSocket channels:
 - `/ws/unit-readiness/{unit_id}` — per-unit readiness push
 - `/ws/operations` — aggregated dashboard summary (10s heartbeat)
 
+## Engineering Harness
+
+Repository operating rules live in [PROJECT_GUIDE.md](./PROJECT_GUIDE.md). The guide links to the maintained architecture, quality gates, execution-plan template, and harness checks.
+
+Run the harness check before merging documentation, architecture, process, or validation changes:
+
+```bash
+make check-harness
+```
+
 ---
 
 ## Features
