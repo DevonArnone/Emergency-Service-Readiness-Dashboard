@@ -27,8 +27,7 @@ import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
 type Notice = { tone: 'success' | 'danger'; message: string } | null
 
 function dateInput(date = new Date()) {
-  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-  return adjusted.toISOString().slice(0, 10)
+  return date.toISOString().slice(0, 10)
 }
 
 function shiftTone(status: string) {

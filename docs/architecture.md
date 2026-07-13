@@ -88,12 +88,11 @@ Dashboard displays charts
 
 ### Frontend (Next.js)
 
-- **Pages**:
-  - `/` - Landing page
-  - `/shifts` - Real-time shift monitoring
-  - `/analytics` - Historical analytics dashboard
-- **Real-time Updates**: WebSocket client connects to backend
-- **State Management**: React hooks + WebSocket event handlers
+- **Command shell**: Persistent desktop navigation, mobile bottom navigation, station scope, notifications, and command menu.
+- **Workspaces**: `/`, `/readiness`, `/personnel`, `/shifts`, `/certifications-management`, and `/analytics`.
+- **Boundary parsing**: Zod schemas validate every response used by the dashboard.
+- **Server state**: TanStack Query owns caching, invalidation, loading, and mutation recovery.
+- **Real-time updates**: The unified operations WebSocket invalidates the relevant scoped queries.
 
 ### Backend (FastAPI)
 
@@ -158,10 +157,11 @@ Dashboard displays charts
 
 ## Security
 
-- JWT authentication (to be implemented)
 - CORS configuration for frontend origins
 - Environment-based secrets management
 - Snowflake role-based access control
+
+Authentication and role-based authorization remain future production work; the current application is a local demonstration environment.
 
 ## Future Enhancements
 
@@ -171,4 +171,3 @@ Dashboard displays charts
 - Mobile app (React Native)
 - Advanced analytics (ML predictions for staffing needs)
 - Integration with payroll systems
-

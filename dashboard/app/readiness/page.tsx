@@ -55,6 +55,7 @@ export default function OperationsPage() {
   const invalidateOperations = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['operations'] }),
+      queryClient.invalidateQueries({ queryKey: ['shell-operations'] }),
       queryClient.invalidateQueries({ queryKey: queryKeys.units }),
       queryClient.invalidateQueries({ queryKey: queryKeys.assignments }),
       queryClient.invalidateQueries({ queryKey: queryKeys.personnel }),

@@ -16,13 +16,14 @@ Run these checks for dashboard changes:
 cd dashboard
 npm run lint
 npm run build
+npm run test:e2e
 ```
 
 Run these checks for backend changes:
 
 ```bash
 cd backend
-python -m pytest test_phase1.py test_phase2.py test_phase4.py
+python -m unittest discover -s tests -v
 ```
 
 Run these checks for Snowflake pipeline changes:
@@ -38,6 +39,7 @@ Then inspect the edited SQL for idempotency, schema separation, and task cadence
 | Area | Current expectation |
 | --- | --- |
 | Frontend | Pages render with typed props/state, clear loading states, and no layout-breaking text overflow |
+| Browser | Chromium and Firefox load every workspace with live data in under 10 seconds |
 | Backend | Routes validate inputs and return explicit response shapes |
 | Realtime | WebSocket messages have stable event names and payload structures |
 | Data pipeline | RAW ingestion, stream processing, and analytics views stay separated |
@@ -50,7 +52,7 @@ Then inspect the edited SQL for idempotency, schema separation, and task cadence
 | --- | --- |
 | Documentation drift | `scripts/check_harness.py` verifies required docs, links, and plan sections |
 | Boundary shape drift | Keep API and WebSocket payloads modeled in `backend/app/models.py` |
-| Visual regression | Store updated screenshots in `docs/screenshots/` after major UI changes |
+| Visual regression | Validate desktop and mobile routes in a real browser and refresh `pictures/` after major UI changes |
 | External-service coupling | Preserve placeholder-backed local mode for Kafka and Snowflake |
 | Long-running plan loss | Use checked-in execution plans for multi-step work |
 

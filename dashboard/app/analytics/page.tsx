@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo } from 'react'
 import {
   Area,
@@ -44,7 +44,6 @@ const chartTooltip = {
 }
 
 function AnalyticsWorkspace() {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { stationId } = useStationScope()
@@ -88,8 +87,8 @@ function AnalyticsWorkspace() {
     const next = new URLSearchParams(searchParams.toString())
     if (stationId === 'all') next.delete('scope')
     else next.set('scope', stationId)
-    router.replace(`${pathname}?${next}`, { scroll: false })
-  }, [pathname, router, searchParams, stationId])
+    window.history.replaceState(null, '', `${pathname}?${next}`)
+  }, [pathname, searchParams, stationId])
 
   const updateFilters = (changes: { view?: AnalyticsTab; days?: number; compare?: boolean }) => {
     const next = new URLSearchParams(searchParams.toString())
@@ -99,7 +98,7 @@ function AnalyticsWorkspace() {
       if (changes.compare) next.set('compare', '1')
       else next.delete('compare')
     }
-    router.replace(`${pathname}?${next}`, { scroll: false })
+    window.history.replaceState(null, '', `${pathname}?${next}`)
   }
 
   const trendData = useMemo(() => {

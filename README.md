@@ -1,8 +1,11 @@
 # Emergency Readiness Platform
 
-A full-stack emergency operations command center built to demonstrate production-grade architecture: real-time WebSocket push, event-driven Kafka pipeline, Snowflake warehouse analytics, and a FastAPI + Next.js 14 application layer — all grounded in realistic emergency-services domain logic.
+A full-stack emergency operations command center built to demonstrate production-grade architecture: durable local operations, real-time WebSocket push, an event-driven Kafka pipeline, Snowflake warehouse analytics, and a FastAPI + Next.js application layer — all grounded in realistic emergency-services domain logic.
 
 **Live demo district:** Ridgecrest Emergency Services District (3 stations, 8 units, 25 personnel, seeded automatically on startup).
+
+## Command Center View
+![Command center with live readiness, alerts, and incidents](pictures/command-center-view.png)
 
 ## Operations Board View
 ![Operations board view](pictures/operations-view.png)
@@ -25,11 +28,11 @@ A full-stack emergency operations command center built to demonstrate production
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 · React 18 · TypeScript · Tailwind CSS · Recharts |
+| Frontend | Next.js 16 · React 19 · TypeScript · TanStack Query · Zod · Radix UI · Recharts |
 | API | FastAPI · Pydantic v2 · Python 3.11+ |
 | Streaming | Apache Kafka (Confluent) · WebSockets (3 channels) |
 | Warehouse | Snowflake · Streams & Tasks · SQL aggregation pipeline |
-| Data store | In-memory (dev/demo) · Snowflake RAW schema (production) |
+| Data store | SQLite durable entity store (local) · Snowflake RAW schema (warehouse) |
 
 ---
 
@@ -37,16 +40,16 @@ A full-stack emergency operations command center built to demonstrate production
 
 ```
 Browser ──WebSocket──▶ FastAPI ──Kafka producer──▶ Snowflake (via Snowpipe)
-                          │                               │
-                   REST API (40+)              Streams & Tasks → ANALYTICS views
+    │                     │                               │
+    └──── typed REST ─────┤                     Streams & Tasks → ANALYTICS views
                           │
-                   In-memory stores (dev) / Snowflake RAW (prod)
+                    SQLite entity store
 ```
 
 Three WebSocket channels:
 - `/ws/shifts` — shift-level clock-in/out and alert events
 - `/ws/unit-readiness/{unit_id}` — per-unit readiness push
-- `/ws/operations` — aggregated dashboard summary (10s heartbeat)
+- `/ws/operations` — versioned operational snapshot (5s heartbeat)
 
 ## Engineering Harness
 
@@ -63,35 +66,36 @@ make check-harness
 ## Features
 
 ### Operations Board (`/readiness`)
-- Unit grid sorted by readiness score (0–100) with filter by state and unit type
+- Master-detail unit workspace with search and readiness-state filters
 - Readiness scoring: staffing ratio − cert penalties − expired cert penalties
 - Alert queue: OPEN → ACKNOWLEDGED → RESOLVED lifecycle with actor metadata
-- Per-unit action drawer: crew list, issues, rules-based recommendations
-- Real-time updates via per-unit WebSocket connections
+- Incident command workflow with creation and resolution
+- Non-destructive callout and unit-offline contingency simulation
+- Conflict- and credential-aware personnel assignment
 
 ### Workforce (`/personnel`)
-- Personnel status table with deployable / constrained / training-only classification
-- Credential expiration state per person (expired, expiring soon, OK)
-- Unit grid with required certification display
-- Inline personnel creation with cert + expiration date assignment
+- Searchable roster views for deployable, assigned, and unavailable personnel
+- Detailed operational profile with station, unit, credential, and assignment context
+- Personnel creation, editing, availability changes, and guarded archival
 
 ### Shifts (`/shifts`)
-- 12-hour staffing timeline bar chart with gap markers
-- Live shift status cards with clock-in/required ratio and progress bar
-- Real-time event log via `/ws/shifts` WebSocket
-- Unit assignment table for today's roster
+- Date-based shift schedule with station scope and coverage summaries
+- Shift creation and cancellation with linked assignment handling
+- Roster assignment plus clock-in and clock-out actions
+- Durable activity history and live staffing-gap status
 
 ### Analytics (`/analytics`)
-- 14-day readiness trend by station (area chart)
-- Station comparison line chart
-- Staffing gap breakdown by unit (bar chart + table)
-- Certification risk forecast: all personnel with certs expiring within 90 days
-- Hourly scheduled vs. actual coverage from Snowflake (date-selectable)
+- Focused Overview, Readiness, Staffing, Credentials, and Coverage tabs
+- URL-backed 7/14/30/90-day windows and optional period baseline
+- Station-scoped queries that filter at the API boundary
+- Readiness trajectories, staffing gaps, credential risk, and live shift coverage
+- CSV export for the active analysis view
 
 ### Credentials (`/certifications-management`)
-- Certification library with category filters
-- Expiring and expired credential tracker with configurable lookahead
-- Create / edit / delete certification definitions
+- Prioritized renewal queue with owners, scheduling, and completion
+- Workforce qualification forecast with task creation
+- Dependency-aware certification editing and guarded deletion
+- Per-unit qualification requirement matrix
 
 ### Alert Lifecycle
 ```
@@ -120,9 +124,9 @@ POST /api/alerts/{id}/resolve        — resolve alert
 GET  /api/stations                   — station list
 GET  /api/incidents                  — active operational incidents
 GET  /api/recommendations            — rules-based recommendations (optional ?unit_id=)
-GET  /api/analytics/readiness-trends — 14-day readiness by station
-GET  /api/analytics/certification-risk — cert risk rows expiring within 90 days
-GET  /api/analytics/staffing-gaps    — staffing gap by unit
+GET  /api/analytics/readiness-trends — readiness by ?days= and optional ?station_id=
+GET  /api/analytics/certification-risk — risk by ?days_ahead= and optional ?station_id=
+GET  /api/analytics/staffing-gaps    — staffing gap by optional ?station_id=
 POST /api/simulations/staffing-gap   — what-if simulation
 POST /api/demo/reset                 — reset and re-seed Ridgecrest demo data
 GET  /api/readiness/units            — live unit readiness scores
@@ -138,7 +142,7 @@ Full Swagger docs at `http://localhost:8000/docs`.
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+
 - (Optional) Confluent Kafka credentials
 - (Optional) Snowflake account
 
@@ -165,6 +169,15 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Validation
+
+```bash
+make check-harness
+cd backend && python -m unittest discover -s tests -v
+cd dashboard && npm run lint && npx tsc --noEmit && npm run build
+cd dashboard && npm run test:e2e
+```
 
 ### Environment Variables
 
@@ -203,16 +216,14 @@ See [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) for configuration steps.
 │       ├── services/      # Readiness, certification, recommendation, demo, Kafka, Snowflake
 │       ├── websocket/     # WebSocket connection managers
 │       ├── models.py      # Pydantic domain models
-│       ├── stores.py      # In-memory data stores
+│       ├── persistence.py # SQLite-backed entity persistence
+│       ├── stores.py      # Typed durable domain stores
 │       └── main.py        # FastAPI app, startup seed, WebSocket endpoints
 ├── dashboard/
-│   └── app/
-│       ├── page.tsx                       # Overview (hero + live stats + alerts)
-│       ├── readiness/page.tsx             # Operations board
-│       ├── personnel/page.tsx             # Workforce workspace
-│       ├── shifts/page.tsx                # Shift operations
-│       ├── analytics/page.tsx             # Analytics suite
-│       └── certifications-management/    # Credentials library
+│   ├── app/                # Route workspaces and shared visual system
+│   ├── components/         # Command shell and reusable UI primitives
+│   ├── hooks/              # Live operations stream integration
+│   └── lib/                # Typed API client, schemas, and utilities
 └── data-pipeline/
     └── snowflake/                         # SQL pipeline scripts
 ```

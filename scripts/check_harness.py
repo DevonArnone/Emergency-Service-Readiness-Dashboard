@@ -43,7 +43,16 @@ QUALITY_REQUIRED_PHRASES = [
     "make check-harness",
     "npm run lint",
     "npm run build",
-    "python -m pytest",
+    "python -m unittest",
+    "npm run test:e2e",
+]
+
+WORKFLOW_REQUIRED_PHRASES = [
+    "python3 scripts/check_harness.py",
+    "python -m unittest discover -s tests -v",
+    "npm run lint",
+    "npm run build",
+    "npm run test:e2e",
 ]
 
 
@@ -109,8 +118,9 @@ def validate_workflow(errors: list[str]) -> None:
         return
 
     workflow = read_text(".github/workflows/harness.yml")
-    if "python3 scripts/check_harness.py" not in workflow:
-        errors.append("Harness workflow must run scripts/check_harness.py")
+    for phrase in WORKFLOW_REQUIRED_PHRASES:
+        if phrase not in workflow:
+            errors.append(f"Harness workflow must run `{phrase}`")
 
 
 def validate_markdown_links(errors: list[str]) -> None:

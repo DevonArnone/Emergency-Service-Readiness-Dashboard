@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 from collections.abc import Iterator, MutableMapping
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Generic, TypeVar
 
@@ -20,7 +21,7 @@ class StateDatabase:
         self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
-        with self._connect() as connection:
+        with self._connection() as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS entity_store (
@@ -39,8 +40,17 @@ class StateDatabase:
         connection.execute("PRAGMA synchronous=NORMAL")
         return connection
 
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            yield connection
+            connection.commit()
+        finally:
+            connection.close()
+
     def load(self, kind: str) -> dict[str, str]:
-        with self._lock, self._connect() as connection:
+        with self._lock, self._connection() as connection:
             rows = connection.execute(
                 "SELECT entity_id, payload FROM entity_store WHERE kind = ?",
                 (kind,),
@@ -48,7 +58,7 @@ class StateDatabase:
         return {entity_id: payload for entity_id, payload in rows}
 
     def upsert(self, kind: str, entity_id: str, payload: str) -> None:
-        with self._lock, self._connect() as connection:
+        with self._lock, self._connection() as connection:
             connection.execute(
                 """
                 INSERT INTO entity_store (kind, entity_id, payload)
@@ -61,14 +71,14 @@ class StateDatabase:
             )
 
     def delete(self, kind: str, entity_id: str) -> None:
-        with self._lock, self._connect() as connection:
+        with self._lock, self._connection() as connection:
             connection.execute(
                 "DELETE FROM entity_store WHERE kind = ? AND entity_id = ?",
                 (kind, entity_id),
             )
 
     def clear(self, kind: str) -> None:
-        with self._lock, self._connect() as connection:
+        with self._lock, self._connection() as connection:
             connection.execute("DELETE FROM entity_store WHERE kind = ?", (kind,))
 
 

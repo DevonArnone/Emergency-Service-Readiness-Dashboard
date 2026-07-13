@@ -190,6 +190,7 @@ export const api = {
 
 export const queryKeys = {
   operations: (stationId?: string) => ['operations', stationId || 'all'] as const,
+  shellOperations: (stationId?: string) => ['shell-operations', stationId || 'all'] as const,
   personnel: ['personnel'] as const,
   units: ['units'] as const,
   stations: ['stations'] as const,

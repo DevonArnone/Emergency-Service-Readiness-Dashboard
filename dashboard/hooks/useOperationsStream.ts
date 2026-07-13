@@ -30,6 +30,7 @@ export function useOperationsStream() {
           const message = JSON.parse(event.data)
           if (message.type === 'operations.snapshot') {
             queryClient.invalidateQueries({ queryKey: ['operations'] })
+            queryClient.invalidateQueries({ queryKey: ['shell-operations'] })
             queryClient.invalidateQueries({ queryKey: queryKeys.readiness })
           }
         } catch {

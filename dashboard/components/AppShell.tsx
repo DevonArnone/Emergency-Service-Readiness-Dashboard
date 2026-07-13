@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
-    queryKey: queryKeys.operations(stationId),
+    queryKey: queryKeys.shellOperations(stationId),
     queryFn: () => api.operationsSnapshot(stationId === 'all' ? undefined : stationId),
   })
   const resetDemo = useMutation({
