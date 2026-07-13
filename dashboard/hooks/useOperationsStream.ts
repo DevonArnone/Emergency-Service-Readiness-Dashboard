@@ -29,7 +29,7 @@ export function useOperationsStream() {
         try {
           const message = JSON.parse(event.data)
           if (message.type === 'operations.snapshot') {
-            queryClient.invalidateQueries({ queryKey: queryKeys.operations() })
+            queryClient.invalidateQueries({ queryKey: ['operations'] })
             queryClient.invalidateQueries({ queryKey: queryKeys.readiness })
           }
         } catch {

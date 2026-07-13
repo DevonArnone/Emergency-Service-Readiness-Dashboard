@@ -1,6 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import Sidebar from '@/components/Sidebar'
+import AppShell from '@/components/AppShell'
 import AppProviders from '@/components/AppProviders'
 
 export const metadata: Metadata = {
@@ -17,10 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AppProviders>
-          <div className="min-h-screen text-slate-100">
-            <Sidebar />
-            <main className="min-h-screen lg:ml-72">{children}</main>
-          </div>
+          <AppShell>{children}</AppShell>
         </AppProviders>
       </body>
     </html>

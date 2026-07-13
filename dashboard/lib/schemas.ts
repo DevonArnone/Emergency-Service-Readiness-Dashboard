@@ -28,6 +28,16 @@ export const unitSchema = z.object({
   is_archived: z.boolean().default(false),
 }).passthrough()
 
+export const stationSchema = z.object({
+  station_id: z.string(),
+  name: z.string(),
+  district: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  unit_ids: z.array(z.string()).default([]),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+}).passthrough()
+
 export const assignmentSchema = z.object({
   assignment_id: z.string(),
   unit_id: z.string(),
@@ -200,6 +210,7 @@ export const operationsSnapshotSchema = z.object({
 
 export type Personnel = z.infer<typeof personnelSchema>
 export type Unit = z.infer<typeof unitSchema>
+export type Station = z.infer<typeof stationSchema>
 export type UnitAssignment = z.infer<typeof assignmentSchema>
 export type Certification = z.infer<typeof certificationSchema>
 export type RenewalTask = z.infer<typeof renewalTaskSchema>

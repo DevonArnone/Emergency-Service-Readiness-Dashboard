@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { useState } from 'react'
+import { ScopeProvider } from './ScopeContext'
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -19,7 +20,9 @@ export default function AppProviders({ children }: { children: React.ReactNode }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Tooltip.Provider delayDuration={350}>{children}</Tooltip.Provider>
+      <Tooltip.Provider delayDuration={300}>
+        <ScopeProvider>{children}</ScopeProvider>
+      </Tooltip.Provider>
     </QueryClientProvider>
   )
 }

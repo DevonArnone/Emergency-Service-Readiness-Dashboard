@@ -9,6 +9,7 @@ import {
   personnelSchema,
   renewalTaskSchema,
   shiftSchema,
+  stationSchema,
   unitReadinessSchema,
   unitSchema,
 } from './schemas'
@@ -113,6 +114,7 @@ export const api = {
   updatePersonnel: (id: string, value: unknown) => apiRequest(`/api/personnel/${id}`, personnelSchema, { method: 'PUT', body: jsonBody(value) }),
   archivePersonnel: (id: string) => apiRequest(`/api/personnel/${id}`, personnelSchema, { method: 'DELETE' }),
   units: () => apiRequest('/api/units', z.array(unitSchema)),
+  stations: () => apiRequest('/api/stations', z.array(stationSchema)),
   readiness: () => apiRequest('/api/readiness/units', z.array(unitReadinessSchema)),
   createUnit: (value: unknown) => apiRequest('/api/units', unitSchema, { method: 'POST', body: jsonBody(value) }),
   updateUnit: (id: string, value: unknown) => apiRequest(`/api/units/${id}`, unitSchema, { method: 'PUT', body: jsonBody(value) }),
@@ -145,6 +147,7 @@ export const queryKeys = {
   operations: (stationId?: string) => ['operations', stationId || 'all'] as const,
   personnel: ['personnel'] as const,
   units: ['units'] as const,
+  stations: ['stations'] as const,
   readiness: ['readiness'] as const,
   assignments: ['assignments'] as const,
   shifts: ['shifts'] as const,
