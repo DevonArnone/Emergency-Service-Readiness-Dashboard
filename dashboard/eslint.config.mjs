@@ -8,7 +8,6 @@ export default defineConfig([
   {
     rules: {
       'react-hooks/set-state-in-effect': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
   globalIgnores(['.next/**', 'out/**', 'coverage/**', 'next-env.d.ts']),

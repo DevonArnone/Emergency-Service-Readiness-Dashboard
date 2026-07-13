@@ -239,33 +239,37 @@ async def get_recommendations(unit_id: str | None = None):
 # ── Analytics extensions ──────────────────────────────────────────────────────
 
 @router.get("/api/analytics/readiness-trends")
-async def readiness_trends():
-    """Return 14-day readiness trend (deterministic demo data)."""
+async def readiness_trends(
+    days: int = Query(14, ge=7, le=90),
+    station_id: str | None = Query(None),
+):
+    """Return a scoped readiness trend for the requested analysis window."""
     from datetime import timedelta
     import random
 
     random.seed(42)
     now = datetime.now(timezone.utc)
-    stations = list(stations_store.values())
+    stations = [
+        station for station in stations_store.values()
+        if not station_id or station.station_id == station_id
+    ]
     if not stations:
         return []
 
     result = []
-    for day_offset in range(13, -1, -1):
+    current_readiness = ReadinessService.check_all_units()
+    for day_offset in range(days - 1, -1, -1):
         day = (now - timedelta(days=day_offset)).strftime("%Y-%m-%d")
         entry: dict = {"date": day}
         total_score = 0
         count = 0
         for st in stations:
-            st_units = [u for u in units_store.values() if u.station_id == st.station_id]
-            n = len(st_units)
             base = 72 + random.randint(-8, 12) if day_offset > 0 else None
             score = base if base else None
             if day_offset == 0:
-                readiness = ReadinessService.check_all_units()
                 st_scores = [
                     r["readiness_score"]
-                    for r in readiness
+                    for r in current_readiness
                     if units_store.get(r["unit_id"]) and units_store[r["unit_id"]].station_id == st.station_id
                 ]
                 score = round(sum(st_scores) / len(st_scores), 1) if st_scores else 0
@@ -279,12 +283,16 @@ async def readiness_trends():
 
 
 @router.get("/api/analytics/certification-risk")
-async def certification_risk():
-    """Return per-personnel certification risk forecast for next 90 days."""
-    from datetime import timedelta
+async def certification_risk(
+    days_ahead: int = Query(90, ge=1, le=365),
+    station_id: str | None = Query(None),
+):
+    """Return a scoped personnel certification risk forecast."""
     now = datetime.now(timezone.utc)
     rows = []
     for p in personnel_store.values():
+        if station_id and p.station_id != station_id:
+            continue
         for cert_name, exp in p.cert_expirations.items():
             if isinstance(exp, str):
                 try:
@@ -294,7 +302,7 @@ async def certification_risk():
             if not isinstance(exp, datetime):
                 continue
             days_left = (exp - now).days
-            if days_left <= 90:
+            if days_left <= days_ahead:
                 rows.append({
                     "personnel_id": p.personnel_id,
                     "personnel_name": p.name,
@@ -309,13 +317,15 @@ async def certification_risk():
 
 
 @router.get("/api/analytics/staffing-gaps")
-async def staffing_gaps():
-    """Return staffing gap hours by unit and station."""
+async def staffing_gaps(station_id: str | None = Query(None)):
+    """Return staffing gaps by unit for the selected station scope."""
     readiness = ReadinessService.check_all_units()
     rows = []
     for r in readiness:
         unit = units_store.get(r["unit_id"])
         if not unit:
+            continue
+        if station_id and unit.station_id != station_id:
             continue
         gap = max(0, r["staff_required"] - r["staff_present"])
         rows.append({

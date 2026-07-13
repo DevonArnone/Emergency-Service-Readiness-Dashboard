@@ -227,6 +227,32 @@ export const simulationResultSchema = z.object({
   timestamp: z.string(),
 })
 
+export const readinessTrendSchema = z.object({
+  date: z.string(),
+  overall: z.number(),
+}).catchall(z.number())
+
+export const certificationRiskSchema = z.object({
+  personnel_id: z.string(),
+  personnel_name: z.string(),
+  station_id: z.string().nullable().optional(),
+  cert: z.string(),
+  expires_on: z.string(),
+  days_left: z.number(),
+  status: z.enum(['EXPIRED', 'CRITICAL', 'WARNING']),
+})
+
+export const staffingGapSchema = z.object({
+  unit_id: z.string(),
+  unit_name: z.string(),
+  unit_type: z.string(),
+  station_id: z.string().nullable().optional(),
+  staff_present: z.number(),
+  staff_required: z.number(),
+  gap: z.number(),
+  readiness_score: z.number(),
+})
+
 export const operationsSnapshotSchema = z.object({
   summary: dashboardSummarySchema,
   units: z.array(unitReadinessSchema),
@@ -255,3 +281,6 @@ export type AuditEvent = z.infer<typeof auditEventSchema>
 export type OperationsSnapshot = z.infer<typeof operationsSnapshotSchema>
 export type CertificationImpact = z.infer<typeof certificationImpactSchema>
 export type SimulationResult = z.infer<typeof simulationResultSchema>
+export type ReadinessTrend = z.infer<typeof readinessTrendSchema>
+export type CertificationRisk = z.infer<typeof certificationRiskSchema>
+export type StaffingGap = z.infer<typeof staffingGapSchema>

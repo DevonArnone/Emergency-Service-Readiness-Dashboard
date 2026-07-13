@@ -10,11 +10,14 @@ import {
   operationsSnapshotSchema,
   personnelSchema,
   renewalTaskSchema,
+  readinessTrendSchema,
   shiftActionSchema,
   shiftAssignmentSchema,
   shiftSchema,
   simulationResultSchema,
   stationSchema,
+  staffingGapSchema,
+  certificationRiskSchema,
   unitReadinessSchema,
   unitSchema,
 } from './schemas'
@@ -109,6 +112,12 @@ export async function apiRequest<T>(
 
 const jsonBody = (value: unknown) => JSON.stringify(value)
 
+const analyticsQuery = (days: number, stationId?: string) => {
+  const query = new URLSearchParams({ days: String(days) })
+  if (stationId) query.set('station_id', stationId)
+  return query.toString()
+}
+
 export const api = {
   operationsSnapshot: (stationId?: string) => apiRequest(
     `/api/operations/snapshot${stationId ? `?station_id=${encodeURIComponent(stationId)}` : ''}`,
@@ -163,6 +172,19 @@ export const api = {
   updateRenewalTask: (id: string, value: unknown) => apiRequest(`/api/renewal-tasks/${id}`, renewalTaskSchema, { method: 'PUT', body: jsonBody(value) }),
   auditEvents: (limit = 50) => apiRequest(`/api/audit-events?limit=${limit}`, z.array(auditEventSchema)),
   simulateStaffing: (value: unknown) => apiRequest('/api/simulations/staffing-gap', simulationResultSchema, { method: 'POST', body: jsonBody(value) }),
+  readinessTrends: (days: number, stationId?: string) => apiRequest(
+    `/api/analytics/readiness-trends?${analyticsQuery(days, stationId)}`,
+    z.array(readinessTrendSchema),
+  ),
+  certificationRisk: (days: number, stationId?: string) => {
+    const query = new URLSearchParams({ days_ahead: String(days) })
+    if (stationId) query.set('station_id', stationId)
+    return apiRequest(`/api/analytics/certification-risk?${query}`, z.array(certificationRiskSchema))
+  },
+  staffingGaps: (stationId?: string) => apiRequest(
+    `/api/analytics/staffing-gaps${stationId ? `?station_id=${encodeURIComponent(stationId)}` : ''}`,
+    z.array(staffingGapSchema),
+  ),
   resetDemo: () => apiRequest('/api/demo/reset', z.object({ status: z.string(), seeded: z.record(z.string(), z.number()) }), { method: 'POST' }),
 }
 
@@ -180,4 +202,9 @@ export const queryKeys = {
   certifications: ['certifications'] as const,
   renewals: ['renewals'] as const,
   audit: ['audit'] as const,
+  analytics: {
+    trends: (days: number, stationId?: string) => ['analytics', 'trends', days, stationId || 'all'] as const,
+    credentialRisk: (days: number, stationId?: string) => ['analytics', 'credential-risk', days, stationId || 'all'] as const,
+    staffing: (stationId?: string) => ['analytics', 'staffing', stationId || 'all'] as const,
+  },
 }
