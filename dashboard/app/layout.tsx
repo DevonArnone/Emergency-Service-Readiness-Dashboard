@@ -1,6 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import Sidebar from '@/components/Sidebar'
+import AppProviders from '@/components/AppProviders'
 
 export const metadata: Metadata = {
   title: 'Emergency Readiness Dashboard',
@@ -15,10 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="min-h-screen text-slate-100">
-          <Sidebar />
-          <main className="min-h-screen lg:ml-72">{children}</main>
-        </div>
+        <AppProviders>
+          <div className="min-h-screen text-slate-100">
+            <Sidebar />
+            <main className="min-h-screen lg:ml-72">{children}</main>
+          </div>
+        </AppProviders>
       </body>
     </html>
   )

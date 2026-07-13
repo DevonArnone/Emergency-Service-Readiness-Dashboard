@@ -41,7 +41,7 @@ interface Incident {
 
 function useCountUp(target: number, duration = 700) {
   const [value, setValue] = useState(0)
-  const rafRef = useRef<number>()
+  const rafRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (target === 0) { setValue(0); return }
