@@ -1,7 +1,7 @@
 """API endpoints for emergency services readiness data models."""
 import uuid
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from fastapi import APIRouter, HTTPException, Query
@@ -13,9 +13,12 @@ from app.models import (
     Unit,
     UnitAssignment,
     Certification,
+    RenewalTask,
+    RenewalTaskStatus,
 )
 from app.stores import (
-    personnel_store, units_store, unit_assignments_store, certifications_store
+    personnel_store, units_store, unit_assignments_store, certifications_store,
+    renewal_tasks_store,
 )
 
 router = APIRouter(prefix="/api", tags=["readiness"])
@@ -25,6 +28,48 @@ from app.services.readiness_service import ReadinessService
 from app.services.certification_service import CertificationService
 from app.services.snowflake_service import get_snowflake_service
 from app.websocket.unit_readiness_manager import unit_readiness_manager
+from app.services.audit_service import record_audit
+
+
+def _validate_assignment(assignment: UnitAssignment, ignore_id: str | None = None) -> tuple[Unit, Personnel]:
+    if assignment.shift_end <= assignment.shift_start:
+        raise HTTPException(status_code=400, detail="shift_end must be after shift_start")
+    unit = units_store.get(assignment.unit_id)
+    if not unit or unit.is_archived:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    personnel = personnel_store.get(assignment.personnel_id)
+    if not personnel or personnel.is_archived:
+        raise HTTPException(status_code=404, detail="Personnel not found")
+    conflicts = [
+        existing for existing in unit_assignments_store.values()
+        if existing.assignment_id != ignore_id
+        and existing.personnel_id == assignment.personnel_id
+        and existing.assignment_status not in {AssignmentStatus.CANCELLED, AssignmentStatus.ABSENT}
+        and existing.shift_start < assignment.shift_end
+        and existing.shift_end > assignment.shift_start
+    ]
+    if conflicts:
+        raise HTTPException(status_code=409, detail="Personnel has an overlapping assignment")
+    missing_required = [
+        cert for cert in unit.required_certifications if cert not in personnel.certifications
+    ]
+    if missing_required:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Personnel missing required certifications: {', '.join(missing_required)}",
+        )
+    now = datetime.now(timezone.utc)
+    expired_required = [
+        cert for cert in unit.required_certifications
+        if isinstance(personnel.cert_expirations.get(cert), datetime)
+        and personnel.cert_expirations[cert] < now
+    ]
+    if expired_required:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Personnel has expired required certifications: {', '.join(expired_required)}",
+        )
+    return unit, personnel
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +81,7 @@ async def create_personnel(profile: Personnel) -> Personnel:
     try:
         personnel_id = str(uuid.uuid4())
         profile.personnel_id = personnel_id
-        profile.last_check_in = profile.last_check_in or datetime.utcnow()
+        profile.last_check_in = profile.last_check_in or datetime.now(timezone.utc)
         
         # Ensure cert_expirations are datetime objects (validator should handle this, but double-check)
         if profile.cert_expirations:
@@ -62,7 +107,7 @@ async def create_personnel(profile: Personnel) -> Personnel:
         # Insert into Snowflake (non-blocking)
         snowflake_service = get_snowflake_service()
         snowflake_service.insert_personnel(profile)
-        
+        record_audit("CREATED", "personnel", personnel_id, f"Created {profile.name}")
         return profile
     except Exception as e:
         import logging
@@ -78,7 +123,7 @@ async def list_personnel(
     )
 ) -> List[Personnel]:
     """List personnel, optionally filtered by availability."""
-    people = list(personnel_store.values())
+    people = [person for person in personnel_store.values() if not person.is_archived]
     if availability_status:
         people = [
             p for p in people if p.availability_status == availability_status
@@ -108,8 +153,28 @@ async def update_personnel(personnel_id: str, profile: Personnel) -> Personnel:
     # Update in Snowflake (non-blocking)
     snowflake_service = get_snowflake_service()
     snowflake_service.insert_personnel(profile)
-    
+    record_audit("UPDATED", "personnel", personnel_id, f"Updated {profile.name}")
     return profile
+
+
+@router.delete("/personnel/{personnel_id}", response_model=Personnel)
+async def archive_personnel(personnel_id: str) -> Personnel:
+    person = personnel_store.get(personnel_id)
+    if not person:
+        raise HTTPException(status_code=404, detail="Personnel not found")
+    active_assignments = [
+        assignment for assignment in unit_assignments_store.values()
+        if assignment.personnel_id == personnel_id
+        and assignment.assignment_status in {AssignmentStatus.ON_SHIFT, AssignmentStatus.PENDING}
+    ]
+    if active_assignments:
+        raise HTTPException(status_code=409, detail="Cancel active assignments before archiving personnel")
+    person.is_archived = True
+    person.current_unit_id = None
+    person.availability_status = AvailabilityStatus.OFF
+    personnel_store[personnel_id] = person
+    record_audit("ARCHIVED", "personnel", personnel_id, f"Archived {person.name}")
+    return person
 
 
 # ---------------------------------------------------------------------------
@@ -125,14 +190,14 @@ async def create_unit(unit: Unit) -> Unit:
     # Insert into Snowflake (non-blocking)
     snowflake_service = get_snowflake_service()
     snowflake_service.insert_unit(unit)
-    
+    record_audit("CREATED", "unit", unit_id, f"Created {unit.unit_name}")
     return unit
 
 
 @router.get("/units", response_model=List[Unit])
 async def list_units(unit_type: str | None = Query(None, description="Filter by unit type")) -> List[Unit]:
     """List units, optionally filtered by type."""
-    units = list(units_store.values())
+    units = [unit for unit in units_store.values() if not unit.is_archived]
     if unit_type:
         units = [u for u in units if u.type == unit_type]
     return units
@@ -159,7 +224,26 @@ async def update_unit(unit_id: str, unit: Unit) -> Unit:
     # Update in Snowflake (non-blocking)
     snowflake_service = get_snowflake_service()
     snowflake_service.insert_unit(unit)
-    
+    record_audit("UPDATED", "unit", unit_id, f"Updated {unit.unit_name}")
+    return unit
+
+
+@router.delete("/units/{unit_id}", response_model=Unit)
+async def archive_unit(unit_id: str) -> Unit:
+    unit = units_store.get(unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    active_assignments = [
+        assignment for assignment in unit_assignments_store.values()
+        if assignment.unit_id == unit_id
+        and assignment.assignment_status in {AssignmentStatus.ON_SHIFT, AssignmentStatus.PENDING}
+    ]
+    if active_assignments:
+        raise HTTPException(status_code=409, detail="Cancel active assignments before archiving unit")
+    unit.is_archived = True
+    unit.operational_status = "OUT_OF_SERVICE"
+    units_store[unit_id] = unit
+    record_audit("ARCHIVED", "unit", unit_id, f"Archived {unit.unit_name}")
     return unit
 
 
@@ -169,26 +253,7 @@ async def update_unit(unit_id: str, unit: Unit) -> Unit:
 @router.post("/unit-assignments", response_model=UnitAssignment)
 async def assign_personnel_to_unit(assignment: UnitAssignment) -> UnitAssignment:
     """Assign personnel to a unit for a given shift window."""
-    if assignment.shift_end <= assignment.shift_start:
-        raise HTTPException(status_code=400, detail="shift_end must be after shift_start")
-
-    unit = units_store.get(assignment.unit_id)
-    if not unit:
-        raise HTTPException(status_code=404, detail="Unit not found")
-
-    personnel = personnel_store.get(assignment.personnel_id)
-    if not personnel:
-        raise HTTPException(status_code=404, detail="Personnel not found")
-
-    # Validate certifications
-    missing_required = [
-        cert for cert in unit.required_certifications if cert not in personnel.certifications
-    ]
-    if missing_required:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Personnel missing required certifications: {', '.join(missing_required)}",
-        )
+    unit, personnel = _validate_assignment(assignment)
 
     assignment_id = str(uuid.uuid4())
     assignment.assignment_id = assignment_id
@@ -206,7 +271,12 @@ async def assign_personnel_to_unit(assignment: UnitAssignment) -> UnitAssignment
 
     # Broadcast readiness update via WebSocket
     asyncio.create_task(unit_readiness_manager.broadcast_unit_readiness(unit.unit_id))
-
+    record_audit(
+        "ASSIGNED",
+        "assignment",
+        assignment_id,
+        f"Assigned {personnel.name} to {unit.unit_name}",
+    )
     return assignment
 
 
@@ -221,7 +291,44 @@ async def list_unit_assignments(
         assignments = [a for a in assignments if a.unit_id == unit_id]
     if personnel_id:
         assignments = [a for a in assignments if a.personnel_id == personnel_id]
-    return assignments
+    return sorted(assignments, key=lambda assignment: assignment.shift_start)
+
+
+@router.put("/unit-assignments/{assignment_id}", response_model=UnitAssignment)
+async def update_unit_assignment(assignment_id: str, assignment: UnitAssignment) -> UnitAssignment:
+    if assignment_id not in unit_assignments_store:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    unit, personnel = _validate_assignment(assignment, assignment_id)
+    assignment.assignment_id = assignment_id
+    unit_assignments_store[assignment_id] = assignment
+    personnel.current_unit_id = unit.unit_id if assignment.assignment_status == AssignmentStatus.ON_SHIFT else None
+    personnel.availability_status = (
+        AvailabilityStatus.DEPLOYED
+        if assignment.assignment_status == AssignmentStatus.ON_SHIFT
+        else AvailabilityStatus.AVAILABLE
+    )
+    personnel_store[personnel.personnel_id] = personnel
+    record_audit("UPDATED", "assignment", assignment_id, f"Updated assignment for {personnel.name}")
+    asyncio.create_task(unit_readiness_manager.broadcast_unit_readiness(unit.unit_id))
+    return assignment
+
+
+@router.delete("/unit-assignments/{assignment_id}", response_model=UnitAssignment)
+async def cancel_unit_assignment(assignment_id: str) -> UnitAssignment:
+    assignment = unit_assignments_store.get(assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    assignment.assignment_status = AssignmentStatus.CANCELLED
+    assignment.clocked_out_at = assignment.clocked_out_at or datetime.now(timezone.utc)
+    unit_assignments_store[assignment_id] = assignment
+    person = personnel_store.get(assignment.personnel_id)
+    if person and person.current_unit_id == assignment.unit_id:
+        person.current_unit_id = None
+        person.availability_status = AvailabilityStatus.AVAILABLE
+        personnel_store[person.personnel_id] = person
+    record_audit("CANCELLED", "assignment", assignment_id, "Cancelled roster assignment")
+    asyncio.create_task(unit_readiness_manager.broadcast_unit_readiness(assignment.unit_id))
+    return assignment
 
 
 # ---------------------------------------------------------------------------
@@ -308,6 +415,7 @@ async def create_certification(certification: Certification) -> Certification:
     certification_id = str(uuid.uuid4())
     certification.certification_id = certification_id
     certifications_store[certification_id] = certification
+    record_audit("CREATED", "certification", certification_id, f"Created {certification.name}")
     return certification
 
 
@@ -339,15 +447,77 @@ async def update_certification(certification_id: str, certification: Certificati
     
     certification.certification_id = certification_id
     certifications_store[certification_id] = certification
+    record_audit("UPDATED", "certification", certification_id, f"Updated {certification.name}")
     return certification
 
 
+@router.get("/certifications/{certification_id}/impact")
+async def certification_impact(certification_id: str):
+    cert = certifications_store.get(certification_id)
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certification not found")
+    personnel = [person for person in personnel_store.values() if cert.name in person.certifications]
+    units = [unit for unit in units_store.values() if cert.name in unit.required_certifications]
+    return {
+        "certification_id": certification_id,
+        "personnel_count": len(personnel),
+        "unit_count": len(units),
+        "personnel": [{"personnel_id": person.personnel_id, "name": person.name} for person in personnel],
+        "units": [{"unit_id": unit.unit_id, "unit_name": unit.unit_name} for unit in units],
+    }
+
+
 @router.delete("/certifications/{certification_id}")
-async def delete_certification(certification_id: str):
+async def delete_certification(certification_id: str, force: bool = Query(False)):
     """Delete a certification definition."""
     if certification_id not in certifications_store:
         raise HTTPException(status_code=404, detail="Certification not found")
     
+    impact = await certification_impact(certification_id)
+    if not force and (impact["personnel_count"] or impact["unit_count"]):
+        raise HTTPException(status_code=409, detail="Certification is still assigned; review impact before deletion")
+    cert = certifications_store[certification_id]
     del certifications_store[certification_id]
+    record_audit("DELETED", "certification", certification_id, f"Deleted {cert.name}", details=impact)
     return {"message": "Certification deleted successfully"}
 
+
+# ---------------------------------------------------------------------------
+# Renewal Task Endpoints
+# ---------------------------------------------------------------------------
+@router.get("/renewal-tasks", response_model=List[RenewalTask])
+async def list_renewal_tasks(
+    status: RenewalTaskStatus | None = Query(None),
+    personnel_id: str | None = Query(None),
+) -> List[RenewalTask]:
+    tasks = list(renewal_tasks_store.values())
+    if status:
+        tasks = [task for task in tasks if task.status == status]
+    if personnel_id:
+        tasks = [task for task in tasks if task.personnel_id == personnel_id]
+    return sorted(tasks, key=lambda task: task.due_date)
+
+
+@router.post("/renewal-tasks", response_model=RenewalTask)
+async def create_renewal_task(task: RenewalTask) -> RenewalTask:
+    if task.personnel_id not in personnel_store:
+        raise HTTPException(status_code=404, detail="Personnel not found")
+    task.renewal_id = f"renewal-{uuid.uuid4().hex[:12]}"
+    task.created_at = datetime.now(timezone.utc)
+    renewal_tasks_store[task.renewal_id] = task
+    record_audit("CREATED", "renewal", task.renewal_id, f"Created renewal task for {task.certification}")
+    return task
+
+
+@router.put("/renewal-tasks/{renewal_id}", response_model=RenewalTask)
+async def update_renewal_task(renewal_id: str, task: RenewalTask) -> RenewalTask:
+    existing = renewal_tasks_store.get(renewal_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Renewal task not found")
+    task.renewal_id = renewal_id
+    task.created_at = task.created_at or existing.created_at
+    if task.status == RenewalTaskStatus.COMPLETED:
+        task.completed_at = task.completed_at or datetime.now(timezone.utc)
+    renewal_tasks_store[renewal_id] = task
+    record_audit("UPDATED", "renewal", renewal_id, f"Updated renewal task for {task.certification}")
+    return task

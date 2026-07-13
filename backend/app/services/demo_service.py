@@ -4,13 +4,14 @@ import logging
 from datetime import datetime, timezone, timedelta
 from app.models import (
     Personnel, Unit, UnitAssignment, Certification, Station,
-    ReadinessAlert, OperationalIncident,
+    ReadinessAlert, OperationalIncident, Shift, RenewalTask, AuditEvent,
     AvailabilityStatus, UnitType, AssignmentStatus,
-    AlertType, AlertState, IncidentPriority,
+    AlertType, AlertState, IncidentPriority, RenewalTaskStatus,
 )
 from app.stores import (
     personnel_store, units_store, unit_assignments_store,
     certifications_store, stations_store, alerts_store, incidents_store,
+    shifts_store, renewal_tasks_store, audit_events_store,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,15 @@ def _uid(prefix: str) -> str:
 
 def seed_demo() -> dict:
     """Reset all stores and load deterministic Ridgecrest district data."""
+    global NOW, TODAY_START, TODAY_END
+    NOW = datetime.now(timezone.utc)
+    TODAY_START = NOW.replace(hour=6, minute=0, second=0, microsecond=0)
+    TODAY_END = NOW.replace(hour=18, minute=0, second=0, microsecond=0)
+
     for store in (
         personnel_store, units_store, unit_assignments_store,
         certifications_store, stations_store, alerts_store, incidents_store,
+        shifts_store, renewal_tasks_store, audit_events_store,
     ):
         store.clear()
 
@@ -299,6 +306,32 @@ def seed_demo() -> dict:
             )
             unit_assignments_store[a.assignment_id] = a
 
+    # ── Duty shifts ──────────────────────────────────────────────────────────
+    shift_by_station: dict[str, str] = {}
+    for station_id, required_headcount in (("s1", 9), ("s2", 9), ("s3", 7)):
+        station = stations_store[station_id]
+        shift = Shift(
+            shift_id=_uid("shift"),
+            location=station.name,
+            station_id=station_id,
+            start_time=TODAY_START,
+            end_time=TODAY_END,
+            required_headcount=required_headcount,
+            status="ACTIVE",
+            notes="Day watch",
+            created_at=NOW - timedelta(days=7),
+        )
+        shifts_store[shift.shift_id] = shift
+        shift_by_station[station_id] = shift.shift_id
+
+    for assignment_id, assignment in list(unit_assignments_store.items()):
+        unit = units_store.get(assignment.unit_id)
+        if not unit or not unit.station_id:
+            continue
+        assignment.shift_id = shift_by_station.get(unit.station_id)
+        assignment.clocked_in_at = TODAY_START + timedelta(minutes=3)
+        unit_assignments_store[assignment_id] = assignment
+
     # ── Alerts ────────────────────────────────────────────────────────────────
     alert_defs = [
         dict(
@@ -386,6 +419,51 @@ def seed_demo() -> dict:
         )
         incidents_store[inc.incident_id] = inc
 
+    # ── Credential renewal workflow ─────────────────────────────────────────
+    renewal_defs = [
+        RenewalTask(
+            renewal_id=_uid("renewal"),
+            personnel_id=person_ids["Paramedic Alicia Torres"],
+            certification="ACLS",
+            due_date=NOW + timedelta(days=5),
+            status=RenewalTaskStatus.OPEN,
+            owner="Training Coordinator",
+            notes="Priority renewal required before next deployment.",
+            created_at=NOW - timedelta(days=2),
+        ),
+        RenewalTask(
+            renewal_id=_uid("renewal"),
+            personnel_id=person_ids["Lt. Ryan Cho"],
+            certification="Rescue-Tech",
+            due_date=NOW + timedelta(days=7),
+            status=RenewalTaskStatus.SCHEDULED,
+            owner="Training Coordinator",
+            scheduled_for=NOW + timedelta(days=3),
+            notes="Regional training center, 09:00.",
+            created_at=NOW - timedelta(days=1),
+        ),
+    ]
+    for task in renewal_defs:
+        renewal_tasks_store[task.renewal_id] = task
+
+    audit_defs = [
+        ("ALERT_ACKNOWLEDGED", "alert", "credential-risk", "Credential renewal acknowledged"),
+        ("ASSIGNMENT_UPDATED", "assignment", "engine-2-roster", "Engine 2 roster adjusted after callouts"),
+        ("INCIDENT_CREATED", "incident", "hazmat-spill", "Critical HazMat incident opened"),
+        ("RENEWAL_SCHEDULED", "renewal", renewal_defs[1].renewal_id, "Rescue-Tech renewal scheduled"),
+    ]
+    for index, (action, entity_type, entity_id, summary) in enumerate(audit_defs):
+        event = AuditEvent(
+            audit_id=_uid("audit"),
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            summary=summary,
+            actor="Duty Officer" if index < 3 else "Training Coordinator",
+            created_at=NOW - timedelta(minutes=12 * (index + 1)),
+        )
+        audit_events_store[event.audit_id] = event
+
     return {
         "stations": len(stations_store),
         "units": len(units_store),
@@ -394,4 +472,6 @@ def seed_demo() -> dict:
         "assignments": len(unit_assignments_store),
         "alerts": len(alerts_store),
         "incidents": len(incidents_store),
+        "shifts": len(shifts_store),
+        "renewals": len(renewal_tasks_store),
     }

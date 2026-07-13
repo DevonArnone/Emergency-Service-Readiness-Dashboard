@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-key-change-in-production"
     cors_origins: str = "http://localhost:3000"
     database_url: str = "sqlite+aiosqlite:///./workforce.db"
+    state_database_path: str = "./emergency_readiness.db"
+    seed_demo_on_empty: bool = True
     
     # Server Configuration
     host: str = "0.0.0.0"
@@ -43,4 +45,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

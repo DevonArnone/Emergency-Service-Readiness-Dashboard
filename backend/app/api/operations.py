@@ -1,21 +1,25 @@
 """Operations API — alerts, stations, incidents, dashboard summary, simulation, demo reset."""
 import logging
+import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.models import (
     ReadinessAlert, AlertState, AcknowledgeAlertRequest,
     Station, OperationalIncident, DashboardSummary,
     SimulationRequest, SimulationResult,
     Personnel, UnitAssignment, AssignmentStatus,
+    AuditEvent, RenewalTask,
 )
 from app.stores import (
     alerts_store, stations_store, incidents_store,
     units_store, personnel_store, unit_assignments_store,
     certifications_store,
+    audit_events_store, renewal_tasks_store,
 )
 from app.services.readiness_service import ReadinessService
 from app.services.recommendation_service import RecommendationService
 from app.services.demo_service import seed_demo
+from app.services.audit_service import record_audit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -60,6 +64,45 @@ async def get_dashboard_summary():
     )
 
 
+@router.get("/api/operations/snapshot")
+async def operations_snapshot(station_id: str | None = Query(None)):
+    readiness = ReadinessService.check_all_units()
+    if station_id:
+        readiness = [
+            item for item in readiness
+            if units_store.get(item["unit_id"])
+            and units_store[item["unit_id"]].station_id == station_id
+        ]
+    alerts = [
+        alert for alert in alerts_store.values()
+        if alert.state != AlertState.RESOLVED
+        and (not station_id or alert.station_id == station_id)
+    ]
+    incidents = [
+        incident for incident in incidents_store.values()
+        if incident.is_active and (not station_id or incident.station_id == station_id)
+    ]
+    renewals = [
+        task for task in renewal_tasks_store.values()
+        if task.status.value not in {"COMPLETED", "CANCELLED"}
+    ]
+    activity = sorted(
+        audit_events_store.values(),
+        key=lambda event: event.created_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )[:12]
+    return {
+        "summary": await get_dashboard_summary(),
+        "units": readiness,
+        "alerts": alerts,
+        "incidents": incidents,
+        "recommendations": RecommendationService.generate_recommendations()[:8],
+        "renewals": renewals,
+        "activity": activity,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ── Stations ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/stations")
@@ -97,6 +140,15 @@ async def acknowledge_alert(alert_id: str, body: AcknowledgeAlertRequest):
     alert.acknowledged_at = datetime.now(timezone.utc)
     alert.acknowledged_by = body.acknowledged_by
     alert.acknowledged_note = body.note
+    alerts_store[alert_id] = alert
+    record_audit(
+        "ACKNOWLEDGED",
+        "alert",
+        alert_id,
+        f"Acknowledged {alert.alert_type.value.replace('_', ' ').title()}",
+        actor=body.acknowledged_by,
+        details={"note": body.note},
+    )
     return alert
 
 
@@ -107,6 +159,8 @@ async def resolve_alert(alert_id: str):
         raise HTTPException(404, "Alert not found")
     alert.state = AlertState.RESOLVED
     alert.resolved_at = datetime.now(timezone.utc)
+    alerts_store[alert_id] = alert
+    record_audit("RESOLVED", "alert", alert_id, f"Resolved {alert.alert_type.value.replace('_', ' ').title()}")
     return alert
 
 
@@ -120,6 +174,28 @@ async def list_incidents(active_only: bool = True):
     return incidents
 
 
+@router.post("/api/incidents", response_model=OperationalIncident)
+async def create_incident(incident: OperationalIncident):
+    incident.incident_id = f"inc-{uuid.uuid4().hex[:12]}"
+    incident.created_at = datetime.now(timezone.utc)
+    incident.is_active = True
+    incidents_store[incident.incident_id] = incident
+    record_audit("CREATED", "incident", incident.incident_id, f"Opened incident: {incident.title}")
+    return incident
+
+
+@router.put("/api/incidents/{incident_id}", response_model=OperationalIncident)
+async def update_incident(incident_id: str, incident: OperationalIncident):
+    existing = incidents_store.get(incident_id)
+    if not existing:
+        raise HTTPException(404, "Incident not found")
+    incident.incident_id = incident_id
+    incident.created_at = incident.created_at or existing.created_at
+    incidents_store[incident_id] = incident
+    record_audit("UPDATED", "incident", incident_id, f"Updated incident: {incident.title}")
+    return incident
+
+
 @router.post("/api/incidents/{incident_id}/resolve")
 async def resolve_incident(incident_id: str):
     inc = incidents_store.get(incident_id)
@@ -127,7 +203,27 @@ async def resolve_incident(incident_id: str):
         raise HTTPException(404, "Incident not found")
     inc.is_active = False
     inc.resolved_at = datetime.now(timezone.utc)
+    incidents_store[incident_id] = inc
+    record_audit("RESOLVED", "incident", incident_id, f"Resolved incident: {inc.title}")
     return inc
+
+
+@router.get("/api/audit-events", response_model=list[AuditEvent])
+async def list_audit_events(
+    entity_type: str | None = Query(None),
+    entity_id: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+):
+    events = list(audit_events_store.values())
+    if entity_type:
+        events = [event for event in events if event.entity_type == entity_type]
+    if entity_id:
+        events = [event for event in events if event.entity_id == entity_id]
+    events.sort(
+        key=lambda event: event.created_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    return events[:limit]
 
 
 # ── Recommendations ───────────────────────────────────────────────────────────
@@ -314,4 +410,5 @@ async def simulate_staffing_gap(body: SimulationRequest):
 @router.post("/api/demo/reset")
 async def demo_reset():
     counts = seed_demo()
+    record_audit("RESET", "demo", "ridgecrest", "Reset Ridgecrest demo data")
     return {"status": "ok", "seeded": counts}

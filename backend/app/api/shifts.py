@@ -1,48 +1,25 @@
-"""REST API endpoints for shifts and employees."""
+"""REST API endpoints for duty shifts and personnel rosters."""
 import logging
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
-import sqlalchemy as sa
+from fastapi import APIRouter, HTTPException
 
 from app.models import (
-    Employee, Shift, ShiftAssignment, ShiftEvent, 
-    ClockInRequest, ClockOutRequest, LiveShiftStatus, CoverageSummary
+    Employee, Personnel, Shift, ShiftAssignment, ShiftEvent,
+    ClockInRequest, ClockOutRequest, LiveShiftStatus, CoverageSummary,
+    UnitAssignment, AssignmentStatus, AvailabilityStatus,
 )
-from app.config import settings
 from app.websocket.manager import websocket_manager
 from app.services.kafka_service import get_kafka_service
 from app.services.snowflake_service import get_snowflake_service
+from app.services.audit_service import record_audit
 from app.models import EventType
+from app.stores import personnel_store, shifts_store, unit_assignments_store, units_store
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["shifts"])
-
-# Database setup (SQLite for development)
-engine = create_async_engine(settings.database_url, echo=False)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-
-# In-memory stores for MVP (will be replaced with proper DB tables)
-employees_store: dict[str, Employee] = {}
-shifts_store: dict[str, Shift] = {}
-assignments_store: dict[str, ShiftAssignment] = {}
-clock_ins: dict[str, set[str]] = {}  # shift_id -> set of employee_ids
-
-
-async def get_db():
-    """Dependency for database session."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
-
 
 async def _emit_shift_event(
     shift_id: str,
@@ -77,20 +54,40 @@ async def _emit_shift_event(
 
 @router.post("/employees", response_model=Employee)
 async def create_employee(employee: Employee):
-    """Create a new employee."""
-    employee_id = str(uuid.uuid4())
-    employee.employee_id = employee_id
-    employee.hire_date = employee.hire_date or datetime.utcnow()
-    employees_store[employee_id] = employee
-    
-    logger.info(f"Created employee: {employee_id} - {employee.name}")
-    return employee
+    """Compatibility endpoint that creates a canonical personnel record."""
+    personnel_id = str(uuid.uuid4())
+    personnel = Personnel(
+        personnel_id=personnel_id,
+        name=employee.name,
+        role=employee.role,
+        station_id=employee.location,
+        last_check_in=employee.hire_date,
+    )
+    personnel_store[personnel_id] = personnel
+    record_audit("CREATED", "personnel", personnel_id, f"Created {personnel.name}")
+    return Employee(
+        employee_id=personnel_id,
+        name=personnel.name,
+        role=personnel.role,
+        location=personnel.station_id or "Unassigned",
+        hire_date=personnel.last_check_in,
+    )
 
 
 @router.get("/employees", response_model=List[Employee])
 async def list_employees():
-    """List all employees."""
-    return list(employees_store.values())
+    """Compatibility projection of canonical personnel records."""
+    return [
+        Employee(
+            employee_id=person.personnel_id,
+            name=person.name,
+            role=person.role,
+            location=person.station_id or "Unassigned",
+            hire_date=person.last_check_in,
+        )
+        for person in personnel_store.values()
+        if not person.is_archived
+    ]
 
 
 @router.post("/shifts", response_model=Shift)
@@ -98,13 +95,14 @@ async def create_shift(shift: Shift):
     """Create a new shift."""
     shift_id = str(uuid.uuid4())
     shift.shift_id = shift_id
-    shift.created_at = datetime.utcnow()
+    if shift.end_time <= shift.start_time:
+        raise HTTPException(status_code=400, detail="end_time must be after start_time")
+    shift.created_at = datetime.now(timezone.utc)
     shifts_store[shift_id] = shift
-    clock_ins[shift_id] = set()
     
     # Emit CREATED event
     await _emit_shift_event(shift_id, EventType.CREATED)
-    
+    record_audit("CREATED", "shift", shift_id, f"Created shift at {shift.location}")
     logger.info(f"Created shift: {shift_id} at {shift.location}")
     return shift
 
@@ -112,31 +110,76 @@ async def create_shift(shift: Shift):
 @router.get("/shifts", response_model=List[Shift])
 async def list_shifts():
     """List all shifts."""
-    return list(shifts_store.values())
+    return sorted(shifts_store.values(), key=lambda shift: shift.start_time)
+
+
+@router.put("/shifts/{shift_id}", response_model=Shift)
+async def update_shift(shift_id: str, shift: Shift):
+    if shift_id not in shifts_store:
+        raise HTTPException(status_code=404, detail="Shift not found")
+    if shift.end_time <= shift.start_time:
+        raise HTTPException(status_code=400, detail="end_time must be after start_time")
+    shift.shift_id = shift_id
+    shift.created_at = shift.created_at or shifts_store[shift_id].created_at
+    shifts_store[shift_id] = shift
+    record_audit("UPDATED", "shift", shift_id, f"Updated shift at {shift.location}")
+    return shift
+
+
+@router.delete("/shifts/{shift_id}", response_model=Shift)
+async def cancel_shift(shift_id: str):
+    shift = shifts_store.get(shift_id)
+    if not shift:
+        raise HTTPException(status_code=404, detail="Shift not found")
+    shift.status = "CANCELLED"
+    shifts_store[shift_id] = shift
+    for assignment_id, assignment in list(unit_assignments_store.items()):
+        if assignment.shift_id == shift_id:
+            assignment.assignment_status = AssignmentStatus.CANCELLED
+            unit_assignments_store[assignment_id] = assignment
+    record_audit("CANCELLED", "shift", shift_id, f"Cancelled shift at {shift.location}")
+    return shift
 
 
 @router.post("/shifts/{shift_id}/assign", response_model=ShiftAssignment)
 async def assign_employee_to_shift(shift_id: str, employee_id: str):
-    """Assign an employee to a shift."""
+    """Compatibility endpoint for assigning personnel to a shift."""
     if shift_id not in shifts_store:
         raise HTTPException(status_code=404, detail="Shift not found")
-    if employee_id not in employees_store:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
+    person = personnel_store.get(employee_id)
+    if not person or person.is_archived:
+        raise HTTPException(status_code=404, detail="Personnel not found")
+    shift = shifts_store[shift_id]
+    unit_id = shift.unit_id or person.current_unit_id
+    if not unit_id:
+        station_units = [
+            unit for unit in units_store.values()
+            if unit.station_id == shift.station_id and not unit.is_archived
+        ]
+        unit_id = station_units[0].unit_id if station_units else None
+    if not unit_id:
+        raise HTTPException(status_code=400, detail="Shift assignment requires a unit")
     assignment_id = str(uuid.uuid4())
-    assignment = ShiftAssignment(
+    assignment = UnitAssignment(
+        assignment_id=assignment_id,
+        shift_id=shift_id,
+        unit_id=unit_id,
+        personnel_id=employee_id,
+        shift_start=shift.start_time,
+        shift_end=shift.end_time,
+        assignment_status=AssignmentStatus.PENDING,
+    )
+    unit_assignments_store[assignment_id] = assignment
+    # Emit ASSIGNED event
+    await _emit_shift_event(shift_id, EventType.ASSIGNED, employee_id)
+    record_audit("ASSIGNED", "shift", shift_id, f"Assigned {person.name} to {shift.location}")
+    logger.info(f"Assigned employee {employee_id} to shift {shift_id}")
+    return ShiftAssignment(
         assignment_id=assignment_id,
         shift_id=shift_id,
         employee_id=employee_id,
-        assigned_at=datetime.utcnow(),
+        assigned_at=datetime.now(timezone.utc),
     )
-    assignments_store[assignment_id] = assignment
-    
-    # Emit ASSIGNED event
-    await _emit_shift_event(shift_id, EventType.ASSIGNED, employee_id)
-    
-    logger.info(f"Assigned employee {employee_id} to shift {shift_id}")
-    return assignment
 
 
 @router.post("/shifts/{shift_id}/clock-in")
@@ -144,27 +187,35 @@ async def clock_in(shift_id: str, request: ClockInRequest):
     """Clock in an employee for a shift."""
     if shift_id not in shifts_store:
         raise HTTPException(status_code=404, detail="Shift not found")
-    if request.employee_id not in employees_store:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Add to clock-ins
-    if shift_id not in clock_ins:
-        clock_ins[shift_id] = set()
-    clock_ins[shift_id].add(request.employee_id)
-    
+    person = personnel_store.get(request.employee_id)
+    if not person or person.is_archived:
+        raise HTTPException(status_code=404, detail="Personnel not found")
+    assignment = next((
+        candidate for candidate in unit_assignments_store.values()
+        if candidate.shift_id == shift_id and candidate.personnel_id == request.employee_id
+    ), None)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Roster assignment not found")
+    assignment.clocked_in_at = datetime.now(timezone.utc)
+    assignment.clocked_out_at = None
+    assignment.assignment_status = AssignmentStatus.ON_SHIFT
+    unit_assignments_store[assignment.assignment_id] = assignment
+    person.availability_status = AvailabilityStatus.DEPLOYED
+    person.current_unit_id = assignment.unit_id
+    personnel_store[person.personnel_id] = person
     # Emit CLOCK_IN event
     await _emit_shift_event(shift_id, EventType.CLOCK_IN, request.employee_id)
-    
-    # Check for understaffing
-    shift = shifts_store[shift_id]
-    current_count = len(clock_ins[shift_id])
-    if current_count < shift.required_headcount:
+    current_count = len([
+        roster for roster in unit_assignments_store.values()
+        if roster.shift_id == shift_id and roster.clocked_in_at and not roster.clocked_out_at
+    ])
+    if current_count < shifts_store[shift_id].required_headcount:
         await _emit_shift_event(
             shift_id,
             EventType.ALERT_UNDERSTAFFED,
-            payload={"current_count": current_count, "required": shift.required_headcount}
+            payload={"current_count": current_count, "required": shifts_store[shift_id].required_headcount}
         )
-    
+    record_audit("CLOCKED_IN", "shift", shift_id, f"Clocked in {person.name}")
     logger.info(f"Employee {request.employee_id} clocked in to shift {shift_id}")
     return {"status": "clocked_in", "shift_id": shift_id, "employee_id": request.employee_id}
 
@@ -175,13 +226,23 @@ async def clock_out(shift_id: str, request: ClockOutRequest):
     if shift_id not in shifts_store:
         raise HTTPException(status_code=404, detail="Shift not found")
     
-    # Remove from clock-ins
-    if shift_id in clock_ins:
-        clock_ins[shift_id].discard(request.employee_id)
-    
+    assignment = next((
+        candidate for candidate in unit_assignments_store.values()
+        if candidate.shift_id == shift_id and candidate.personnel_id == request.employee_id
+    ), None)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Roster assignment not found")
+    assignment.clocked_out_at = datetime.now(timezone.utc)
+    assignment.assignment_status = AssignmentStatus.EARLY_OFF
+    unit_assignments_store[assignment.assignment_id] = assignment
+    person = personnel_store.get(request.employee_id)
+    if person:
+        person.availability_status = AvailabilityStatus.AVAILABLE
+        person.current_unit_id = None
+        personnel_store[person.personnel_id] = person
     # Emit CLOCK_OUT event
     await _emit_shift_event(shift_id, EventType.CLOCK_OUT, request.employee_id)
-    
+    record_audit("CLOCKED_OUT", "shift", shift_id, f"Clocked out {person.name if person else request.employee_id}")
     logger.info(f"Employee {request.employee_id} clocked out from shift {shift_id}")
     return {"status": "clocked_out", "shift_id": shift_id, "employee_id": request.employee_id}
 
@@ -189,7 +250,7 @@ async def clock_out(shift_id: str, request: ClockOutRequest):
 @router.get("/shifts/live", response_model=List[LiveShiftStatus])
 async def get_live_shifts():
     """Get current live status of all shifts."""
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     live_statuses = []
     
     for shift_id, shift in shifts_store.items():
@@ -197,8 +258,26 @@ async def get_live_shifts():
         if shift.start_time.date() != today:
             continue
         
-        assigned_count = len([a for a in assignments_store.values() if a.shift_id == shift_id])
-        clocked_in_count = len(clock_ins.get(shift_id, set()))
+        roster = [
+            assignment for assignment in unit_assignments_store.values()
+            if assignment.shift_id == shift_id
+        ]
+        if not roster and shift.station_id:
+            roster = [
+                assignment for assignment in unit_assignments_store.values()
+                if units_store.get(assignment.unit_id)
+                and units_store[assignment.unit_id].station_id == shift.station_id
+                and assignment.shift_start < shift.end_time
+                and assignment.shift_end > shift.start_time
+            ]
+        assigned_count = len([
+            assignment for assignment in roster
+            if assignment.assignment_status != AssignmentStatus.CANCELLED
+        ])
+        clocked_in_count = len([
+            assignment for assignment in roster
+            if assignment.clocked_in_at and not assignment.clocked_out_at
+        ])
         
         # Determine status
         if clocked_in_count < shift.required_headcount:
@@ -222,6 +301,19 @@ async def get_live_shifts():
             clocked_in_count=clocked_in_count,
             status=status,
             alerts=alerts,
+            station_id=shift.station_id,
+            unit_id=shift.unit_id,
+            assigned_personnel=[
+                {
+                    "personnel_id": assignment.personnel_id,
+                    "name": personnel_store[assignment.personnel_id].name,
+                    "unit_id": assignment.unit_id,
+                    "status": assignment.assignment_status.value,
+                    "clocked_in_at": assignment.clocked_in_at.isoformat() if assignment.clocked_in_at else None,
+                }
+                for assignment in roster
+                if assignment.personnel_id in personnel_store
+            ],
         )
         live_statuses.append(live_status)
     

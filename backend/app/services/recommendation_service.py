@@ -24,7 +24,9 @@ class RecommendationService:
         now = datetime.now(timezone.utc)
         recs: List[ReadinessRecommendation] = []
 
-        for unit_id in units_store:
+        for unit_id, unit_record in units_store.items():
+            if unit_record.is_archived:
+                continue
             status = ReadinessService.get_unit_readiness(unit_id)
             if not status:
                 continue
@@ -62,10 +64,18 @@ class RecommendationService:
 
             # ── Missing certifications ────────────────────────────────────────
             for cert in status["certifications_missing"]:
+                assigned_anywhere = {
+                    assignment.personnel_id
+                    for assignment in unit_assignments_store.values()
+                    if assignment.assignment_status.value in {"ON_SHIFT", "PENDING"}
+                    and assignment.shift_start <= now <= assignment.shift_end
+                }
                 candidates = [
                     p for p in personnel_store.values()
                     if cert in p.certifications
                     and p.availability_status == AvailabilityStatus.AVAILABLE
+                    and p.personnel_id not in assigned_anywhere
+                    and not p.is_archived
                 ]
                 if candidates:
                     recs.append(ReadinessRecommendation(
@@ -128,13 +138,17 @@ class RecommendationService:
     @staticmethod
     def _find_candidates(unit_id: str, unit):
         """Find available personnel who meet the unit's cert requirements but are not assigned."""
+        now = datetime.now(timezone.utc)
         assigned_ids = {
             a.personnel_id
             for a in unit_assignments_store.values()
-            if a.unit_id == unit_id
+            if a.assignment_status.value in {"ON_SHIFT", "PENDING"}
+            and a.shift_start <= now <= a.shift_end
         }
         candidates = []
         for p in personnel_store.values():
+            if p.is_archived:
+                continue
             if p.personnel_id in assigned_ids:
                 continue
             if p.availability_status != AvailabilityStatus.AVAILABLE:

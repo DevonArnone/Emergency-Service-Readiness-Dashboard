@@ -31,6 +31,10 @@ class Shift(BaseModel):
     start_time: datetime
     end_time: datetime
     required_headcount: int = Field(gt=0)
+    station_id: Optional[str] = None
+    unit_id: Optional[str] = None
+    status: str = "SCHEDULED"
+    notes: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
@@ -77,6 +81,9 @@ class LiveShiftStatus(BaseModel):
     clocked_in_count: int
     status: str
     alerts: List[str] = Field(default_factory=list)
+    station_id: Optional[str] = None
+    unit_id: Optional[str] = None
+    assigned_personnel: List[Dict] = Field(default_factory=list)
 
 
 class CoverageSummary(BaseModel):
@@ -112,6 +119,14 @@ class AssignmentStatus(str, Enum):
     PENDING = "PENDING"
     ABSENT = "ABSENT"
     EARLY_OFF = "EARLY_OFF"
+    CANCELLED = "CANCELLED"
+
+
+class UnitOperationalStatus(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    DEPLOYED = "DEPLOYED"
+    OUT_OF_SERVICE = "OUT_OF_SERVICE"
+    MAINTENANCE = "MAINTENANCE"
 
 
 class Personnel(BaseModel):
@@ -126,6 +141,7 @@ class Personnel(BaseModel):
     station_id: Optional[str] = None
     current_unit_id: Optional[str] = None
     notes: Optional[str] = None
+    is_archived: bool = False
 
     @field_validator('cert_expirations', mode='before')
     @classmethod
@@ -165,6 +181,8 @@ class Unit(BaseModel):
     minimum_staff: int = Field(gt=0)
     required_certifications: List[str] = Field(default_factory=list)
     station_id: Optional[str] = None
+    operational_status: UnitOperationalStatus = UnitOperationalStatus.AVAILABLE
+    is_archived: bool = False
 
     class Config:
         from_attributes = True
@@ -177,6 +195,10 @@ class UnitAssignment(BaseModel):
     shift_start: datetime
     shift_end: datetime
     assignment_status: AssignmentStatus = AssignmentStatus.ON_SHIFT
+    shift_id: Optional[str] = None
+    clocked_in_at: Optional[datetime] = None
+    clocked_out_at: Optional[datetime] = None
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -283,6 +305,8 @@ class OperationalIncident(BaseModel):
     is_active: bool = True
     created_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
+    assigned_unit_ids: List[str] = Field(default_factory=list)
+    commander: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -333,3 +357,41 @@ class SimulationResult(BaseModel):
     impacted_units: List[str]
     recovery_actions: List[str]
     timestamp: str
+
+
+class RenewalTaskStatus(str, Enum):
+    OPEN = "OPEN"
+    SCHEDULED = "SCHEDULED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
+class RenewalTask(BaseModel):
+    renewal_id: Optional[str] = None
+    personnel_id: str
+    certification: str
+    due_date: datetime
+    status: RenewalTaskStatus = RenewalTaskStatus.OPEN
+    owner: Optional[str] = None
+    scheduled_for: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+class AuditEvent(BaseModel):
+    audit_id: Optional[str] = None
+    action: str
+    entity_type: str
+    entity_id: str
+    actor: str = "Duty Officer"
+    summary: str
+    details: Dict = Field(default_factory=dict)
+    created_at: Optional[datetime] = None
+
+
+class ApiError(BaseModel):
+    code: str
+    message: str
+    field_errors: Dict[str, str] = Field(default_factory=dict)
+    request_id: str

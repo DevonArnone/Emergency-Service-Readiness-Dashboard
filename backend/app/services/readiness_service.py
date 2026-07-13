@@ -99,7 +99,7 @@ class ReadinessService:
     def get_unit_readiness(unit_id: str) -> Optional[Dict]:
         """Get current readiness status for a unit."""
         unit = units_store.get(unit_id)
-        if not unit:
+        if not unit or unit.is_archived:
             return None
         
         # Get active assignments for this unit
@@ -125,7 +125,7 @@ class ReadinessService:
         assigned_personnel = []
         for assignment in active_assignments:
             person = personnel_store.get(assignment.personnel_id)
-            if person:
+            if person and not person.is_archived:
                 assigned_personnel.append(person)
         
         # Calculate readiness
@@ -154,9 +154,10 @@ class ReadinessService:
     def check_all_units() -> List[Dict]:
         """Check readiness for all units."""
         results = []
-        for unit_id in units_store.keys():
+        for unit_id, unit in units_store.items():
+            if unit.is_archived:
+                continue
             readiness = ReadinessService.get_unit_readiness(unit_id)
             if readiness:
                 results.append(readiness)
         return results
-

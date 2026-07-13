@@ -1,7 +1,11 @@
 """FastAPI application — Emergency Readiness Platform."""
 import json
 import logging
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import uuid
+from datetime import datetime, timezone
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import shifts
@@ -10,6 +14,7 @@ from app.api import operations
 from app.websocket.manager import websocket_manager
 from app.websocket.unit_readiness_manager import unit_readiness_manager
 from app.services.demo_service import seed_demo
+from app.stores import personnel_store, units_store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,10 +41,67 @@ app.include_router(readiness.router)
 app.include_router(operations.router)
 
 
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:16]
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["x-request-id"] = request_id
+    return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "code": f"HTTP_{exc.status_code}",
+            "message": str(exc.detail),
+            "field_errors": {},
+            "request_id": getattr(request.state, "request_id", "unknown"),
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    field_errors = {
+        ".".join(str(part) for part in error["loc"] if part != "body"): error["msg"]
+        for error in exc.errors()
+    }
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "VALIDATION_ERROR",
+            "message": "The request contains invalid fields.",
+            "field_errors": field_errors,
+            "request_id": getattr(request.state, "request_id", "unknown"),
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.exception("Unhandled request error %s", request_id)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "code": "INTERNAL_ERROR",
+            "message": "The service could not complete the request.",
+            "field_errors": {},
+            "request_id": request_id,
+        },
+    )
+
+
 @app.on_event("startup")
 async def startup():
-    counts = seed_demo()
-    logger.info(f"Demo data seeded: {counts}")
+    if settings.seed_demo_on_empty and (not personnel_store or not units_store):
+        counts = seed_demo()
+        logger.info(f"Demo data seeded: {counts}")
+    else:
+        logger.info("Loaded durable local operational state")
 
 
 @app.get("/")
@@ -53,7 +115,12 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "storage": "sqlite",
+        "personnel": len(personnel_store),
+        "units": len(units_store),
+    }
 
 
 @app.websocket("/ws/shifts")
@@ -102,18 +169,21 @@ async def websocket_operations(websocket: WebSocket):
                 if i.is_active
             ]
             payload = {
-                "type": "dashboard_summary",
+                "type": "operations.snapshot",
+                "version": 1,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "total_units": total,
                     "ready_units": ready,
                     "open_alerts": len(open_alerts),
                     "active_incidents": len(active_incidents),
+                    "units": unit_readiness,
                     "alerts": open_alerts,
                     "incidents": active_incidents,
                 },
             }
             await websocket.send_text(json.dumps(payload))
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
     except WebSocketDisconnect:
         pass
     except Exception as exc:
