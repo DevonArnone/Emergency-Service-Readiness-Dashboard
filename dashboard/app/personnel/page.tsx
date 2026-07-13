@@ -1,402 +1,147 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import * as Tabs from '@radix-ui/react-tabs'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Archive,
+  Award,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Edit3,
+  Mail,
+  MapPin,
+  Plus,
+  Search,
+  ShieldAlert,
+  UserCheck,
+  Users,
+} from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import FormDialog, { Field } from '@/components/FormDialog'
+import { useStationScope } from '@/components/ScopeContext'
+import { Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
+import { api, queryKeys } from '@/lib/api'
+import type { Personnel } from '@/lib/schemas'
+import { cn, formatDate, titleCase } from '@/lib/utils'
 
-interface Personnel {
-  personnel_id: string
-  name: string
-  rank?: string
-  role: string
-  certifications: string[]
-  cert_expirations?: Record<string, string>
-  availability_status: string
-  station_id?: string
-  current_unit_id?: string
-}
+type Notice = { tone: 'success' | 'danger'; message: string } | null
 
-interface Unit {
-  unit_id: string
-  unit_name: string
-  type: string
-  minimum_staff: number
-  required_certifications: string[]
-  station_id?: string
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  AVAILABLE:   'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
-  OFF:         'bg-slate-500/10 text-slate-400 border-slate-500/30',
-  IN_TRAINING: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
-  DEPLOYED:    'bg-orange-500/10 text-orange-300 border-orange-500/30',
-  ON_CALL:     'bg-amber-500/10 text-amber-300 border-amber-500/30',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  AVAILABLE: 'Deployable', OFF: 'Off Duty', IN_TRAINING: 'Training', DEPLOYED: 'Deployed', ON_CALL: 'On Call',
-}
-
-const UNIT_COLORS: Record<string, string> = {
-  ENGINE: 'bg-red-500/10 text-red-300 border-red-500/30',
-  LADDER: 'bg-orange-500/10 text-orange-300 border-orange-500/30',
-  RESCUE: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
-  MEDIC:  'bg-blue-500/10 text-blue-300 border-blue-500/30',
-  SAR_TEAM: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
-}
-
-function isExpiringSoon(dateStr?: string): boolean {
-  if (!dateStr) return false
-  const exp = new Date(dateStr)
-  const delta = (exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  return delta >= 0 && delta <= 30
-}
-
-function isExpired(dateStr?: string): boolean {
-  if (!dateStr) return false
-  return new Date(dateStr) < new Date()
-}
-
-function certExpLabel(dateStr?: string): string {
-  if (!dateStr) return ''
-  const exp = new Date(dateStr)
-  const delta = Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  if (delta < 0) return `Expired ${Math.abs(delta)}d ago`
-  if (delta <= 30) return `Expires in ${delta}d`
-  return exp.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+function availabilityTone(status: Personnel['availability_status']) {
+  if (status === 'AVAILABLE' || status === 'ON_CALL') return 'success' as const
+  if (status === 'DEPLOYED') return 'info' as const
+  if (status === 'IN_TRAINING') return 'warning' as const
+  return 'neutral' as const
 }
 
 export default function WorkforcePage() {
-  const [personnel, setPersonnel] = useState<Personnel[]>([])
-  const [units, setUnits] = useState<Unit[]>([])
-  const [certsList, setCertsList] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'personnel' | 'units'>('personnel')
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  const [stationFilter, setStationFilter] = useState('ALL')
+  const queryClient = useQueryClient()
+  const { stationId } = useStationScope()
   const [search, setSearch] = useState('')
-  const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [showAddPersonnel, setShowAddPersonnel] = useState(false)
-  const [certExpCheck, setCertExpCheck] = useState<Record<string, boolean>>({})
+  const [view, setView] = useState('active')
+  const [selectedId, setSelectedId] = useState('')
+  const [editing, setEditing] = useState<Personnel | 'new' | null>(null)
+  const [notice, setNotice] = useState<Notice>(null)
 
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+  const people = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
+  const assignments = useQuery({ queryKey: queryKeys.assignments, queryFn: api.assignments })
+  const units = useQuery({ queryKey: queryKeys.units, queryFn: api.units })
+  const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
+  const certifications = useQuery({ queryKey: queryKeys.certifications, queryFn: api.certifications })
 
-  const fetchAll = useCallback(async () => {
-    try {
-      const [pRes, uRes, cRes] = await Promise.all([
-        fetch(`${apiBase}/api/personnel`),
-        fetch(`${apiBase}/api/units`),
-        fetch(`${apiBase}/api/certifications`),
-      ])
-      if (pRes.ok) setPersonnel(await pRes.json())
-      if (uRes.ok) setUnits(await uRes.json())
-      if (cRes.ok) setCertsList(await cRes.json())
-    } catch { /* backend offline */ }
-    setLoading(false)
-  }, [apiBase])
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.personnel }),
+      queryClient.invalidateQueries({ queryKey: ['operations'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments }),
+    ])
+  }
 
-  const resetDemo = useCallback(async () => {
-    setLoading(true)
-    try {
-      await fetch(`${apiBase}/api/demo/reset`, { method: 'POST' })
-    } catch { /* ignore */ }
-    await fetchAll()
-  }, [apiBase, fetchAll])
-
-  useEffect(() => { fetchAll() }, [fetchAll])
-
-  const stations = Array.from(new Set(personnel.map((p) => p.station_id).filter(Boolean)))
-
-  const filteredPersonnel = personnel.filter((p) => {
-    const matchStatus = statusFilter === 'ALL' || p.availability_status === statusFilter
-    const matchStation = stationFilter === 'ALL' || p.station_id === stationFilter
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.role.toLowerCase().includes(search.toLowerCase())
-    return matchStatus && matchStation && matchSearch
+  const savePerson = useMutation({
+    mutationFn: ({ existing, payload }: { existing?: Personnel; payload: unknown }) => existing ? api.updatePersonnel(existing.personnel_id, payload) : api.createPersonnel(payload),
+    onSuccess: async (saved) => { await invalidate(); setEditing(null); setSelectedId(saved.personnel_id); setNotice({ tone: 'success', message: 'Personnel record saved.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const archivePerson = useMutation({
+    mutationFn: api.archivePersonnel,
+    onSuccess: async () => { await invalidate(); setSelectedId(''); setNotice({ tone: 'success', message: 'Personnel record archived.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const updateAvailability = useMutation({
+    mutationFn: ({ person, status }: { person: Personnel; status: Personnel['availability_status'] }) => api.updatePersonnel(person.personnel_id, { ...person, availability_status: status }),
+    onSuccess: async () => { await invalidate(); setNotice({ tone: 'success', message: 'Availability updated.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
 
-  const deployable = filteredPersonnel.filter((p) => p.availability_status === 'AVAILABLE')
-  const constrained = filteredPersonnel.filter((p) => p.availability_status !== 'AVAILABLE')
+  const scopedPeople = useMemo(() => (people.data || []).filter((person) => stationId === 'all' || person.station_id === stationId), [people.data, stationId])
+  const filteredPeople = useMemo(() => scopedPeople.filter((person) => {
+    const matchesSearch = `${person.name} ${person.role} ${person.rank || ''}`.toLowerCase().includes(search.toLowerCase())
+    const matchesView = view === 'active' || (view === 'available' && ['AVAILABLE', 'ON_CALL'].includes(person.availability_status)) || (view === 'deployed' && person.availability_status === 'DEPLOYED') || (view === 'off' && ['OFF', 'IN_TRAINING'].includes(person.availability_status))
+    return matchesSearch && matchesView
+  }), [scopedPeople, search, view])
+  const selected = scopedPeople.find((person) => person.personnel_id === selectedId) || filteredPeople[0]
+  const selectedAssignments = assignments.data?.filter((assignment) => assignment.personnel_id === selected?.personnel_id && assignment.assignment_status !== 'CANCELLED') || []
+  const selectedUnit = units.data?.find((unit) => unit.unit_id === selected?.current_unit_id)
+  const selectedStation = stations.data?.find((station) => station.station_id === selected?.station_id)
+  const expiringCount = scopedPeople.reduce((count, person) => count + Object.values(person.cert_expirations).filter((date) => new Date(date).getTime() < Date.now() + 30 * 86400000).length, 0)
 
-  const expiredCertCount = personnel.reduce((acc, p) => {
-    if (!p.cert_expirations) return acc
-    return acc + Object.values(p.cert_expirations).filter(isExpired).length
-  }, 0)
-  const expiringSoonCount = personnel.reduce((acc, p) => {
-    if (!p.cert_expirations) return acc
-    return acc + Object.values(p.cert_expirations).filter((d) => isExpiringSoon(d) && !isExpired(d)).length
-  }, 0)
-
-  if (loading) {
-    return (
-      <div className="ops-page">
-        <div className="ops-shell flex items-center justify-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            <p className="text-sm text-slate-400">Loading workforce…</p>
-          </div>
-        </div>
-      </div>
-    )
+  const submitPerson = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const existing = editing === 'new' ? undefined : editing || undefined
+    const certs = String(data.get('certifications') || '').split(',').map((value) => value.trim()).filter(Boolean)
+    const fallbackExpiry = new Date(Date.now() + 365 * 86400000).toISOString()
+    savePerson.mutate({ existing, payload: {
+      ...(existing || {}), name: data.get('name'), rank: data.get('rank') || null, role: data.get('role'), station_id: data.get('station_id') || null,
+      availability_status: data.get('availability_status'), notes: data.get('notes') || null, certifications: certs,
+      cert_expirations: Object.fromEntries(certs.map((cert) => [cert, existing?.cert_expirations[cert] || fallbackExpiry])), is_archived: false,
+    } })
   }
 
   return (
-    <div className="ops-page">
+    <div className="ops-page page-enter">
       <div className="ops-shell space-y-6">
+        <PageHeader eyebrow="People and qualification" title="Workforce" description="Find deployable personnel quickly, understand role and credential constraints, and maintain the canonical district roster." actions={<Button variant="primary" onClick={() => setEditing('new')}><Plus className="size-4" />Add personnel</Button>} />
+        {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
+        {people.isError && <ErrorState message={people.error.message} retry={() => people.refetch()} />}
 
-        {/* Header */}
-        <div className="surface-header">
-          <div>
-            <div className="panel-kicker">Ridgecrest ESD</div>
-            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Workforce</h1>
-            <p className="mt-1 text-sm text-slate-400">Personnel status, qualification matrix, and credential exposure.</p>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Active roster" value={scopedPeople.length} detail="Personnel in current scope" icon={Users} tone="info" />
+          <StatCard label="Deployable now" value={scopedPeople.filter((person) => ['AVAILABLE', 'ON_CALL'].includes(person.availability_status)).length} detail="Available or on call" icon={UserCheck} tone="success" />
+          <StatCard label="On assignment" value={scopedPeople.filter((person) => person.availability_status === 'DEPLOYED').length} detail="Currently linked to a unit" icon={Clock3} tone="info" />
+          <StatCard label="Credential risk" value={expiringCount} detail="Expired or due within 30 days" icon={ShieldAlert} tone={expiringCount ? 'warning' : 'success'} href="/certifications-management" />
+        </section>
+
+        <Tabs.Root value={view} onValueChange={setView} className="workspace-tabs">
+          <div className="toolbar toolbar-tabs">
+            <Tabs.List className="tab-list" aria-label="Roster status">
+              <Tabs.Trigger value="active">All <span>{scopedPeople.length}</span></Tabs.Trigger>
+              <Tabs.Trigger value="available">Deployable</Tabs.Trigger>
+              <Tabs.Trigger value="deployed">Assigned</Tabs.Trigger>
+              <Tabs.Trigger value="off">Unavailable</Tabs.Trigger>
+            </Tabs.List>
+            <label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, role, or rank" /></label>
           </div>
-          <div className="flex gap-2">
-            <button onClick={resetDemo} className="ops-button-secondary text-sm">↺ Load Demo Data</button>
-            <button onClick={() => setShowAddPersonnel(true)} className="ops-button-primary text-sm">+ Add Personnel</button>
-          </div>
-        </div>
-
-        {/* Empty state banner */}
-        {personnel.length === 0 && (
-          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.05] px-6 py-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-cyan-300">No personnel loaded</p>
-              <p className="mt-0.5 text-xs text-slate-400">Click Load Demo Data to populate the workforce with demo workers.</p>
-            </div>
-            <button onClick={resetDemo} className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-medium text-cyan-300 hover:bg-cyan-400/20 transition">
-              Load Demo Data
-            </button>
-          </div>
-        )}
-
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: 'Total Personnel', value: personnel.length, cls: 'text-white' },
-            { label: 'Deployable',      value: personnel.filter((p) => p.availability_status === 'AVAILABLE').length, cls: 'text-emerald-400' },
-            { label: 'Certs Expiring',  value: expiringSoonCount, cls: 'text-amber-400' },
-            { label: 'Certs Expired',   value: expiredCertCount,  cls: 'text-red-400' },
-          ].map((s) => (
-            <div key={s.label} className="stat-panel">
-              <div className="stat-label">{s.label}</div>
-              <div className={`stat-value ${s.cls}`}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 w-fit">
-          {(['personnel', 'units'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-4 py-1.5 text-sm font-semibold capitalize transition ${tab === t ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
-              {t === 'personnel' ? 'Personnel' : 'Units'}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'personnel' && (
-          <>
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or role…" className="form-control py-1.5" />
-              {['ALL', 'AVAILABLE', 'OFF', 'IN_TRAINING', 'DEPLOYED', 'ON_CALL'].map((s) => (
-                <button key={s} onClick={() => setStatusFilter(s)} className={`filter-chip ${statusFilter === s ? 'filter-chip-active' : ''}`}>
-                  {s === 'ALL' ? 'All Status' : STATUS_LABELS[s] ?? s}
-                </button>
-              ))}
-              {stations.map((st) => (
-                <button key={st} onClick={() => setStationFilter(stationFilter === st ? 'ALL' : st!)} className={`filter-chip ${stationFilter === st ? 'filter-chip-active' : ''}`}>
-                  {st}
-                </button>
-              ))}
-            </div>
-
-            {/* Personnel table */}
-            <div className="ops-panel overflow-hidden p-0">
-              <div className="overflow-x-auto">
-                <table className="data-table w-full">
-                  <thead>
-                    <tr>
-                      <th>Name / Rank</th>
-                      <th>Role</th>
-                      <th>Station</th>
-                      <th>Status</th>
-                      <th>Certifications</th>
-                      <th>Credential Risk</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.05]">
-                    {filteredPersonnel.length === 0 && (
-                      <tr><td colSpan={6} className="py-8 text-center text-slate-500">
-                        {personnel.length === 0
-                          ? <span>No data — <button onClick={() => fetchAll()} className="text-cyan-400 underline hover:no-underline">reload</button> or use Reset Demo Data in the sidebar</span>
-                          : 'No personnel match current filters'}
-                      </td></tr>
-                    )}
-                    {filteredPersonnel.map((p) => {
-                      const hasExpired = Object.values(p.cert_expirations ?? {}).some(isExpired)
-                      const hasSoon = Object.values(p.cert_expirations ?? {}).some((d) => isExpiringSoon(d) && !isExpired(d))
-                      return (
-                        <tr key={p.personnel_id} className={`cursor-pointer transition hover:bg-white/[0.03] ${selectedPerson?.personnel_id === p.personnel_id ? 'bg-white/[0.04]' : ''}`} onClick={() => setSelectedPerson(selectedPerson?.personnel_id === p.personnel_id ? null : p)}>
-                          <td>
-                            <div className="font-medium text-white">{p.name}</div>
-                            {p.rank && <div className="text-xs text-slate-500 mt-0.5">{p.rank}</div>}
-                          </td>
-                          <td className="text-slate-300">{p.role}</td>
-                          <td className="text-slate-400 text-xs">{p.station_id ?? '—'}</td>
-                          <td>
-                            <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${STATUS_COLORS[p.availability_status] ?? 'bg-slate-500/10 text-slate-300 border-slate-500/30'}`}>
-                              {STATUS_LABELS[p.availability_status] ?? p.availability_status}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="flex flex-wrap gap-1">
-                              {p.certifications.slice(0, 4).map((c) => (
-                                <span key={c} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-slate-300">{c}</span>
-                              ))}
-                              {p.certifications.length > 4 && <span className="text-[10px] text-slate-500">+{p.certifications.length - 4}</span>}
-                            </div>
-                          </td>
-                          <td>
-                            {hasExpired && <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2 py-0.5 text-[10px] text-red-400 mr-1">Expired</span>}
-                            {hasSoon && !hasExpired && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] text-amber-400">Expiring soon</span>}
-                            {!hasExpired && !hasSoon && <span className="text-[10px] text-slate-600">OK</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Expanded row */}
-            {selectedPerson && (
-              <div className="ops-panel">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-base font-semibold text-white">{selectedPerson.name}</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">{selectedPerson.role} · {selectedPerson.station_id ?? 'No station'}</p>
-                  </div>
-                  <button onClick={() => setSelectedPerson(null)} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-2">Certifications & Expiration</div>
-                    {selectedPerson.certifications.length === 0 ? (
-                      <p className="text-xs text-slate-500">No certifications</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {selectedPerson.certifications.map((c) => {
-                          const exp = selectedPerson.cert_expirations?.[c]
-                          const expired = isExpired(exp)
-                          const soon = isExpiringSoon(exp)
-                          return (
-                            <div key={c} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                              <span className="text-xs text-slate-200">{c}</span>
-                              {exp && (
-                                <span className={`text-[10px] ${expired ? 'text-red-400' : soon ? 'text-amber-400' : 'text-slate-500'}`}>
-                                  {certExpLabel(exp)}
-                                </span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-2">Assignment</div>
-                    <div className="text-sm text-slate-300">
-                      <div>Unit: <span className="text-white">{selectedPerson.current_unit_id ?? '—'}</span></div>
-                      <div className="mt-1">Status: <span className={`font-medium ${STATUS_COLORS[selectedPerson.availability_status]?.match(/text-\S+/)?.[0] ?? 'text-white'}`}>{STATUS_LABELS[selectedPerson.availability_status]}</span></div>
-                    </div>
-                  </div>
-                </div>
+          <Tabs.Content value={view} className="tab-content">
+            {people.isLoading ? <div className="ops-panel"><LoadingState rows={8} /></div> : (
+              <div className="master-detail-grid workforce-grid">
+                <section className="ops-panel people-list-panel">
+                  <div className="list-column-heading"><span>Personnel</span><span>Status</span></div>
+                  {filteredPeople.map((person) => <button key={person.personnel_id} className={cn('person-list-row', selected?.personnel_id === person.personnel_id && 'person-list-row-active')} onClick={() => setSelectedId(person.personnel_id)}><span className="person-avatar">{person.name.split(' ').filter((part) => !part.endsWith('.')).map((part) => part[0]).slice(0, 2).join('')}</span><span className="min-w-0 flex-1"><strong>{person.name}</strong><small>{person.rank || person.role} · {stations.data?.find((station) => station.station_id === person.station_id)?.name.replace(/^Station \d+ — /, '') || 'Unassigned'}</small></span><StatusBadge tone={availabilityTone(person.availability_status)}>{titleCase(person.availability_status)}</StatusBadge><ChevronRight className="size-4" /></button>)}
+                  {!filteredPeople.length && <EmptyState title="No personnel match" description="Try another status view or search phrase." />}
+                </section>
+                <section className="ops-panel detail-panel">
+                  {selected ? <div className="person-detail"><div className="person-detail-heading"><span className="person-avatar person-avatar-large">{selected.name.split(' ').filter((part) => !part.endsWith('.')).map((part) => part[0]).slice(0, 2).join('')}</span><div className="min-w-0 flex-1"><h2>{selected.name}</h2><p>{selected.rank || selected.role} · {selected.role}</p></div><StatusBadge tone={availabilityTone(selected.availability_status)}>{titleCase(selected.availability_status)}</StatusBadge></div><div className="detail-toolbar"><Button onClick={() => setEditing(selected)}><Edit3 className="size-4" />Edit profile</Button><label className="inline-select"><span>Availability</span><select value={selected.availability_status} onChange={(event) => updateAvailability.mutate({ person: selected, status: event.target.value as Personnel['availability_status'] })}><option>AVAILABLE</option><option>ON_CALL</option><option>DEPLOYED</option><option>IN_TRAINING</option><option>OFF</option></select></label></div><dl className="profile-facts"><div><dt><MapPin className="size-4" />Station</dt><dd>{selectedStation?.name || 'Unassigned'}</dd></div><div><dt><Mail className="size-4" />Current unit</dt><dd>{selectedUnit?.unit_name || 'No active unit'}</dd></div><div><dt><Clock3 className="size-4" />Last check-in</dt><dd>{formatDate(selected.last_check_in, 'MMM d, yyyy · h:mm a')}</dd></div></dl><div className="detail-section"><SectionHeader title="Credentials" description={`${selected.certifications.length} active records`} /> <div className="credential-cloud">{selected.certifications.map((cert) => { const date = selected.cert_expirations[cert]; const expired = date && new Date(date) < new Date(); return <span key={cert} className={cn(expired && 'credential-expired')}><Award className="size-3.5" />{cert}<small>{formatDate(date, 'MMM yyyy')}</small></span> })}</div></div><div className="detail-section"><SectionHeader title="Current assignments" description="Live and pending roster linkage" />{selectedAssignments.map((assignment) => <div key={assignment.assignment_id} className="assignment-compact"><span><CheckCircle2 className="size-4" /></span><div><strong>{units.data?.find((unit) => unit.unit_id === assignment.unit_id)?.unit_name || 'Response unit'}</strong><small>{formatDate(assignment.shift_start, 'MMM d · h:mm a')} – {formatDate(assignment.shift_end, 'h:mm a')}</small></div><StatusBadge tone={assignment.assignment_status === 'ON_SHIFT' ? 'success' : 'warning'}>{titleCase(assignment.assignment_status)}</StatusBadge></div>)}{!selectedAssignments.length && <div className="compact-empty">No current unit assignments.</div>}</div>{selected.notes && <div className="profile-notes"><strong>Operational notes</strong><p>{selected.notes}</p></div>}<Button variant="danger" className="mt-5" onClick={() => archivePerson.mutate(selected.personnel_id)} busy={archivePerson.isPending}><Archive className="size-4" />Archive record</Button></div> : <EmptyState title="Select a person" description="Choose a roster member to review their operational profile." />}
+                </section>
               </div>
             )}
-          </>
-        )}
-
-        {tab === 'units' && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {units.length === 0 && (
-              <div className="ops-panel col-span-full py-12 text-center">
-                <p className="text-sm text-slate-500">No units configured.</p>
-              </div>
-            )}
-            {units.map((u) => (
-              <div key={u.unit_id} className="ops-panel">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${UNIT_COLORS[u.type] ?? 'bg-slate-500/10 text-slate-300 border-slate-500/30'}`}>{u.type}</span>
-                    <h3 className="mt-1.5 text-sm font-semibold text-white">{u.unit_name}</h3>
-                  </div>
-                  <div className="text-xs text-slate-500">{u.station_id ?? '—'}</div>
-                </div>
-                <div className="mt-3 text-xs text-slate-400">Min staff: <span className="text-white">{u.minimum_staff}</span></div>
-                {u.required_certifications.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {u.required_certifications.map((c) => (
-                      <span key={c} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-slate-300">{c}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+          </Tabs.Content>
+        </Tabs.Root>
       </div>
 
-      {/* Add personnel modal */}
-      {showAddPersonnel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xl" onClick={() => setShowAddPersonnel(false)}>
-          <div className="w-full max-w-lg rounded-[26px] border border-white/10 bg-slate-950/90 p-6 shadow-[0_34px_120px_rgba(0,0,0,0.58)]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-white">Add Personnel</h2>
-              <button onClick={() => setShowAddPersonnel(false)} className="text-slate-500 hover:text-slate-300">✕</button>
-            </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault(); setCreating(true)
-              const fd = new FormData(e.currentTarget)
-              const certs = fd.getAll('certifications') as string[]
-              const cert_expirations: Record<string, string> = {}
-              certs.forEach((name) => {
-                const d = fd.get(`cert_expiration_${name}`) as string
-                if (d) { try { cert_expirations[name] = new Date(d + 'T23:59:59.000Z').toISOString() } catch { } }
-              })
-              try {
-                const res = await fetch(`${apiBase}/api/personnel`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name: fd.get('name'), rank: fd.get('rank') || undefined, role: fd.get('role'), certifications: certs, cert_expirations, availability_status: fd.get('availability_status') || 'AVAILABLE', station_id: fd.get('station_id') || undefined }),
-                })
-                if (!res.ok) throw new Error(await res.text())
-                setShowAddPersonnel(false); fetchAll()
-              } catch { /* ignore */ }
-              setCreating(false)
-            }} className="space-y-4">
-              <div><label className="block text-xs text-slate-400 mb-1">Name *</label><input required name="name" className="form-control w-full" /></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Rank</label><input name="rank" className="form-control w-full" /></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Role *</label><input required name="role" className="form-control w-full" /></div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Certifications</label>
-                <div className="max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-1.5">
-                  {certsList.map((c) => (
-                    <div key={c.certification_id}>
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" name="certifications" value={c.name} onChange={(ev) => setCertExpCheck((p) => ({ ...p, [c.name]: ev.target.checked }))} className="accent-cyan-400" />{c.name}</label>
-                      {certExpCheck[c.name] && <div className="ml-5 mt-1"><label className="text-[10px] text-slate-500">Expiration</label><input type="date" name={`cert_expiration_${c.name}`} className="ml-2 rounded bg-white/[0.05] border border-white/10 px-2 py-0.5 text-xs text-white" /></div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div><label className="block text-xs text-slate-400 mb-1">Status</label><select name="availability_status" className="form-control w-full"><option value="AVAILABLE">Deployable</option><option value="OFF">Off Duty</option><option value="IN_TRAINING">Training</option><option value="DEPLOYED">Deployed</option><option value="ON_CALL">On Call</option></select></div>
-              <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="form-control w-full" /></div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowAddPersonnel(false)} className="ops-button-secondary text-sm py-2 px-4">Cancel</button>
-                <button type="submit" disabled={creating} className="ops-button-primary text-sm py-2 px-4">{creating ? 'Saving…' : 'Create'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)} title={editing === 'new' ? 'Add personnel' : 'Edit personnel'} description="Maintain the canonical record used by readiness and scheduling validation." submitLabel={editing === 'new' ? 'Add personnel' : 'Save changes'} submitting={savePerson.isPending} onSubmit={submitPerson}>
+        <div className="form-grid"><Field label="Full name"><input className="form-control" name="name" defaultValue={editing === 'new' ? '' : editing?.name} required /></Field><Field label="Rank"><input className="form-control" name="rank" defaultValue={editing === 'new' ? '' : editing?.rank || ''} /></Field><Field label="Operational role"><input className="form-control" name="role" defaultValue={editing === 'new' ? '' : editing?.role} required /></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={editing === 'new' ? (stationId === 'all' ? '' : stationId) : editing?.station_id || ''}><option value="">Unassigned</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Availability"><select className="form-control" name="availability_status" defaultValue={editing === 'new' ? 'AVAILABLE' : editing?.availability_status}><option>AVAILABLE</option><option>ON_CALL</option><option>DEPLOYED</option><option>IN_TRAINING</option><option>OFF</option></select></Field><Field label="Credentials" hint="Comma-separated; new credentials receive a one-year review date"><input className="form-control" name="certifications" list="credential-options" defaultValue={editing === 'new' ? '' : editing?.certifications.join(', ')} /><datalist id="credential-options">{certifications.data?.map((cert) => <option key={cert.certification_id}>{cert.name}</option>)}</datalist></Field><Field label="Operational notes"><textarea className="form-control min-h-24" name="notes" defaultValue={editing === 'new' ? '' : editing?.notes || ''} /></Field></div>
+      </FormDialog>
     </div>
   )
 }

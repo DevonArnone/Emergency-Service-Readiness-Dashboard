@@ -1,313 +1,167 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
-import ToastContainer, { ToastMessage } from '@/components/ToastContainer'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  LogIn,
+  LogOut,
+  Plus,
+  Radio,
+  Search,
+  UserPlus,
+  Users,
+  XCircle,
+} from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import FormDialog, { Field } from '@/components/FormDialog'
+import { useStationScope } from '@/components/ScopeContext'
+import { Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
+import { api, queryKeys } from '@/lib/api'
+import type { LiveShift, Shift } from '@/lib/schemas'
+import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
 
-interface LiveShiftStatus {
-  shift_id: string
-  location: string
-  start_time: string
-  end_time: string
-  required_headcount: number
-  assigned_count: number
-  clocked_in_count: number
-  status: string
-  alerts: string[]
+type Notice = { tone: 'success' | 'danger'; message: string } | null
+
+function dateInput(date = new Date()) {
+  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return adjusted.toISOString().slice(0, 10)
 }
 
-interface ShiftEvent {
-  event_id?: string
-  shift_id: string
-  employee_id?: string
-  event_type: string
-  event_time: string
-  payload?: Record<string, unknown>
+function shiftTone(status: string) {
+  if (status === 'fully_staffed' || status === 'over_staffed') return 'success' as const
+  if (status === 'understaffed') return 'danger' as const
+  if (status === 'CANCELLED') return 'neutral' as const
+  return 'info' as const
 }
 
-interface UnitAssignment {
-  assignment_id: string
-  unit_id: string
-  personnel_id: string
-  shift_start: string
-  shift_end: string
-  assignment_status: string
-}
+export default function SchedulingPage() {
+  const queryClient = useQueryClient()
+  const { stationId } = useStationScope()
+  const [selectedDate, setSelectedDate] = useState(dateInput())
+  const [search, setSearch] = useState('')
+  const [selectedId, setSelectedId] = useState('')
+  const [shiftDialog, setShiftDialog] = useState(false)
+  const [rosterDialog, setRosterDialog] = useState(false)
+  const [notice, setNotice] = useState<Notice>(null)
 
-const STATUS_STYLES: Record<string, string> = {
-  fully_staffed: 'border-emerald-400/30 bg-emerald-400/[0.07] text-emerald-300',
-  understaffed:  'border-red-400/30 bg-red-400/[0.07] text-red-300',
-  over_staffed:  'border-cyan-400/30 bg-cyan-400/[0.07] text-cyan-300',
-}
+  const shifts = useQuery({ queryKey: queryKeys.shifts, queryFn: api.shifts })
+  const liveShifts = useQuery({ queryKey: queryKeys.liveShifts, queryFn: api.liveShifts, refetchInterval: 15_000 })
+  const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
+  const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
+  const activity = useQuery({ queryKey: queryKeys.audit, queryFn: () => api.auditEvents(80) })
 
-const EVENT_STYLES: Record<string, string> = {
-  CLOCK_IN:            'text-emerald-400',
-  CLOCK_OUT:           'text-slate-400',
-  ALERT_UNDERSTAFFED:  'text-red-400',
-  ALERT_OVERTIME_RISK: 'text-amber-400',
-  ASSIGNED:            'text-cyan-400',
-  CREATED:             'text-slate-500',
-}
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.liveShifts }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.personnel }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
+      queryClient.invalidateQueries({ queryKey: ['operations'] }),
+    ])
+  }
+  const createShift = useMutation({
+    mutationFn: api.createShift,
+    onSuccess: async (shift) => { await invalidate(); setSelectedId(shift.shift_id); setShiftDialog(false); setNotice({ tone: 'success', message: 'Shift created.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const cancelShift = useMutation({
+    mutationFn: api.cancelShift,
+    onSuccess: async () => { await invalidate(); setNotice({ tone: 'success', message: 'Shift and linked assignments cancelled.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const assignPerson = useMutation({
+    mutationFn: ({ shiftId, personnelId }: { shiftId: string; personnelId: string }) => api.assignShift(shiftId, personnelId),
+    onSuccess: async () => { await invalidate(); setRosterDialog(false); setNotice({ tone: 'success', message: 'Personnel added to the shift roster.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const clockAction = useMutation({
+    mutationFn: ({ shiftId, personnelId, action }: { shiftId: string; personnelId: string; action: 'in' | 'out' }) => action === 'in' ? api.clockIn(shiftId, personnelId) : api.clockOut(shiftId, personnelId),
+    onSuccess: async (result) => { await invalidate(); setNotice({ tone: 'success', message: `Personnel clocked ${result.status === 'clocked_in' ? 'in' : 'out'}.` }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-}
+  const filteredShifts = useMemo(() => (shifts.data || []).filter((shift) => {
+    const dateMatches = shift.start_time.slice(0, 10) === selectedDate
+    const scopeMatches = stationId === 'all' || shift.station_id === stationId
+    const searchMatches = shift.location.toLowerCase().includes(search.toLowerCase())
+    return dateMatches && scopeMatches && searchMatches
+  }), [shifts.data, selectedDate, stationId, search])
+  const selected = filteredShifts.find((shift) => shift.shift_id === selectedId) || filteredShifts[0]
+  const liveSelected = liveShifts.data?.find((shift) => shift.shift_id === selected?.shift_id)
+  const scopedLive = liveShifts.data?.filter((shift) => stationId === 'all' || shift.station_id === stationId) || []
+  const required = scopedLive.reduce((sum, shift) => sum + shift.required_headcount, 0)
+  const clocked = scopedLive.reduce((sum, shift) => sum + shift.clocked_in_count, 0)
+  const shiftActivity = activity.data?.filter((event) => event.entity_type === 'shift' && (!selected || event.entity_id === selected.shift_id)).slice(0, 10) || []
 
-function fmtFull(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
-
-export default function ShiftsPage() {
-  const [shifts, setShifts] = useState<LiveShiftStatus[]>([])
-  const [events, setEvents] = useState<ShiftEvent[]>([])
-  const [assignments, setAssignments] = useState<UnitAssignment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [wsConnected, setWsConnected] = useState(false)
-  const [toasts, setToasts] = useState<ToastMessage[]>([])
-  const wsRef = useRef<WebSocket | null>(null)
-
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-
-  const addToast = (msg: string, type: ToastMessage['type'] = 'info') => {
-    const id = Math.random().toString(36).slice(2, 9)
-    setToasts((p) => [...p, { id, message: msg, type }])
+  const submitShift = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const station = stations.data?.find((item) => item.station_id === data.get('station_id'))
+    createShift.mutate({
+      location: station?.name || data.get('location') || 'District coverage', station_id: data.get('station_id') || null,
+      start_time: new Date(String(data.get('start_time'))).toISOString(), end_time: new Date(String(data.get('end_time'))).toISOString(),
+      required_headcount: Number(data.get('required_headcount')), status: 'SCHEDULED', notes: data.get('notes') || null,
+    })
   }
 
-  const fetchShifts = useCallback(async () => {
-    try {
-      const res = await fetch(`${apiBase}/api/shifts/live`)
-      if (res.ok) setShifts(await res.json())
-    } catch { /* offline */ }
-    setLoading(false)
-  }, [apiBase])
-
-  const fetchAssignments = useCallback(async () => {
-    try {
-      const res = await fetch(`${apiBase}/api/unit-assignments`)
-      if (res.ok) setAssignments(await res.json())
-    } catch { /* offline */ }
-  }, [apiBase])
-
-  useEffect(() => { fetchShifts(); fetchAssignments() }, [fetchShifts, fetchAssignments])
-
-  useEffect(() => {
-    const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
-    const ws = new WebSocket(`${wsUrl}/ws/shifts`)
-    wsRef.current = ws
-    ws.onopen = () => setWsConnected(true)
-    ws.onclose = () => setWsConnected(false)
-    ws.onerror = () => setWsConnected(false)
-    ws.onmessage = (ev) => {
-      try {
-        const msg: ShiftEvent = JSON.parse(ev.data)
-        setEvents((p) => [msg, ...p].slice(0, 50))
-        if (msg.event_type === 'ALERT_UNDERSTAFFED') { addToast(`Understaffing alert on shift ${msg.shift_id}`, 'error'); fetchShifts() }
-        if (['CLOCK_IN', 'CLOCK_OUT'].includes(msg.event_type)) fetchShifts()
-      } catch { /* non-JSON */ }
-    }
-    return () => { ws.close(); wsRef.current = null }
-  }, [apiBase, fetchShifts]) // eslint-disable-line
-
-  const now = new Date()
-  const hours = Array.from({ length: 12 }, (_, i) => (now.getHours() - 5 + i + 24) % 24)
-
-  function assignedAtHour(h: number) {
-    return assignments.filter((a) => {
-      const s = new Date(a.shift_start).getHours()
-      const e = new Date(a.shift_end).getHours()
-      return a.assignment_status === 'ON_SHIFT' && s <= h && h < e
-    }).length
-  }
-
-  const maxStaff = Math.max(...hours.map(assignedAtHour), 1)
-  const totalOnShift = assignments.filter((a) => a.assignment_status === 'ON_SHIFT').length
-
-  if (loading) {
-    return (
-      <div className="ops-page">
-        <div className="ops-shell flex items-center justify-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            <p className="text-sm text-slate-400">Loading shift board…</p>
-          </div>
-        </div>
-      </div>
-    )
+  const submitRoster = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selected) return
+    const data = new FormData(event.currentTarget)
+    assignPerson.mutate({ shiftId: selected.shift_id, personnelId: String(data.get('personnel_id')) })
   }
 
   return (
-    <>
-      <ToastContainer toasts={toasts} onRemove={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
+    <div className="ops-page page-enter">
+      <div className="ops-shell space-y-6">
+        <PageHeader eyebrow="Coverage and attendance" title="Scheduling" description="Plan station coverage, staff each shift, and track clock events against required headcount without leaving the roster view." actions={<Button variant="primary" onClick={() => setShiftDialog(true)}><Plus className="size-4" />Create shift</Button>} />
+        {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
+        {(shifts.isError || liveShifts.isError) && <ErrorState message={shifts.error?.message || liveShifts.error?.message} retry={() => { shifts.refetch(); liveShifts.refetch() }} />}
 
-      <div className="ops-page">
-        <div className="ops-shell space-y-6">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Live coverage" value={required ? `${Math.round((clocked / required) * 100)}%` : '—'} detail={`${clocked} clocked in · ${required} required`} icon={Radio} tone={clocked >= required ? 'success' : 'danger'} />
+          <StatCard label="Today's shifts" value={scopedLive.length} detail="Across selected station scope" icon={CalendarDays} tone="info" />
+          <StatCard label="Staffing gaps" value={scopedLive.filter((shift) => shift.clocked_in_count < shift.required_headcount).length} detail="Shifts currently below minimum" icon={AlertTriangle} tone={scopedLive.some((shift) => shift.clocked_in_count < shift.required_headcount) ? 'danger' : 'success'} />
+          <StatCard label="Scheduled roster" value={scopedLive.reduce((sum, shift) => sum + shift.assigned_count, 0)} detail="Personnel linked to live shifts" icon={Users} tone="info" />
+        </section>
 
-          {/* Header */}
-          <div className="surface-header">
-            <div>
-              <div className="panel-kicker">Ridgecrest ESD</div>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Shifts</h1>
-              <p className="mt-1 text-sm text-slate-400">Live staffing timeline, clock-in events, and gap markers.</p>
-            </div>
-            <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected ? 'border-emerald-400/30 bg-emerald-400/[0.07] text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
-              {wsConnected ? 'Live feed connected' : 'Connecting…'}
-            </div>
-          </div>
+        <div className="toolbar schedule-toolbar"><label className="date-control"><CalendarDays className="size-4" /><input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shift location" /></label><div className="date-shortcuts"><button onClick={() => setSelectedDate(dateInput())}>Today</button><button onClick={() => setSelectedDate(dateInput(new Date(Date.now() + 86400000)))}>Tomorrow</button></div></div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: 'Active Shifts',  value: shifts.length,                                          cls: 'text-white' },
-              { label: 'On Shift Now',   value: totalOnShift,                                           cls: 'text-emerald-400' },
-              { label: 'Understaffed',   value: shifts.filter((s) => s.status === 'understaffed').length, cls: 'text-red-400' },
-              { label: 'Events Today',   value: events.length,                                          cls: 'text-cyan-400' },
-            ].map((s) => (
-              <div key={s.label} className="stat-panel">
-                <div className="stat-label">{s.label}</div>
-                <div className={`stat-value ${s.cls}`}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Staffing timeline */}
-          <div className="ops-panel">
-            <div className="panel-kicker">Staffing Timeline</div>
-            <h2 className="mt-1 text-sm font-semibold text-white mb-5">Assigned personnel by hour · today</h2>
-            <div className="flex items-end gap-1" style={{ height: '80px' }}>
-              {hours.map((h) => {
-                const count = assignedAtHour(h)
-                const pct = (count / maxStaff) * 100
-                const isNow = h === now.getHours()
-                return (
-                  <div key={h} className="group relative flex flex-1 flex-col items-center justify-end gap-0.5" style={{ height: '100%' }}>
-                    <div className="absolute -top-7 left-1/2 hidden -translate-x-1/2 group-hover:block z-10 rounded bg-slate-800 border border-white/10 px-2 py-0.5 text-[10px] text-white whitespace-nowrap">
-                      {`${String(h).padStart(2, '0')}:00 · ${count} staff`}
-                    </div>
-                    <div
-                      className={`w-full rounded-sm transition-all duration-300 ${isNow ? 'bg-cyan-400' : count === 0 ? 'bg-red-400/50' : 'bg-slate-500/70'}`}
-                      style={{ height: `${Math.max(pct, count === 0 ? 10 : 4)}%` }}
-                    />
-                    <span className={`text-[9px] ${isNow ? 'font-bold text-cyan-400' : 'text-slate-600'}`}>
-                      {String(h).padStart(2, '0')}
-                    </span>
-                  </div>
-                )
+        {shifts.isLoading ? <div className="ops-panel"><LoadingState rows={8} /></div> : (
+          <div className="master-detail-grid schedule-grid">
+            <section className="ops-panel shift-list-panel">
+              <SectionHeader title={formatDate(`${selectedDate}T12:00:00`, 'EEEE, MMMM d')} description={`${filteredShifts.length} scheduled shifts`} />
+              {filteredShifts.map((shift) => {
+                const live = liveShifts.data?.find((item) => item.shift_id === shift.shift_id)
+                return <ShiftRow key={shift.shift_id} shift={shift} live={live} active={selected?.shift_id === shift.shift_id} onSelect={() => setSelectedId(shift.shift_id)} />
               })}
-            </div>
-            <div className="mt-3 flex gap-4 text-[10px] text-slate-500">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-cyan-400" /> Current hour</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-red-400/50" /> Gap</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-slate-500/70" /> Staffed</span>
-            </div>
+              {!filteredShifts.length && <EmptyState title="No shifts scheduled" description="Create a shift for this date or select another day." icon={CalendarDays} action={<Button variant="primary" onClick={() => setShiftDialog(true)}><Plus className="size-4" />Create shift</Button>} />}
+            </section>
+
+            <section className="ops-panel detail-panel">
+              {selected ? <div className="shift-detail"><div className="shift-detail-heading"><div><span className="eyebrow">{formatDate(selected.start_time, 'EEEE · MMM d')}</span><h2>{selected.location}</h2><p>{formatDate(selected.start_time, 'h:mm a')} – {formatDate(selected.end_time, 'h:mm a')}</p></div><StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge></div><div className="coverage-hero"><div><span>Clocked in</span><strong>{liveSelected?.clocked_in_count ?? 0}</strong></div><div><span>Assigned</span><strong>{liveSelected?.assigned_count ?? 0}</strong></div><div><span>Required</span><strong>{selected.required_headcount}</strong></div></div><div className="detail-toolbar"><Button variant="primary" onClick={() => setRosterDialog(true)} disabled={selected.status === 'CANCELLED'}><UserPlus className="size-4" />Add to roster</Button><Button variant="danger" onClick={() => cancelShift.mutate(selected.shift_id)} busy={cancelShift.isPending} disabled={selected.status === 'CANCELLED'}><XCircle className="size-4" />Cancel shift</Button></div><div className="detail-section"><SectionHeader title="Roster" description="Clock status updates readiness immediately" />{liveSelected?.assigned_personnel.map((person) => <div key={person.personnel_id} className="roster-row"><span className={cn('attendance-dot', person.clocked_in_at && 'attendance-live')} /><div className="min-w-0 flex-1"><strong>{person.name}</strong><small>{titleCase(person.status)} · Unit {person.unit_id.slice(0, 8)}</small></div>{person.clocked_in_at ? <Button onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'out' })} busy={clockAction.isPending}><LogOut className="size-4" />Clock out</Button> : <Button variant="primary" onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'in' })} busy={clockAction.isPending}><LogIn className="size-4" />Clock in</Button>}</div>)}{!liveSelected?.assigned_personnel.length && <div className="compact-empty">No personnel assigned to this shift.</div>}</div>{selected.notes && <div className="profile-notes"><strong>Shift notes</strong><p>{selected.notes}</p></div>}</div> : <EmptyState title="Select a shift" description="Choose a shift to review its coverage and roster." />}
+            </section>
           </div>
+        )}
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            {/* Shift cards */}
-            <div className="space-y-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Live Shifts</div>
-              {shifts.length === 0 ? (
-                <div className="ops-panel py-10 text-center">
-                  <p className="text-sm text-slate-500">No active shifts. Seed demo or create via POST /api/shifts.</p>
-                </div>
-              ) : (
-                shifts.map((shift) => {
-                  const pct = shift.required_headcount === 0 ? 100 : Math.min(100, Math.round((shift.clocked_in_count / shift.required_headcount) * 100))
-                  const style = STATUS_STYLES[shift.status] ?? STATUS_STYLES['understaffed']
-                  return (
-                    <div key={shift.shift_id} className={`ops-panel border ${style}`}>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">{shift.location}</div>
-                          <h3 className="mt-0.5 text-sm font-semibold text-white">{fmt(shift.start_time)} – {fmt(shift.end_time)}</h3>
-                        </div>
-                        <span className={`rounded-full border px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style}`}>
-                          {shift.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-                          <span>Clocked in: <span className="text-white font-medium">{shift.clocked_in_count}</span> / {shift.required_headcount}</span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-white/10">
-                          <div className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-emerald-400' : pct >= 75 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <div className="mt-1.5 text-xs text-slate-500">Assigned: {shift.assigned_count}</div>
-                      </div>
-                      {shift.alerts.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {shift.alerts.map((a, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs text-red-300">
-                              <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />{a}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            {/* Event log */}
-            <div className="ops-panel">
-              <div className="panel-kicker mb-3">Event Log</div>
-              {events.length === 0 ? (
-                <p className="py-8 text-center text-xs text-slate-500">
-                  Waiting for events…<br />
-                  <span className="text-slate-600">Clock-ins, alerts appear here live.</span>
-                </p>
-              ) : (
-                <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
-                  {events.map((ev, i) => (
-                    <div key={ev.event_id ?? i} className="flex gap-3">
-                      <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${(EVENT_STYLES[ev.event_type] ?? 'text-slate-500').replace('text-', 'bg-')}`} />
-                      <div>
-                        <div className={`text-xs font-medium ${EVENT_STYLES[ev.event_type] ?? 'text-slate-400'}`}>
-                          {ev.event_type.replace(/_/g, ' ')}
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">{fmtFull(ev.event_time)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Assignments table */}
-          <div className="ops-panel overflow-hidden p-0">
-            <div className="border-b border-white/[0.06] px-6 py-4">
-              <div className="panel-kicker">Today&apos;s Unit Assignments</div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="data-table w-full">
-                <thead><tr><th>Unit</th><th>Personnel</th><th>Start</th><th>End</th><th>Status</th></tr></thead>
-                <tbody className="divide-y divide-white/[0.05]">
-                  {assignments.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-slate-500">No assignments</td></tr>}
-                  {assignments.slice(0, 25).map((a) => {
-                    const sc = a.assignment_status === 'ON_SHIFT'
-                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                      : a.assignment_status === 'ABSENT'
-                      ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                      : 'border-slate-500/30 bg-slate-500/10 text-slate-400'
-                    return (
-                      <tr key={a.assignment_id}>
-                        <td className="font-mono text-xs text-slate-400">{a.unit_id.slice(-8)}</td>
-                        <td className="font-mono text-xs text-slate-400">{a.personnel_id.slice(-8)}</td>
-                        <td>{fmt(a.shift_start)}</td>
-                        <td>{fmt(a.shift_end)}</td>
-                        <td><span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${sc}`}>{a.assignment_status}</span></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
+        <section className="ops-panel">
+          <SectionHeader title="Shift activity" description="Clock, roster, and lifecycle events from the durable audit stream" action={<Clock3 className="size-4 text-emerald-300" />} />
+          <div className="event-strip">{shiftActivity.map((event) => <div key={event.audit_id} className="event-row"><span className="event-icon"><CheckCircle2 className="size-4" /></span><div className="min-w-0 flex-1"><strong>{event.summary}</strong><small>{event.actor} · {formatRelativeTime(event.created_at)}</small></div><StatusBadge tone="info">{event.action}</StatusBadge></div>)}{!shiftActivity.length && <div className="compact-empty">No shift events in this view.</div>}</div>
+        </section>
       </div>
-    </>
+
+      <FormDialog open={shiftDialog} onOpenChange={setShiftDialog} title="Create shift" description="Define the station, time window, and minimum coverage target." submitLabel="Create shift" submitting={createShift.isPending} onSubmit={submitShift}><div className="form-grid"><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId} required><option value="">Select station</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Location override"><input className="form-control" name="location" placeholder="Defaults to station name" /></Field><Field label="Start"><input className="form-control" type="datetime-local" name="start_time" required /></Field><Field label="End"><input className="form-control" type="datetime-local" name="end_time" required /></Field><Field label="Required headcount"><input className="form-control" type="number" min="1" name="required_headcount" defaultValue="7" required /></Field><Field label="Shift notes"><textarea className="form-control min-h-24" name="notes" /></Field></div></FormDialog>
+      <FormDialog open={rosterDialog} onOpenChange={setRosterDialog} title={`Add to ${selected?.location || 'shift'}`} description="The service validates active personnel, unit availability, and assignment overlap." submitLabel="Add to roster" submitting={assignPerson.isPending} onSubmit={submitRoster}><Field label="Personnel"><select className="form-control" name="personnel_id" required><option value="">Select available personnel</option>{personnel.data?.filter((person) => !liveSelected?.assigned_personnel.some((assigned) => assigned.personnel_id === person.personnel_id)).map((person) => <option key={person.personnel_id} value={person.personnel_id}>{person.name} · {titleCase(person.availability_status)}</option>)}</select></Field></FormDialog>
+    </div>
   )
+}
+
+function ShiftRow({ shift, live, active, onSelect }: { shift: Shift; live?: LiveShift; active: boolean; onSelect: () => void }) {
+  const coverage = live ? Math.min(100, Math.round((live.clocked_in_count / shift.required_headcount) * 100)) : 0
+  return <button className={cn('shift-list-row', active && 'shift-list-row-active')} type="button" onClick={onSelect}><span className="shift-time"><strong>{formatDate(shift.start_time, 'h:mm')}</strong><small>{formatDate(shift.start_time, 'a')}</small></span><span className="min-w-0 flex-1"><strong>{shift.location}</strong><small>{live ? `${live.clocked_in_count}/${shift.required_headcount} clocked in` : `${shift.required_headcount} required`} · {titleCase(shift.status)}</small>{live && <span className="coverage-track"><i style={{ width: `${coverage}%` }} /></span>}</span><StatusBadge tone={shiftTone(live?.status || shift.status)}>{live ? `${coverage}%` : titleCase(shift.status)}</StatusBadge><ChevronRight className="size-4" /></button>
 }

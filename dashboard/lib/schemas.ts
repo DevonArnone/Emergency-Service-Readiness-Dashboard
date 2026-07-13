@@ -197,6 +197,36 @@ export const auditEventSchema = z.object({
   created_at: nullableDate,
 }).passthrough()
 
+export const shiftActionSchema = z.object({
+  status: z.string(),
+  shift_id: z.string(),
+  employee_id: z.string(),
+})
+
+export const shiftAssignmentSchema = z.object({
+  assignment_id: z.string(),
+  shift_id: z.string(),
+  employee_id: z.string(),
+  assigned_at: nullableDate,
+})
+
+export const certificationImpactSchema = z.object({
+  certification_id: z.string(),
+  personnel_count: z.number(),
+  unit_count: z.number(),
+  personnel: z.array(z.object({ personnel_id: z.string(), name: z.string() })),
+  units: z.array(z.object({ unit_id: z.string(), unit_name: z.string() })),
+})
+
+export const simulationResultSchema = z.object({
+  scenario: z.string(),
+  original_readiness: z.array(unitReadinessSchema),
+  degraded_readiness: z.array(unitReadinessSchema),
+  impacted_units: z.array(z.string()),
+  recovery_actions: z.array(z.string()),
+  timestamp: z.string(),
+})
+
 export const operationsSnapshotSchema = z.object({
   summary: dashboardSummarySchema,
   units: z.array(unitReadinessSchema),
@@ -223,3 +253,5 @@ export type UnitReadiness = z.infer<typeof unitReadinessSchema>
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>
 export type AuditEvent = z.infer<typeof auditEventSchema>
 export type OperationsSnapshot = z.infer<typeof operationsSnapshotSchema>
+export type CertificationImpact = z.infer<typeof certificationImpactSchema>
+export type SimulationResult = z.infer<typeof simulationResultSchema>

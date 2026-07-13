@@ -1,547 +1,230 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
-import ToastContainer, { ToastMessage } from '@/components/ToastContainer'
-import CreateModal from '@/components/CreateModal'
+import * as Tabs from '@radix-ui/react-tabs'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  CircleDot,
+  FlaskConical,
+  Plus,
+  Search,
+  ShieldAlert,
+  Siren,
+  UserPlus,
+  Users,
+  Wrench,
+} from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import FormDialog, { Field } from '@/components/FormDialog'
+import { useStationScope } from '@/components/ScopeContext'
+import { Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
+import { api, queryKeys } from '@/lib/api'
+import type { UnitReadiness } from '@/lib/schemas'
+import { cn, formatRelativeTime, titleCase } from '@/lib/utils'
 
-interface UnitReadiness {
-  unit_id: string
-  unit_name: string
-  unit_type: string
-  readiness_score: number
-  staff_required: number
-  staff_present: number
-  certifications_missing: string[]
-  expired_certifications: string[]
-  is_understaffed: boolean
-  issues: string[]
-  assigned_personnel: Array<{ personnel_id: string; name: string; role: string; certifications: string[] }>
-  timestamp: string
-}
+type Notice = { tone: 'success' | 'danger'; message: string } | null
 
-interface Alert {
-  alert_id: string
-  alert_type: string
-  state: string
-  message: string
-  unit_id?: string
-  station_id?: string
-  created_at?: string
-  acknowledged_by?: string
-}
-
-interface Recommendation {
-  recommendation_id: string
-  unit_id: string
-  action_type: string
-  message: string
-  priority: string
-}
-
-type FilterType = 'ALL' | 'CRITICAL' | 'DEGRADED' | 'READY'
-type UnitTypeFilter = 'ALL' | 'ENGINE' | 'LADDER' | 'RESCUE' | 'MEDIC' | 'SAR_TEAM'
-
-const UNIT_TYPE_LABELS: Record<string, string> = {
-  ENGINE: 'Engine', LADDER: 'Ladder', RESCUE: 'Rescue', MEDIC: 'Medic', SAR_TEAM: 'SAR',
-}
-
-function scoreColor(score: number) {
-  if (score >= 85) return 'text-emerald-400'
-  if (score >= 60) return 'text-amber-400'
-  return 'text-red-400'
-}
-
-function scoreBg(score: number) {
-  if (score >= 85) return 'bg-emerald-400'
-  if (score >= 60) return 'bg-amber-400'
-  return 'bg-red-400'
-}
-
-function scoreBorder(score: number) {
-  if (score >= 85) return 'border-emerald-400/20'
-  if (score >= 60) return 'border-amber-400/20'
-  return 'border-red-400/30'
-}
-
-function alertTypeBadge(type: string) {
-  if (type === 'UNDERSTAFFED_UNIT') return 'bg-red-500/10 text-red-300 border-red-500/30'
-  if (type.includes('CERT')) return 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-  return 'bg-slate-500/10 text-slate-300 border-slate-500/30'
-}
-
-function priorityBadge(p: string) {
-  if (p === 'CRITICAL') return 'bg-red-500/10 text-red-300 border-red-500/30'
-  if (p === 'HIGH') return 'bg-orange-500/10 text-orange-300 border-orange-500/30'
-  return 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+function readinessTone(score: number) {
+  if (score >= 85) return 'success' as const
+  if (score >= 60) return 'warning' as const
+  return 'danger' as const
 }
 
 export default function OperationsPage() {
-  const [units, setUnits] = useState<UnitReadiness[]>([])
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedUnit, setSelectedUnit] = useState<UnitReadiness | null>(null)
-  const [filter, setFilter] = useState<FilterType>('ALL')
-  const [typeFilter, setTypeFilter] = useState<UnitTypeFilter>('ALL')
-  const [wsConnected, setWsConnected] = useState<Set<string>>(new Set())
-  const [toasts, setToasts] = useState<ToastMessage[]>([])
-  const [showCreatePersonnel, setShowCreatePersonnel] = useState(false)
-  const [showCreateUnit, setShowCreateUnit] = useState(false)
-  const [showCreateAssignment, setShowCreateAssignment] = useState(false)
-  const [certsList, setCertsList] = useState<any[]>([])
-  const [personnelList, setPersonnelList] = useState<any[]>([])
-  const [unitsList, setUnitsList] = useState<any[]>([])
-  const [selectedCertExp, setSelectedCertExp] = useState<Record<string, boolean>>({})
-  const [creating, setCreating] = useState(false)
-  const wsRef = useRef<Map<string, WebSocket>>(new Map())
+  const queryClient = useQueryClient()
+  const { stationId } = useStationScope()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedUnitId, setSelectedUnitId] = useState('')
+  const [unitDialog, setUnitDialog] = useState(false)
+  const [assignmentDialog, setAssignmentDialog] = useState(false)
+  const [incidentDialog, setIncidentDialog] = useState(false)
+  const [notice, setNotice] = useState<Notice>(null)
 
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+  const operations = useQuery({
+    queryKey: queryKeys.operations(stationId),
+    queryFn: () => api.operationsSnapshot(stationId === 'all' ? undefined : stationId),
+  })
+  const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
+  const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
 
-  const addToast = (message: string, type: ToastMessage['type'] = 'warning') => {
-    const id = Math.random().toString(36).slice(2, 9)
-    setToasts((prev) => [...prev, { id, message, type }])
-  }
-  const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id))
-
-  const fetchAll = useCallback(async () => {
-    try {
-      const [unitRes, alertRes, recRes] = await Promise.all([
-        fetch(`${apiBase}/api/readiness/units`),
-        fetch(`${apiBase}/api/alerts`),
-        fetch(`${apiBase}/api/recommendations`),
-      ])
-      if (unitRes.ok) setUnits(await unitRes.json())
-      if (alertRes.ok) setAlerts(await alertRes.json())
-      if (recRes.ok) setRecommendations(await recRes.json())
-    } catch { /* backend unavailable */ }
-    setLoading(false)
-  }, [apiBase])
-
-  const fetchSupportData = useCallback(async () => {
-    try {
-      const [cRes, pRes, uRes] = await Promise.all([
-        fetch(`${apiBase}/api/certifications`),
-        fetch(`${apiBase}/api/personnel`),
-        fetch(`${apiBase}/api/units`),
-      ])
-      if (cRes.ok) setCertsList(await cRes.json())
-      if (pRes.ok) setPersonnelList(await pRes.json())
-      if (uRes.ok) setUnitsList(await uRes.json())
-    } catch { /* backend unavailable */ }
-  }, [apiBase])
-
-  const resetDemo = useCallback(async () => {
-    setLoading(true)
-    try { await fetch(`${apiBase}/api/demo/reset`, { method: 'POST' }) } catch { /* ignore */ }
-    await fetchAll()
-    await fetchSupportData()
-  }, [apiBase, fetchAll, fetchSupportData])
-
-  useEffect(() => { fetchAll(); fetchSupportData() }, [fetchAll, fetchSupportData])
-
-  // Per-unit WebSockets
-  useEffect(() => {
-    if (!units.length) return
-    const currentIds = new Set(units.map((u) => u.unit_id))
-
-    wsRef.current.forEach((ws, uid) => {
-      if (!currentIds.has(uid)) { ws.close(); wsRef.current.delete(uid) }
-    })
-
-    units.forEach((unit) => {
-      if (wsRef.current.has(unit.unit_id)) return
-      const wsUrl = apiBase.replace('http://', 'ws://').replace('https://', 'wss://')
-      const ws = new WebSocket(`${wsUrl}/ws/unit-readiness/${unit.unit_id}`)
-      ws.onopen = () => setWsConnected((p) => {
-        const next = new Set(p)
-        next.add(unit.unit_id)
-        return next
-      })
-      ws.onclose = () => { setWsConnected((p) => { const n = new Set(p); n.delete(unit.unit_id); return n }); wsRef.current.delete(unit.unit_id) }
-      ws.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data)
-          if (msg.type === 'unit_readiness') {
-            setUnits((prev) => {
-              const old = prev.find((u) => u.unit_id === msg.data.unit_id)
-              if (old?.is_understaffed === false && msg.data.is_understaffed)
-                addToast(`${msg.data.unit_name} is now UNDERSTAFFED`, 'error')
-              return prev.map((u) => u.unit_id === msg.data.unit_id ? msg.data : u)
-            })
-          }
-        } catch { /* ignore */ }
-      }
-      wsRef.current.set(unit.unit_id, ws)
-    })
-
-    const connections = wsRef.current
-    return () => { connections.forEach((ws) => ws.close()); connections.clear() }
-  }, [apiBase, units.map((u) => u.unit_id).sort().join(',')])  // eslint-disable-line
-
-  const acknowledgeAlert = async (alertId: string) => {
-    try {
-      await fetch(`${apiBase}/api/alerts/${alertId}/acknowledge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acknowledged_by: 'Duty Officer' }),
-      })
-      fetchAll()
-      addToast('Alert acknowledged', 'success')
-    } catch { addToast('Failed to acknowledge alert', 'error') }
+  const invalidateOperations = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['operations'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.units }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.assignments }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.personnel }),
+    ])
   }
 
-  const resolveAlert = async (alertId: string) => {
-    try {
-      await fetch(`${apiBase}/api/alerts/${alertId}/resolve`, { method: 'POST' })
-      fetchAll()
-      addToast('Alert resolved', 'success')
-    } catch { addToast('Failed to resolve alert', 'error') }
-  }
-
-  // Filtering
-  const filtered = units.filter((u) => {
-    const stateOk =
-      filter === 'ALL' ||
-      (filter === 'CRITICAL' && u.readiness_score < 60) ||
-      (filter === 'DEGRADED' && u.readiness_score >= 60 && u.readiness_score < 85) ||
-      (filter === 'READY' && u.readiness_score >= 85)
-    const typeOk = typeFilter === 'ALL' || u.unit_type === typeFilter
-    return stateOk && typeOk
+  const acknowledge = useMutation({
+    mutationFn: (id: string) => api.acknowledgeAlert(id, 'Reviewed in operations workspace'),
+    onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Alert acknowledged and added to the audit trail.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const resolveAlert = useMutation({
+    mutationFn: api.resolveAlert,
+    onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Alert resolved.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const resolveIncident = useMutation({
+    mutationFn: api.resolveIncident,
+    onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Incident closed.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const createUnit = useMutation({
+    mutationFn: api.createUnit,
+    onSuccess: async () => { await invalidateOperations(); setUnitDialog(false); setNotice({ tone: 'success', message: 'Response unit added.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const createAssignment = useMutation({
+    mutationFn: api.createAssignment,
+    onSuccess: async () => { await invalidateOperations(); setAssignmentDialog(false); setNotice({ tone: 'success', message: 'Personnel assigned to unit.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const createIncident = useMutation({
+    mutationFn: api.createIncident,
+    onSuccess: async () => { await invalidateOperations(); setIncidentDialog(false); setNotice({ tone: 'success', message: 'Incident opened and recorded.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const simulation = useMutation({
+    mutationFn: ({ unitId, personnelId }: { unitId: string; personnelId?: string }) => api.simulateStaffing({
+      unit_id: unitId,
+      scenario: personnelId ? 'callout' : 'unit_offline',
+      personnel_to_remove: personnelId ? [personnelId] : [],
+    }),
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
 
-  const openAlerts = alerts.filter((a) => a.state === 'OPEN')
-  const ackAlerts = alerts.filter((a) => a.state === 'ACKNOWLEDGED')
-  const unitRecs = selectedUnit ? recommendations.filter((r) => r.unit_id === selectedUnit.unit_id) : []
+  const units = useMemo(() => operations.data?.units || [], [operations.data?.units])
+  const filteredUnits = useMemo(() => units.filter((unit) => {
+    const matchesSearch = unit.unit_name.toLowerCase().includes(search.toLowerCase()) || unit.unit_type.toLowerCase().includes(search.toLowerCase())
+    const tone = readinessTone(unit.readiness_score)
+    return matchesSearch && (statusFilter === 'all' || tone === statusFilter)
+  }), [units, search, statusFilter])
+  const selectedUnit = units.find((unit) => unit.unit_id === selectedUnitId) || filteredUnits[0]
+  const alerts = operations.data?.alerts || []
+  const incidents = operations.data?.incidents || []
 
-  if (loading) {
-    return (
-      <div className="ops-page">
-        <div className="ops-shell flex items-center justify-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-            <p className="text-sm text-slate-400">Loading operations board…</p>
-          </div>
-        </div>
-      </div>
-    )
+  const submitUnit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    createUnit.mutate({
+      unit_name: data.get('unit_name'), type: data.get('type'), minimum_staff: Number(data.get('minimum_staff')),
+      station_id: data.get('station_id') || null,
+      required_certifications: String(data.get('required_certifications') || '').split(',').map((value) => value.trim()).filter(Boolean),
+      operational_status: 'AVAILABLE', is_archived: false,
+    })
+  }
+
+  const submitAssignment = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedUnit) return
+    const data = new FormData(event.currentTarget)
+    createAssignment.mutate({
+      unit_id: selectedUnit.unit_id,
+      personnel_id: data.get('personnel_id'),
+      shift_start: new Date(String(data.get('shift_start'))).toISOString(),
+      shift_end: new Date(String(data.get('shift_end'))).toISOString(),
+      assignment_status: 'ON_SHIFT', notes: data.get('notes') || null,
+    })
+  }
+
+  const submitIncident = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    createIncident.mutate({
+      title: data.get('title'), description: data.get('description') || null, priority: data.get('priority'),
+      station_id: data.get('station_id') || null, unit_id: data.get('unit_id') || null,
+      commander: data.get('commander') || null, assigned_unit_ids: data.get('unit_id') ? [data.get('unit_id')] : [], is_active: true,
+    })
   }
 
   return (
-    <>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    <div className="ops-page page-enter">
+      <div className="ops-shell space-y-6">
+        <PageHeader eyebrow="Operational control" title="Operations" description="Monitor unit readiness, clear exceptions, coordinate incidents, and test staffing contingencies from one workspace." actions={<><Button onClick={() => setIncidentDialog(true)}><Siren className="size-4" />Open incident</Button><Button variant="primary" onClick={() => setUnitDialog(true)}><Plus className="size-4" />Add unit</Button></>} />
 
-      <div className="ops-page">
-        <div className="ops-shell space-y-6">
+        {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
+        {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
 
-          {/* Header */}
-          <div className="surface-header">
-            <div>
-              <div className="panel-kicker">Ridgecrest ESD</div>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-4xl">Operations Board</h1>
-              <p className="mt-1 text-sm text-slate-400">Live unit posture, alert queue, and deployment readiness.</p>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="District readiness" value={operations.data ? `${Math.round(operations.data.summary.overall_readiness_pct)}%` : '—'} detail={`${operations.data?.summary.ready_units || 0} fully ready units`} icon={CircleDot} tone={readinessTone(operations.data?.summary.overall_readiness_pct || 0)} />
+          <StatCard label="Critical units" value={operations.data?.summary.critical_units ?? '—'} detail="Below 60% readiness" icon={ShieldAlert} tone={(operations.data?.summary.critical_units || 0) ? 'danger' : 'success'} />
+          <StatCard label="Open exceptions" value={operations.data?.summary.open_alerts ?? '—'} detail="Awaiting duty officer action" icon={AlertTriangle} tone={(operations.data?.summary.open_alerts || 0) ? 'warning' : 'success'} />
+          <StatCard label="Active incidents" value={operations.data?.summary.active_incidents ?? '—'} detail="Currently under command" icon={Siren} tone={(operations.data?.summary.active_incidents || 0) ? 'danger' : 'success'} />
+        </section>
+
+        <Tabs.Root defaultValue="units" className="workspace-tabs">
+          <Tabs.List className="tab-list" aria-label="Operations views">
+            <Tabs.Trigger value="units">Units <span>{units.length}</span></Tabs.Trigger>
+            <Tabs.Trigger value="alerts">Alerts <span>{alerts.filter((alert) => alert.state !== 'RESOLVED').length}</span></Tabs.Trigger>
+            <Tabs.Trigger value="incidents">Incidents <span>{incidents.length}</span></Tabs.Trigger>
+            <Tabs.Trigger value="simulation">Contingency lab</Tabs.Trigger>
+          </Tabs.List>
+
+          <Tabs.Content value="units" className="tab-content">
+            <div className="toolbar">
+              <label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search units" /></label>
+              <div className="segmented-control" aria-label="Readiness filter">{['all', 'success', 'warning', 'danger'].map((value) => <button key={value} className={cn(statusFilter === value && 'active')} onClick={() => setStatusFilter(value)}>{value === 'all' ? 'All' : value === 'success' ? 'Ready' : value === 'warning' ? 'Degraded' : 'Critical'}</button>)}</div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={resetDemo} className="ops-button-secondary text-xs py-2 px-4">↺ Load Demo Data</button>
-              <button onClick={() => setShowCreatePersonnel(true)} className="ops-button-secondary text-xs py-2 px-4">+ Personnel</button>
-              <button onClick={() => setShowCreateUnit(true)} className="ops-button-secondary text-xs py-2 px-4">+ Unit</button>
-              <button onClick={() => setShowCreateAssignment(true)} className="ops-button-secondary text-xs py-2 px-4">+ Assignment</button>
-              <div className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${wsConnected.size > 0 ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' : 'border-slate-600 text-slate-500'}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${wsConnected.size > 0 ? 'animate-pulse bg-emerald-400' : 'bg-slate-600'}`} />
-                {wsConnected.size} live
+            {operations.isLoading ? <div className="ops-panel"><LoadingState rows={7} /></div> : (
+              <div className="master-detail-grid">
+                <section className="ops-panel unit-list-panel">
+                  {filteredUnits.map((unit) => <UnitRow key={unit.unit_id} unit={unit} active={selectedUnit?.unit_id === unit.unit_id} onSelect={() => { setSelectedUnitId(unit.unit_id); simulation.reset() }} />)}
+                  {!filteredUnits.length && <EmptyState title="No units match" description="Adjust the search or readiness filter." />}
+                </section>
+                <section className="ops-panel detail-panel">
+                  {selectedUnit ? <UnitDetail unit={selectedUnit} onAssign={() => setAssignmentDialog(true)} /> : <EmptyState title="Select a unit" description="Choose a response unit to review staffing and credential risk." />}
+                </section>
               </div>
+            )}
+          </Tabs.Content>
+
+          <Tabs.Content value="alerts" className="tab-content">
+            <section className="ops-panel table-panel">
+              <SectionHeader title="Exception queue" description="Every action is preserved in the durable audit history" />
+              <div className="responsive-table"><table className="data-table"><thead><tr><th>Alert</th><th>Scope</th><th>Created</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{alerts.map((alert) => <tr key={alert.alert_id}><td><div className="primary-cell"><AlertTriangle className="size-4 text-red-300" /><span><strong>{alert.message}</strong><small>{titleCase(alert.alert_type)}</small></span></div></td><td>{alert.unit_id || alert.station_id || 'District'}</td><td>{formatRelativeTime(alert.created_at)}</td><td><StatusBadge tone={alert.state === 'OPEN' ? 'danger' : alert.state === 'ACKNOWLEDGED' ? 'warning' : 'success'}>{alert.state}</StatusBadge></td><td><div className="row-actions">{alert.state === 'OPEN' && <Button variant="ghost" onClick={() => acknowledge.mutate(alert.alert_id)} busy={acknowledge.isPending}><Check className="size-4" />Acknowledge</Button>}{alert.state !== 'RESOLVED' && <Button variant="ghost" onClick={() => resolveAlert.mutate(alert.alert_id)} busy={resolveAlert.isPending}><CheckCircle2 className="size-4" />Resolve</Button>}</div></td></tr>)}</tbody></table></div>
+              {!alerts.length && <EmptyState title="No alerts" description="This station scope has no operational exceptions." icon={CheckCircle2} />}
+            </section>
+          </Tabs.Content>
+
+          <Tabs.Content value="incidents" className="tab-content">
+            <section className="ops-panel">
+              <SectionHeader title="Incident command" description="Active events and their assigned response resources" action={<Button variant="primary" onClick={() => setIncidentDialog(true)}><Plus className="size-4" />Open incident</Button>} />
+              <div className="incident-grid">{incidents.map((incident) => <article key={incident.incident_id} className="incident-card"><div><StatusBadge tone={incident.priority === 'CRITICAL' ? 'danger' : incident.priority === 'HIGH' ? 'warning' : 'info'}>{incident.priority}</StatusBadge><StatusBadge tone="danger">Active</StatusBadge></div><h3>{incident.title}</h3><p>{incident.description || 'No incident detail entered.'}</p><dl><div><dt>Commander</dt><dd>{incident.commander || 'Unassigned'}</dd></div><div><dt>Unit</dt><dd>{incident.unit_id || 'District-wide'}</dd></div></dl><Button onClick={() => resolveIncident.mutate(incident.incident_id)} busy={resolveIncident.isPending}><CheckCircle2 className="size-4" />Close incident</Button></article>)}</div>
+              {!incidents.length && <EmptyState title="No active incidents" description="Open a new incident when an event requires coordinated command." icon={Siren} />}
+            </section>
+          </Tabs.Content>
+
+          <Tabs.Content value="simulation" className="tab-content">
+            <div className="master-detail-grid">
+              <section className="ops-panel"><SectionHeader title="Contingency scenario" description="Select a unit, then remove one member or place the unit offline" />{selectedUnit ? <><div className="simulation-unit"><span className={`score-ring score-${readinessTone(selectedUnit.readiness_score)}`}>{selectedUnit.readiness_score}</span><div><strong>{selectedUnit.unit_name}</strong><small>{selectedUnit.staff_present} personnel currently assigned</small></div></div><div className="simulation-actions"><Button onClick={() => simulation.mutate({ unitId: selectedUnit.unit_id })} busy={simulation.isPending}><Wrench className="size-4" />Simulate unit offline</Button>{selectedUnit.assigned_personnel.map((person) => <Button key={person.personnel_id} onClick={() => simulation.mutate({ unitId: selectedUnit.unit_id, personnelId: person.personnel_id })} busy={simulation.isPending}><UserPlus className="size-4" />Call out {person.name}</Button>)}</div></> : <EmptyState title="Select a unit first" description="Return to Units and choose the operational asset to test." />}</section>
+              <section className="ops-panel"><SectionHeader title="Projected impact" description="Readiness change and recommended recovery sequence" />{simulation.data ? <div className="simulation-result"><div className="simulation-score"><span>Before<strong>{simulation.data.original_readiness[0]?.readiness_score ?? '—'}%</strong></span><ArrowRight className="size-5" /><span>After<strong>{simulation.data.degraded_readiness[0]?.readiness_score ?? '—'}%</strong></span></div><div className="recovery-list">{simulation.data.recovery_actions.map((action) => <div key={action}><FlaskConical className="size-4" /><span>{action}</span></div>)}</div></div> : <EmptyState title="Run a scenario" description="Simulation does not alter live assignments or operational state." icon={FlaskConical} />}</section>
             </div>
-          </div>
-
-          {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: 'Total Units', value: units.length, cls: 'text-white' },
-              { label: 'Ready (≥85%)', value: units.filter((u) => u.readiness_score >= 85).length, cls: 'text-emerald-400' },
-              { label: 'Degraded',    value: units.filter((u) => u.readiness_score >= 60 && u.readiness_score < 85).length, cls: 'text-amber-400' },
-              { label: 'Critical',   value: units.filter((u) => u.readiness_score < 60).length, cls: 'text-red-400' },
-            ].map((s) => (
-              <div key={s.label} className="stat-panel">
-                <div className="stat-label">{s.label}</div>
-                <div className={`stat-value ${s.cls}`}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            {/* ── Left: Unit grid ─────────────────────────────────────────── */}
-            <div className="space-y-4">
-              {/* Filters */}
-              <div className="flex flex-wrap gap-2">
-                {(['ALL', 'CRITICAL', 'DEGRADED', 'READY'] as FilterType[]).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`filter-chip ${filter === f ? 'filter-chip-active' : ''}`}
-                  >
-                    {f}
-                  </button>
-                ))}
-                <span className="mx-1 text-slate-700">|</span>
-                {(['ALL', 'ENGINE', 'LADDER', 'RESCUE', 'MEDIC', 'SAR_TEAM'] as UnitTypeFilter[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTypeFilter(t)}
-                    className={`filter-chip ${typeFilter === t ? 'filter-chip-active' : ''}`}
-                  >
-                    {t === 'ALL' ? 'All Types' : UNIT_TYPE_LABELS[t]}
-                  </button>
-                ))}
-              </div>
-
-              {filtered.length === 0 ? (
-                <div className="ops-panel py-12 text-center">
-                  <p className="text-sm text-slate-500">No units match the current filters.</p>
-                  {units.length === 0 && (
-                    <p className="mt-2 text-xs text-slate-600">Use the buttons above to create units or reset demo data via POST /api/demo/reset.</p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {filtered.sort((a, b) => a.readiness_score - b.readiness_score).map((unit) => {
-                    const isSelected = selectedUnit?.unit_id === unit.unit_id
-                    const unitAlerts = openAlerts.filter((a) => a.unit_id === unit.unit_id)
-                    return (
-                      <button
-                        key={unit.unit_id}
-                        onClick={() => setSelectedUnit(isSelected ? null : unit)}
-                        className={`ops-panel w-full text-left transition hover:border-white/20 ${scoreBorder(unit.readiness_score)} ${isSelected ? 'ring-1 ring-cyan-400/30' : ''}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
-                              {UNIT_TYPE_LABELS[unit.unit_type] ?? unit.unit_type}
-                            </div>
-                            <div className="mt-0.5 truncate text-sm font-semibold text-white">{unit.unit_name}</div>
-                          </div>
-                          <div className={`shrink-0 text-2xl font-semibold ${scoreColor(unit.readiness_score)}`}>
-                            {unit.readiness_score}%
-                          </div>
-                        </div>
-
-                        <div className="mt-3 h-1 w-full rounded-full bg-white/10">
-                          <div className={`h-full rounded-full ${scoreBg(unit.readiness_score)}`} style={{ width: `${unit.readiness_score}%` }} />
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                          <span>Staff {unit.staff_present}/{unit.staff_required}</span>
-                          <div className="flex items-center gap-1.5">
-                            {unitAlerts.length > 0 && (
-                              <span className="rounded border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 text-[10px] text-red-400">{unitAlerts.length} alert{unitAlerts.length > 1 ? 's' : ''}</span>
-                            )}
-                            {wsConnected.has(unit.unit_id) && (
-                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* ── Right: Alert queue ───────────────────────────────────────── */}
-            <div className="space-y-4">
-              <div className="ops-panel">
-                <div className="panel-kicker">Alert Queue</div>
-                <div className="mt-3 space-y-2">
-                  {openAlerts.length === 0 && ackAlerts.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-slate-500">No alerts</p>
-                  ) : (
-                    <>
-                      {openAlerts.map((a) => (
-                        <div key={a.alert_id} className={`rounded-xl border p-3 text-xs ${alertTypeBadge(a.alert_type)}`}>
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="leading-5">{a.message}</p>
-                          </div>
-                          <div className="mt-2 flex gap-1.5">
-                            <button onClick={() => acknowledgeAlert(a.alert_id)} className="rounded border border-current px-2 py-0.5 text-[10px] hover:bg-white/10">Ack</button>
-                            <button onClick={() => resolveAlert(a.alert_id)} className="rounded border border-current px-2 py-0.5 text-[10px] hover:bg-white/10">Resolve</button>
-                          </div>
-                        </div>
-                      ))}
-                      {ackAlerts.map((a) => (
-                        <div key={a.alert_id} className="rounded-xl border border-slate-700 bg-slate-700/20 p-3 text-xs text-slate-400">
-                          <p className="leading-5">{a.message}</p>
-                          <div className="mt-1 text-[10px] text-slate-600">Acknowledged · {a.acknowledged_by ?? 'Unknown'}</div>
-                          <button onClick={() => resolveAlert(a.alert_id)} className="mt-1.5 rounded border border-slate-600 px-2 py-0.5 text-[10px] hover:bg-white/5">Resolve</button>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Unit action drawer ─────────────────────────────────────────── */}
-          {selectedUnit && (
-            <div className="ops-panel">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="panel-kicker">Unit Detail</div>
-                  <h2 className="mt-1 text-lg font-semibold text-white">{selectedUnit.unit_name}</h2>
-                </div>
-                <button onClick={() => setSelectedUnit(null)} className="text-slate-500 hover:text-slate-300 text-sm">✕ Close</button>
-              </div>
-
-              <div className="mt-5 grid gap-6 md:grid-cols-3">
-                {/* Staffing */}
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Staffing</div>
-                  <div className={`text-3xl font-semibold mb-1 ${scoreColor(selectedUnit.readiness_score)}`}>{selectedUnit.readiness_score}%</div>
-                  <div className="text-sm text-slate-400 mb-3">{selectedUnit.staff_present} of {selectedUnit.staff_required} required</div>
-                  {selectedUnit.issues.map((iss, i) => (
-                    <div key={i} className="mt-1 flex items-center gap-2 text-xs text-red-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                      {iss}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Crew */}
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Assigned Crew</div>
-                  {selectedUnit.assigned_personnel.length === 0 ? (
-                    <p className="text-xs text-slate-500">No crew assigned</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {selectedUnit.assigned_personnel.map((p) => (
-                        <div key={p.personnel_id} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                          <div className="text-xs font-medium text-white">{p.name}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{p.role}</div>
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {p.certifications.slice(0, 4).map((c) => (
-                              <span key={c} className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-300">{c}</span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Recommendations */}
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mb-3">Recommended Actions</div>
-                  {unitRecs.length === 0 ? (
-                    <p className="text-xs text-slate-500">No actions recommended</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {unitRecs.map((r) => (
-                        <div key={r.recommendation_id} className={`rounded-lg border px-3 py-2 text-xs ${priorityBadge(r.priority)}`}>
-                          <div className="font-medium uppercase tracking-wide text-[10px] mb-1">{r.action_type}</div>
-                          <p className="leading-5">{r.message}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+          </Tabs.Content>
+        </Tabs.Root>
       </div>
 
-      {/* Create modals (same forms as before, dark-styled) */}
-      <CreateModal isOpen={showCreatePersonnel} onClose={() => { setShowCreatePersonnel(false); setSelectedCertExp({}) }} title="Add Personnel"
-        onSubmit={async (e) => {
-          e.preventDefault(); setCreating(true)
-          const fd = new FormData(e.currentTarget)
-          const certs = fd.getAll('certifications') as string[]
-          const cert_expirations: Record<string, string> = {}
-          certs.forEach((name) => {
-            const d = fd.get(`cert_expiration_${name}`) as string
-            if (d) { try { cert_expirations[name] = new Date(d + 'T23:59:59.000Z').toISOString() } catch { } }
-          })
-          try {
-            const res = await fetch(`${apiBase}/api/personnel`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: fd.get('name'), rank: fd.get('rank') || undefined, role: fd.get('role'), certifications: certs, cert_expirations, availability_status: fd.get('availability_status') || 'AVAILABLE', station_id: fd.get('station_id') || undefined }),
-            })
-            if (!res.ok) throw new Error(await res.text())
-            setShowCreatePersonnel(false); fetchAll(); fetchSupportData(); addToast('Personnel created', 'success')
-          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
-          setCreating(false)
-        }} submitLabel={creating ? 'Saving…' : 'Create'}>
-        <div className="space-y-4">
-          <div><label className="block text-xs text-slate-400 mb-1">Name *</label><input required name="name" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Rank</label><input name="rank" placeholder="Captain, Lieutenant…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Role *</label><input required name="role" placeholder="Firefighter, Paramedic…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Certifications</label>
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-2">
-              {certsList.map((c) => (
-                <div key={c.certification_id}>
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                    <input type="checkbox" name="certifications" value={c.name} onChange={(ev) => setSelectedCertExp((prev) => ({ ...prev, [c.name]: ev.target.checked }))} className="accent-cyan-400" />
-                    {c.name} {c.category && <span className="text-slate-500">({c.category})</span>}
-                  </label>
-                  {selectedCertExp[c.name] && (
-                    <div className="ml-5 mt-1"><label className="text-[10px] text-slate-500">Expiration</label><input type="date" name={`cert_expiration_${c.name}`} className="ml-2 rounded bg-white/[0.05] border border-white/10 px-2 py-0.5 text-xs text-white" /></div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div><label className="block text-xs text-slate-400 mb-1">Status</label><select name="availability_status" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="AVAILABLE">Available</option><option value="OFF">Off</option><option value="IN_TRAINING">In Training</option><option value="DEPLOYED">Deployed</option><option value="ON_CALL">On Call</option></select></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-        </div>
-      </CreateModal>
+      <FormDialog open={unitDialog} onOpenChange={setUnitDialog} title="Add response unit" description="Define staffing and credential requirements for a new operational asset." submitLabel="Add unit" submitting={createUnit.isPending} onSubmit={submitUnit}><div className="form-grid"><Field label="Unit name"><input className="form-control" name="unit_name" required /></Field><Field label="Unit type"><select className="form-control" name="type" defaultValue="ENGINE"><option>ENGINE</option><option>LADDER</option><option>RESCUE</option><option>MEDIC</option><option>SAR_TEAM</option></select></Field><Field label="Minimum staff"><input className="form-control" name="minimum_staff" type="number" min="1" defaultValue="3" required /></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId}><option value="">Unassigned</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Required certifications" hint="Comma-separated credential names"><input className="form-control" name="required_certifications" placeholder="FF1, EMT-B" /></Field></div></FormDialog>
 
-      <CreateModal isOpen={showCreateUnit} onClose={() => setShowCreateUnit(false)} title="Add Unit"
-        onSubmit={async (e) => {
-          e.preventDefault(); setCreating(true)
-          const fd = new FormData(e.currentTarget)
-          try {
-            const res = await fetch(`${apiBase}/api/units`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit_name: fd.get('unit_name'), type: fd.get('type'), minimum_staff: parseInt(fd.get('minimum_staff') as string), required_certifications: fd.getAll('required_certifications'), station_id: fd.get('station_id') || undefined }) })
-            if (!res.ok) throw new Error(await res.text())
-            setShowCreateUnit(false); fetchAll(); fetchSupportData(); addToast('Unit created', 'success')
-          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
-          setCreating(false)
-        }} submitLabel={creating ? 'Saving…' : 'Create'}>
-        <div className="space-y-4">
-          <div><label className="block text-xs text-slate-400 mb-1">Unit Name *</label><input required name="unit_name" placeholder="Engine 1, Medic 5…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Type *</label><select required name="type" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="ENGINE">Engine</option><option value="LADDER">Ladder</option><option value="RESCUE">Rescue</option><option value="MEDIC">Medic</option><option value="SAR_TEAM">SAR Team</option></select></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Min Staff *</label><input required type="number" name="minimum_staff" min="1" defaultValue="3" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Required Certifications</label>
-            <div className="max-h-40 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 space-y-1">
-              {certsList.map((c) => (
-                <label key={c.certification_id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" name="required_certifications" value={c.name} className="accent-cyan-400" />{c.name}</label>
-              ))}
-            </div>
-          </div>
-          <div><label className="block text-xs text-slate-400 mb-1">Station ID</label><input name="station_id" placeholder="s1, s2…" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-        </div>
-      </CreateModal>
+      <FormDialog open={assignmentDialog} onOpenChange={setAssignmentDialog} title={`Assign to ${selectedUnit?.unit_name || 'unit'}`} description="Conflicts and required credentials are validated before assignment." submitLabel="Assign personnel" submitting={createAssignment.isPending} onSubmit={submitAssignment}><div className="form-grid"><Field label="Personnel"><select className="form-control" name="personnel_id" required><option value="">Select personnel</option>{personnel.data?.filter((person) => person.availability_status !== 'OFF').map((person) => <option key={person.personnel_id} value={person.personnel_id}>{person.name} · {person.role}</option>)}</select></Field><Field label="Shift start"><input className="form-control" name="shift_start" type="datetime-local" required /></Field><Field label="Shift end"><input className="form-control" name="shift_end" type="datetime-local" required /></Field><Field label="Notes"><input className="form-control" name="notes" /></Field></div></FormDialog>
 
-      <CreateModal isOpen={showCreateAssignment} onClose={() => setShowCreateAssignment(false)} title="Assign Personnel"
-        onSubmit={async (e) => {
-          e.preventDefault(); setCreating(true)
-          const fd = new FormData(e.currentTarget)
-          try {
-            const res = await fetch(`${apiBase}/api/unit-assignments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit_id: fd.get('unit_id'), personnel_id: fd.get('personnel_id'), shift_start: new Date(`${fd.get('date')}T${fd.get('start_time')}`).toISOString(), shift_end: new Date(`${fd.get('date')}T${fd.get('end_time')}`).toISOString(), assignment_status: 'ON_SHIFT' }) })
-            if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Error') }
-            setShowCreateAssignment(false); fetchAll(); addToast('Assignment created', 'success')
-          } catch (err) { addToast(err instanceof Error ? err.message : 'Error', 'error') }
-          setCreating(false)
-        }} submitLabel={creating ? 'Saving…' : 'Assign'}>
-        <div className="space-y-4">
-          <div><label className="block text-xs text-slate-400 mb-1">Unit *</label><select required name="unit_id" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="">Select unit</option>{unitsList.map((u) => <option key={u.unit_id} value={u.unit_id}>{u.unit_name}</option>)}</select></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Personnel *</label><select required name="personnel_id" className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400"><option value="">Select person</option>{personnelList.map((p) => <option key={p.personnel_id} value={p.personnel_id}>{p.name}</option>)}</select></div>
-          <div><label className="block text-xs text-slate-400 mb-1">Date *</label><input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-xs text-slate-400 mb-1">Start *</label><input type="time" name="start_time" required className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-            <div><label className="block text-xs text-slate-400 mb-1">End *</label><input type="time" name="end_time" required className="w-full rounded-lg bg-white/[0.05] border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400" /></div>
-          </div>
-        </div>
-      </CreateModal>
-    </>
+      <FormDialog open={incidentDialog} onOpenChange={setIncidentDialog} title="Open incident" description="Create a command record and assign an initial station or unit." submitLabel="Open incident" submitting={createIncident.isPending} onSubmit={submitIncident}><div className="form-grid"><Field label="Incident title"><input className="form-control" name="title" required /></Field><Field label="Priority"><select className="form-control" name="priority" defaultValue="HIGH"><option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></select></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId}><option value="">District-wide</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Initial unit"><select className="form-control" name="unit_id"><option value="">Not assigned</option>{units.map((unit) => <option key={unit.unit_id} value={unit.unit_id}>{unit.unit_name}</option>)}</select></Field><Field label="Incident commander"><input className="form-control" name="commander" placeholder="Duty officer" /></Field><Field label="Description"><textarea className="form-control min-h-24" name="description" /></Field></div></FormDialog>
+    </div>
   )
+}
+
+function UnitRow({ unit, active, onSelect }: { unit: UnitReadiness; active: boolean; onSelect: () => void }) {
+  const tone = readinessTone(unit.readiness_score)
+  return <button type="button" className={cn('unit-list-row', active && 'unit-list-row-active')} onClick={onSelect}><span className={`score-ring score-${tone}`}>{unit.readiness_score}</span><span className="min-w-0 flex-1"><strong>{unit.unit_name}</strong><small>{titleCase(unit.unit_type)} · {unit.staff_present}/{unit.staff_required} staffed</small></span><ChevronRight className="size-4" /></button>
+}
+
+function UnitDetail({ unit, onAssign }: { unit: UnitReadiness; onAssign: () => void }) {
+  const tone = readinessTone(unit.readiness_score)
+  return <div className="unit-detail"><div className="unit-detail-heading"><div><span className="eyebrow">{titleCase(unit.unit_type)}</span><h2>{unit.unit_name}</h2></div><StatusBadge tone={tone}>{tone === 'success' ? 'Ready' : tone === 'warning' ? 'Degraded' : 'Critical'}</StatusBadge></div><div className="readiness-meter"><div><span>Readiness score</span><strong>{unit.readiness_score}%</strong></div><span><i className={`meter-${tone}`} style={{ width: `${unit.readiness_score}%` }} /></span></div><dl className="detail-metrics"><div><dt>Staffed</dt><dd>{unit.staff_present}/{unit.staff_required}</dd></div><div><dt>Open issues</dt><dd>{unit.issues.length}</dd></div><div><dt>Missing credentials</dt><dd>{unit.certifications_missing.length}</dd></div></dl><div className="detail-section"><h3>Assigned personnel</h3>{unit.assigned_personnel.map((person) => <div key={person.personnel_id} className="person-compact"><span>{person.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</span><div><strong>{person.name}</strong><small>{person.role} · {person.certifications.length} credentials</small></div></div>)}{!unit.assigned_personnel.length && <div className="compact-empty">No active personnel assigned.</div>}</div>{unit.issues.length > 0 && <div className="detail-section"><h3>Readiness blockers</h3><div className="issue-list">{unit.issues.map((issue) => <div key={issue}><AlertTriangle className="size-4" />{issue}</div>)}</div></div>}<Button variant="primary" className="w-full" onClick={onAssign}><Users className="size-4" />Assign personnel</Button></div>
 }

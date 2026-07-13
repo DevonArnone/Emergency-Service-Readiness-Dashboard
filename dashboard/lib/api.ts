@@ -1,14 +1,19 @@
 import { z, type ZodType } from 'zod'
 import {
   alertSchema,
+  auditEventSchema,
   assignmentSchema,
+  certificationImpactSchema,
   certificationSchema,
   incidentSchema,
   liveShiftSchema,
   operationsSnapshotSchema,
   personnelSchema,
   renewalTaskSchema,
+  shiftActionSchema,
+  shiftAssignmentSchema,
   shiftSchema,
+  simulationResultSchema,
   stationSchema,
   unitReadinessSchema,
   unitSchema,
@@ -118,6 +123,7 @@ export const api = {
   readiness: () => apiRequest('/api/readiness/units', z.array(unitReadinessSchema)),
   createUnit: (value: unknown) => apiRequest('/api/units', unitSchema, { method: 'POST', body: jsonBody(value) }),
   updateUnit: (id: string, value: unknown) => apiRequest(`/api/units/${id}`, unitSchema, { method: 'PUT', body: jsonBody(value) }),
+  archiveUnit: (id: string) => apiRequest(`/api/units/${id}`, unitSchema, { method: 'DELETE' }),
   assignments: () => apiRequest('/api/unit-assignments', z.array(assignmentSchema)),
   createAssignment: (value: unknown) => apiRequest('/api/unit-assignments', assignmentSchema, { method: 'POST', body: jsonBody(value) }),
   updateAssignment: (id: string, value: unknown) => apiRequest(`/api/unit-assignments/${id}`, assignmentSchema, { method: 'PUT', body: jsonBody(value) }),
@@ -127,6 +133,17 @@ export const api = {
   createShift: (value: unknown) => apiRequest('/api/shifts', shiftSchema, { method: 'POST', body: jsonBody(value) }),
   updateShift: (id: string, value: unknown) => apiRequest(`/api/shifts/${id}`, shiftSchema, { method: 'PUT', body: jsonBody(value) }),
   cancelShift: (id: string) => apiRequest(`/api/shifts/${id}`, shiftSchema, { method: 'DELETE' }),
+  assignShift: (shiftId: string, personnelId: string) => apiRequest(
+    `/api/shifts/${shiftId}/assign?employee_id=${encodeURIComponent(personnelId)}`,
+    shiftAssignmentSchema,
+    { method: 'POST' },
+  ),
+  clockIn: (shiftId: string, personnelId: string) => apiRequest(`/api/shifts/${shiftId}/clock-in`, shiftActionSchema, {
+    method: 'POST', body: jsonBody({ employee_id: personnelId }),
+  }),
+  clockOut: (shiftId: string, personnelId: string) => apiRequest(`/api/shifts/${shiftId}/clock-out`, shiftActionSchema, {
+    method: 'POST', body: jsonBody({ employee_id: personnelId }),
+  }),
   alerts: () => apiRequest('/api/alerts', z.array(alertSchema)),
   acknowledgeAlert: (id: string, note?: string) => apiRequest(`/api/alerts/${id}/acknowledge`, alertSchema, {
     method: 'POST', body: jsonBody({ acknowledged_by: 'Duty Officer', note }),
@@ -137,9 +154,15 @@ export const api = {
   updateIncident: (id: string, value: unknown) => apiRequest(`/api/incidents/${id}`, incidentSchema, { method: 'PUT', body: jsonBody(value) }),
   resolveIncident: (id: string) => apiRequest(`/api/incidents/${id}/resolve`, incidentSchema, { method: 'POST' }),
   certifications: () => apiRequest('/api/certifications', z.array(certificationSchema)),
+  createCertification: (value: unknown) => apiRequest('/api/certifications', certificationSchema, { method: 'POST', body: jsonBody(value) }),
+  updateCertification: (id: string, value: unknown) => apiRequest(`/api/certifications/${id}`, certificationSchema, { method: 'PUT', body: jsonBody(value) }),
+  certificationImpact: (id: string) => apiRequest(`/api/certifications/${id}/impact`, certificationImpactSchema),
+  deleteCertification: (id: string, force = false) => apiRequest(`/api/certifications/${id}?force=${force}`, z.object({ message: z.string() }), { method: 'DELETE' }),
   renewalTasks: () => apiRequest('/api/renewal-tasks', z.array(renewalTaskSchema)),
   createRenewalTask: (value: unknown) => apiRequest('/api/renewal-tasks', renewalTaskSchema, { method: 'POST', body: jsonBody(value) }),
   updateRenewalTask: (id: string, value: unknown) => apiRequest(`/api/renewal-tasks/${id}`, renewalTaskSchema, { method: 'PUT', body: jsonBody(value) }),
+  auditEvents: (limit = 50) => apiRequest(`/api/audit-events?limit=${limit}`, z.array(auditEventSchema)),
+  simulateStaffing: (value: unknown) => apiRequest('/api/simulations/staffing-gap', simulationResultSchema, { method: 'POST', body: jsonBody(value) }),
   resetDemo: () => apiRequest('/api/demo/reset', z.object({ status: z.string(), seeded: z.record(z.string(), z.number()) }), { method: 'POST' }),
 }
 
@@ -156,4 +179,5 @@ export const queryKeys = {
   incidents: ['incidents'] as const,
   certifications: ['certifications'] as const,
   renewals: ['renewals'] as const,
+  audit: ['audit'] as const,
 }
