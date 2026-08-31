@@ -75,8 +75,11 @@ services:
       AUTH_REQUIRED: "false"
       PUBLIC_DEMO_WRITE_ENABLED: "false"
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      PIPELINE_PROFILE: ${PIPELINE_PROFILE:-optimized}
       REDIS_URL: redis://redis:6379/0
-      OIDC_ISSUER: http://keycloak:8080/realms/aegis
+      REDIS_FANOUT_ENABLED: "true"
+      OIDC_ISSUER: http://localhost:8080/realms/aegis
+      OIDC_DISCOVERY_URL: http://keycloak:8080/realms/aegis/.well-known/openid-configuration
       OIDC_AUDIENCE: aegis-api
       CORS_ORIGINS: http://localhost:3000
     depends_on:
@@ -93,6 +96,60 @@ services:
       retries: 20
     ports:
       - "8000:8000"
+
+  outbox-worker:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.workers.outbox"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://aegis:aegis-local-only@postgres:5432/aegis
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_REPLICATION_FACTOR: 1
+      PIPELINE_PROFILE: ${PIPELINE_PROFILE:-optimized}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  alert-bridge:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.workers.realtime_bridge", "--stream", "alerts"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  bulk-bridge:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.workers.realtime_bridge", "--stream", "bulk"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  shared-bridge:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.workers.realtime_bridge", "--stream", "shared"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   dashboard:
     build:

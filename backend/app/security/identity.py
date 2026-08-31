@@ -49,7 +49,9 @@ class OidcVerifier:
                 return self._keys
             if not settings.oidc_issuer:
                 raise JWTError("OIDC issuer is not configured")
-            discovery_url = f"{settings.oidc_issuer.rstrip('/')}/.well-known/openid-configuration"
+            discovery_url = settings.oidc_discovery_url or (
+                f"{settings.oidc_issuer.rstrip('/')}/.well-known/openid-configuration"
+            )
             discovery_request = UrlRequest(discovery_url, headers={"Accept": "application/json"})
             with urlopen(discovery_request, timeout=5) as response:  # noqa: S310 - trusted configured issuer
                 discovery = json.load(response)
@@ -98,7 +100,7 @@ def principal_from_claims(claims: dict[str, Any]) -> Principal:
         roles=roles,
         display_name=claims.get("name") or claims.get("preferred_username"),
         email=claims.get("email"),
-        is_public_demo=bool(claims.get("is_public_demo", organization_id == settings.default_organization_id)),
+        is_public_demo=bool(claims.get("is_public_demo", False)),
     )
 
 

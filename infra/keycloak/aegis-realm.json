@@ -11,7 +11,8 @@
       { "name": "duty_officer" },
       { "name": "battalion_chief" },
       { "name": "analyst" },
-      { "name": "viewer" }
+      { "name": "viewer" },
+      { "name": "integration_service" }
     ]
   },
   "clients": [
@@ -26,7 +27,19 @@
       "webOrigins": ["http://localhost:3000"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "aegis-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "aegis-api",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     },
     {
       "clientId": "aegis-api",
@@ -34,6 +47,40 @@
       "enabled": true,
       "bearerOnly": true,
       "publicClient": false
+    },
+    {
+      "clientId": "aegis-benchmark",
+      "name": "Aegis Benchmark Service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "aegis-benchmark-local-only",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "aegis-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "aegis-api",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "organization-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "organization_id",
+            "claim.value": "fcfrd-demo",
+            "jsonType.label": "String",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
@@ -60,6 +107,12 @@
         { "type": "password", "value": "aegis-local-only", "temporary": false }
       ],
       "realmRoles": ["analyst"]
+    },
+    {
+      "username": "service-account-aegis-benchmark",
+      "enabled": true,
+      "serviceAccountClientId": "aegis-benchmark",
+      "realmRoles": ["integration_service"]
     }
   ]
 }

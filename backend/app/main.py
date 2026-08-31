@@ -13,12 +13,17 @@ from app.api import shifts
 from app.api import readiness
 from app.api import operations
 from app.api import security
+from app.api import ingest
+from app.api import pipeline
 from app.websocket.manager import websocket_manager
 from app.websocket.unit_readiness_manager import unit_readiness_manager
 from app.services.demo_service import seed_demo
 from app.stores import personnel_store, units_store
 from app.security.middleware import AccessPolicyMiddleware, SecurityHeadersMiddleware
 from app.security.tickets import realtime_ticket_broker
+from app.security.identity import demo_principal
+from app.realtime.hub import operations_hub, redis_fanout_subscriber
+from app.services.kafka_service import close_kafka_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +52,8 @@ app.include_router(shifts.router)
 app.include_router(readiness.router)
 app.include_router(operations.router)
 app.include_router(security.router)
+app.include_router(ingest.router)
+app.include_router(pipeline.router)
 
 
 @app.middleware("http")
@@ -111,6 +118,13 @@ async def startup():
         logger.info(f"Demo data seeded: {counts}")
     else:
         logger.info("Loaded durable local operational state")
+    await redis_fanout_subscriber.start()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await redis_fanout_subscriber.stop()
+    close_kafka_service()
 
 
 @app.get("/")
@@ -162,15 +176,17 @@ async def websocket_unit_readiness(websocket: WebSocket, unit_id: str, ticket: s
 @app.websocket("/ws/operations")
 async def websocket_operations(websocket: WebSocket, ticket: str | None = None):
     """Aggregated operations channel for dashboard summaries, alerts, and incidents."""
-    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
+    principal = realtime_ticket_broker.consume(ticket) if ticket else None
+    if settings.auth_required and not principal:
         await websocket.close(code=4401, reason="A valid realtime ticket is required")
         return
+    principal = principal or demo_principal()
     from app.stores import alerts_store, incidents_store
     from app.models import AlertState
     from app.services.readiness_service import ReadinessService
     import asyncio
 
-    await websocket.accept()
+    await operations_hub.connect(websocket, principal.organization_id)
     try:
         while True:
             unit_readiness = ReadinessService.check_all_units()
@@ -201,11 +217,12 @@ async def websocket_operations(websocket: WebSocket, ticket: str | None = None):
                 },
             }
             await websocket.send_text(json.dumps(payload))
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
     except WebSocketDisconnect:
-        pass
+        operations_hub.disconnect(websocket, principal.organization_id)
     except Exception as exc:
         logger.warning(f"WS /operations error: {exc}")
+        operations_hub.disconnect(websocket, principal.organization_id)
 
 
 if __name__ == "__main__":

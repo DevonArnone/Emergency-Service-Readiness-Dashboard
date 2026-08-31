@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegis-command.example.invalid/contracts/event-envelope-v1.json",
+  "title": "Aegis Command Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "organization_id",
+    "source",
+    "event_type",
+    "priority",
+    "topic_class",
+    "occurred_at",
+    "schema_version",
+    "aggregate_type",
+    "aggregate_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "organization_id": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "priority": { "enum": ["CRITICAL", "HIGH", "NORMAL", "BULK"] },
+    "topic_class": { "enum": ["alert", "bulk", "audit"] },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "schema_version": { "const": 1 },
+    "aggregate_type": { "type": "string", "minLength": 1 },
+    "aggregate_id": { "type": "string", "minLength": 1 },
+    "payload": { "type": "object" }
+  }
+}

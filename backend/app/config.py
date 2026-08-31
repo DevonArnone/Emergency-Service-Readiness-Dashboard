@@ -10,7 +10,20 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_username: str = "placeholder"
     kafka_password: str = "placeholder"
-    kafka_topic: str = "shift_events"
+    kafka_topic: str = "ops.events.v1"
+    kafka_alert_topic: str = "ops.alerts.v1"
+    kafka_event_topic: str = "ops.events.v1"
+    kafka_audit_topic: str = "ops.audit.v1"
+    kafka_shared_topic: str = "ops.shared.v1"
+    kafka_alert_dlq_topic: str = "ops.alerts.dlq.v1"
+    kafka_event_dlq_topic: str = "ops.events.dlq.v1"
+    kafka_alert_partitions: int = 6
+    kafka_event_partitions: int = 12
+    kafka_audit_partitions: int = 6
+    kafka_shared_partitions: int = 3
+    kafka_replication_factor: int = 1
+    kafka_client_id: str = "aegis-api"
+    pipeline_profile: str = "optimized"
     
     # Snowflake Configuration (optional - uses mock service if not provided)
     # Get account identifier from Snowflake UI: Username → Account
@@ -37,6 +50,7 @@ class Settings(BaseSettings):
     # Identity Configuration
     auth_required: bool = False
     oidc_issuer: str = ""
+    oidc_discovery_url: str = ""
     oidc_audience: str = "aegis-api"
     oidc_algorithms: str = "RS256"
     jwks_cache_seconds: int = 300
@@ -44,6 +58,7 @@ class Settings(BaseSettings):
 
     # Realtime fan-out
     redis_url: str = "redis://localhost:6379/0"
+    redis_fanout_enabled: bool = False
     
     # Server Configuration
     host: str = "0.0.0.0"

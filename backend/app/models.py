@@ -1,7 +1,7 @@
 """Pydantic models for the Emergency Readiness platform."""
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Any, Literal
 from enum import Enum
 
 
@@ -397,3 +397,40 @@ class ApiError(BaseModel):
     message: str
     field_errors: Dict[str, str] = Field(default_factory=dict)
     request_id: str
+
+
+class EventPriority(str, Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    NORMAL = "NORMAL"
+    BULK = "BULK"
+
+
+class EventEnvelope(BaseModel):
+    """Versioned contract shared by ingestion, Kafka, Redis, and WebSockets."""
+
+    event_id: str
+    organization_id: str
+    source: str
+    event_type: str
+    priority: EventPriority = EventPriority.NORMAL
+    topic_class: Literal["alert", "bulk", "audit"] = "bulk"
+    occurred_at: datetime
+    schema_version: int = Field(default=1, ge=1)
+    aggregate_type: str
+    aggregate_id: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+class IngestEventRequest(BaseModel):
+    event_id: Optional[str] = None
+    organization_id: Optional[str] = None
+    source: str
+    event_type: str
+    priority: EventPriority = EventPriority.NORMAL
+    topic_class: Literal["alert", "bulk", "audit"] = "bulk"
+    occurred_at: Optional[datetime] = None
+    schema_version: int = Field(default=1, ge=1)
+    aggregate_type: str
+    aggregate_id: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
