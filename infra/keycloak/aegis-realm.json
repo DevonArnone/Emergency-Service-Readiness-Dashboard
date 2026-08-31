@@ -1,0 +1,65 @@
+{
+  "realm": "aegis",
+  "enabled": true,
+  "displayName": "Aegis Command",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "admin" },
+      { "name": "duty_officer" },
+      { "name": "battalion_chief" },
+      { "name": "analyst" },
+      { "name": "viewer" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "aegis-dashboard",
+      "name": "Aegis Command Dashboard",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "aegis-api",
+      "name": "Aegis Command API",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false
+    }
+  ],
+  "users": [
+    {
+      "username": "duty.officer",
+      "email": "duty.officer@example.invalid",
+      "firstName": "Demo",
+      "lastName": "Duty Officer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "aegis-local-only", "temporary": false }
+      ],
+      "realmRoles": ["duty_officer"]
+    },
+    {
+      "username": "analyst",
+      "email": "analyst@example.invalid",
+      "firstName": "Demo",
+      "lastName": "Analyst",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "aegis-local-only", "temporary": false }
+      ],
+      "realmRoles": ["analyst"]
+    }
+  ]
+}

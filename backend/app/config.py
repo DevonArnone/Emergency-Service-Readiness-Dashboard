@@ -26,8 +26,9 @@ class Settings(BaseSettings):
     # Application Configuration
     jwt_secret: str = "dev-secret-key-change-in-production"
     cors_origins: str = "http://localhost:3000"
-    database_url: str = "sqlite+aiosqlite:///./workforce.db"
+    database_url: str = "sqlite+pysqlite:///./aegis.db"
     state_database_path: str = "./emergency_readiness.db"
+    default_organization_id: str = "fcfrd-demo"
     seed_demo_on_empty: bool = True
     
     # Server Configuration
