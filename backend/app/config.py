@@ -24,12 +24,26 @@ class Settings(BaseSettings):
     snowflake_schema: str = "RAW"
     
     # Application Configuration
+    app_env: str = "development"
     jwt_secret: str = "dev-secret-key-change-in-production"
     cors_origins: str = "http://localhost:3000"
+    trusted_hosts: str = "localhost,127.0.0.1,testserver"
     database_url: str = "sqlite+pysqlite:///./aegis.db"
     state_database_path: str = "./emergency_readiness.db"
     default_organization_id: str = "fcfrd-demo"
     seed_demo_on_empty: bool = True
+    public_demo_write_enabled: bool = False
+
+    # Identity Configuration
+    auth_required: bool = False
+    oidc_issuer: str = ""
+    oidc_audience: str = "aegis-api"
+    oidc_algorithms: str = "RS256"
+    jwks_cache_seconds: int = 300
+    realtime_ticket_ttl_seconds: int = 30
+
+    # Realtime fan-out
+    redis_url: str = "redis://localhost:6379/0"
     
     # Server Configuration
     host: str = "0.0.0.0"
@@ -39,6 +53,33 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
         return [origin.strip() for origin in self.cors_origins.split(",")]
+
+    @property
+    def trusted_hosts_list(self) -> List[str]:
+        return [host.strip() for host in self.trusted_hosts.split(",") if host.strip()]
+
+    @property
+    def oidc_algorithms_list(self) -> List[str]:
+        return [algorithm.strip() for algorithm in self.oidc_algorithms.split(",") if algorithm.strip()]
+
+    def validate_runtime(self) -> None:
+        if self.app_env != "production":
+            return
+        problems = []
+        if not self.auth_required:
+            problems.append("AUTH_REQUIRED must be enabled")
+        if not self.oidc_issuer.startswith("https://"):
+            problems.append("OIDC_ISSUER must use HTTPS")
+        if self.jwt_secret == "dev-secret-key-change-in-production":
+            problems.append("JWT_SECRET must not use the development value")
+        if self.database_url.startswith("sqlite"):
+            problems.append("DATABASE_URL must use PostgreSQL")
+        if "*" in self.cors_origins_list:
+            problems.append("CORS_ORIGINS must not contain a wildcard")
+        if self.public_demo_write_enabled:
+            problems.append("PUBLIC_DEMO_WRITE_ENABLED must be disabled")
+        if problems:
+            raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
     
     class Config:
         env_file = ".env"

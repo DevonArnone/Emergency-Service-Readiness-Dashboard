@@ -5,12 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.db.base import Base
+from app.security.tenant import current_organization_id, organization_scope
 
 
 def build_engine(database_url: str | None = None) -> Engine:
@@ -27,6 +28,16 @@ engine = build_engine()
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
 
 
+@event.listens_for(Session, "after_begin")
+def apply_tenant_context(session: Session, transaction, connection) -> None:
+    organization_id = current_organization_id()
+    if organization_id and connection.dialect.name == "postgresql":
+        connection.execute(
+            text("SELECT set_config('app.organization_id', :organization_id, true)"),
+            {"organization_id": organization_id},
+        )
+
+
 def create_schema(target_engine: Engine | None = None) -> None:
     from app.db import models as _models  # noqa: F401
 
@@ -34,7 +45,10 @@ def create_schema(target_engine: Engine | None = None) -> None:
 
 
 @contextmanager
-def session_scope() -> Iterator[Session]:
+def session_scope(organization_id: str | None = None) -> Iterator[Session]:
+    scope = organization_scope(organization_id) if organization_id else None
+    if scope:
+        scope.__enter__()
     session = SessionLocal()
     try:
         yield session
@@ -44,3 +58,5 @@ def session_scope() -> Iterator[Session]:
         raise
     finally:
         session.close()
+        if scope:
+            scope.__exit__(None, None, None)

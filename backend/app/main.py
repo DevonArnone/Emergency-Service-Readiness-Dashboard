@@ -7,14 +7,18 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPExcept
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.config import settings
 from app.api import shifts
 from app.api import readiness
 from app.api import operations
+from app.api import security
 from app.websocket.manager import websocket_manager
 from app.websocket.unit_readiness_manager import unit_readiness_manager
 from app.services.demo_service import seed_demo
 from app.stores import personnel_store, units_store
+from app.security.middleware import AccessPolicyMiddleware, SecurityHeadersMiddleware
+from app.security.tickets import realtime_ticket_broker
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,10 +39,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts_list)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(AccessPolicyMiddleware)
 
 app.include_router(shifts.router)
 app.include_router(readiness.router)
 app.include_router(operations.router)
+app.include_router(security.router)
 
 
 @app.middleware("http")
@@ -97,6 +105,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def startup():
+    settings.validate_runtime()
     if settings.seed_demo_on_empty and (not personnel_store or not units_store):
         counts = seed_demo()
         logger.info(f"Demo data seeded: {counts}")
@@ -124,7 +133,10 @@ async def health():
 
 
 @app.websocket("/ws/shifts")
-async def websocket_shifts(websocket: WebSocket):
+async def websocket_shifts(websocket: WebSocket, ticket: str | None = None):
+    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
+        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+        return
     await websocket_manager.connect(websocket)
     try:
         while True:
@@ -135,7 +147,10 @@ async def websocket_shifts(websocket: WebSocket):
 
 
 @app.websocket("/ws/unit-readiness/{unit_id}")
-async def websocket_unit_readiness(websocket: WebSocket, unit_id: str):
+async def websocket_unit_readiness(websocket: WebSocket, unit_id: str, ticket: str | None = None):
+    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
+        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+        return
     await unit_readiness_manager.connect(websocket, unit_id)
     try:
         while True:
@@ -145,8 +160,11 @@ async def websocket_unit_readiness(websocket: WebSocket, unit_id: str):
 
 
 @app.websocket("/ws/operations")
-async def websocket_operations(websocket: WebSocket):
+async def websocket_operations(websocket: WebSocket, ticket: str | None = None):
     """Aggregated operations channel for dashboard summaries, alerts, and incidents."""
+    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
+        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+        return
     from app.stores import alerts_store, incidents_store
     from app.models import AlertState
     from app.services.readiness_service import ReadinessService

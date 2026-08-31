@@ -71,6 +71,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://aegis:aegis-local-only@postgres:5432/aegis
       DEFAULT_ORGANIZATION_ID: fcfrd-demo
+      APP_ENV: development
+      AUTH_REQUIRED: "false"
+      PUBLIC_DEMO_WRITE_ENABLED: "false"
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       REDIS_URL: redis://redis:6379/0
       OIDC_ISSUER: http://keycloak:8080/realms/aegis

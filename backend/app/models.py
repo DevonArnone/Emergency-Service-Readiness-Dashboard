@@ -387,6 +387,8 @@ class AuditEvent(BaseModel):
     actor: str = "Duty Officer"
     summary: str
     details: Dict = Field(default_factory=dict)
+    previous_hash: Optional[str] = None
+    event_hash: Optional[str] = None
     created_at: Optional[datetime] = None
 
 
