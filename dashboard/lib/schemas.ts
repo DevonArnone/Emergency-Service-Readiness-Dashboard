@@ -20,7 +20,7 @@ export const personnelSchema = z.object({
 export const unitSchema = z.object({
   unit_id: z.string(),
   unit_name: z.string(),
-  type: z.enum(['ENGINE', 'LADDER', 'RESCUE', 'MEDIC', 'SAR_TEAM']),
+  type: z.enum(['ENGINE', 'LADDER', 'TRUCK', 'RESCUE', 'MEDIC', 'AMBULANCE', 'TANKER', 'COMMAND', 'SAFETY', 'HAZMAT', 'SAR_TEAM']),
   minimum_staff: z.number(),
   required_certifications: z.array(z.string()).default([]),
   station_id: z.string().nullable().optional(),

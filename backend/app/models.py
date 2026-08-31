@@ -109,8 +109,14 @@ class AvailabilityStatus(str, Enum):
 class UnitType(str, Enum):
     ENGINE = "ENGINE"
     LADDER = "LADDER"
+    TRUCK = "TRUCK"
     RESCUE = "RESCUE"
     MEDIC = "MEDIC"
+    AMBULANCE = "AMBULANCE"
+    TANKER = "TANKER"
+    COMMAND = "COMMAND"
+    SAFETY = "SAFETY"
+    HAZMAT = "HAZMAT"
     SAR_TEAM = "SAR_TEAM"
 
 

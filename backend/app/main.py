@@ -140,7 +140,7 @@ async def root():
 async def health():
     return {
         "status": "healthy",
-        "storage": "sqlite",
+        "storage": "postgresql" if settings.database_url.startswith("postgresql") else "relational-sqlite",
         "personnel": len(personnel_store),
         "units": len(units_store),
     }

@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     state_database_path: str = "./emergency_readiness.db"
     default_organization_id: str = "fcfrd-demo"
     seed_demo_on_empty: bool = True
+    auto_create_schema: bool = True
     public_demo_write_enabled: bool = False
 
     # Identity Configuration

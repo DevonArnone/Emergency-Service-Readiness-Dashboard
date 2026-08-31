@@ -152,12 +152,53 @@ class ReadinessService:
     
     @staticmethod
     def check_all_units() -> List[Dict]:
-        """Check readiness for all units."""
+        """Check readiness in one relational snapshot instead of querying per unit."""
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        assignments_by_unit: Dict[str, List[UnitAssignment]] = {}
+        for assignment in unit_assignments_store.values():
+            if (
+                assignment.assignment_status == AssignmentStatus.ON_SHIFT
+                and (
+                    assignment.shift_start <= now <= assignment.shift_end
+                    or today_start <= assignment.shift_start <= today_end
+                )
+            ):
+                assignments_by_unit.setdefault(assignment.unit_id, []).append(assignment)
+        personnel_by_id = {
+            person.personnel_id: person
+            for person in personnel_store.values()
+            if not person.is_archived
+        }
+
         results = []
         for unit_id, unit in units_store.items():
             if unit.is_archived:
                 continue
-            readiness = ReadinessService.get_unit_readiness(unit_id)
-            if readiness:
-                results.append(readiness)
+            assignments = assignments_by_unit.get(unit_id, [])
+            assigned_personnel = [
+                personnel_by_id[assignment.personnel_id]
+                for assignment in assignments
+                if assignment.personnel_id in personnel_by_id
+            ]
+            readiness = ReadinessService.calculate_readiness_score(
+                unit, assigned_personnel, assignments
+            )
+            results.append({
+                "unit_id": unit_id,
+                "unit_name": unit.unit_name,
+                "unit_type": unit.type.value,
+                **readiness,
+                "assigned_personnel": [
+                    {
+                        "personnel_id": person.personnel_id,
+                        "name": person.name,
+                        "role": person.role,
+                        "certifications": person.certifications,
+                    }
+                    for person in assigned_personnel
+                ],
+                "timestamp": now.isoformat(),
+            })
         return results

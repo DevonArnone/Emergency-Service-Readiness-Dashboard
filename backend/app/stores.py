@@ -1,18 +1,24 @@
-"""Centralized durable stores for local operations."""
+"""Centralized normalized relational stores for operational services."""
 from app.models import (
     Personnel, Unit, UnitAssignment, Certification,
     Station, ReadinessAlert, OperationalIncident,
     Shift, RenewalTask, AuditEvent,
 )
-from app.persistence import PersistentStore
+from app.db.session import create_schema
+from app.db.store import RelationalStore
+from app.config import settings
 
-personnel_store = PersistentStore("personnel", Personnel)
-units_store = PersistentStore("units", Unit)
-unit_assignments_store = PersistentStore("unit_assignments", UnitAssignment)
-certifications_store = PersistentStore("certifications", Certification)
-stations_store = PersistentStore("stations", Station)
-alerts_store = PersistentStore("alerts", ReadinessAlert)
-incidents_store = PersistentStore("incidents", OperationalIncident)
-shifts_store = PersistentStore("shifts", Shift)
-renewal_tasks_store = PersistentStore("renewal_tasks", RenewalTask)
-audit_events_store = PersistentStore("audit_events", AuditEvent)
+
+if settings.auto_create_schema:
+    create_schema()
+
+personnel_store = RelationalStore("personnel", Personnel)
+units_store = RelationalStore("units", Unit)
+unit_assignments_store = RelationalStore("unit_assignments", UnitAssignment)
+certifications_store = RelationalStore("certifications", Certification)
+stations_store = RelationalStore("stations", Station)
+alerts_store = RelationalStore("alerts", ReadinessAlert)
+incidents_store = RelationalStore("incidents", OperationalIncident)
+shifts_store = RelationalStore("shifts", Shift)
+renewal_tasks_store = RelationalStore("renewal_tasks", RenewalTask)
+audit_events_store = RelationalStore("audit_events", AuditEvent)

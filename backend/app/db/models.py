@@ -92,6 +92,7 @@ class Station(Base):
     )
     station_number: Mapped[str] = mapped_column(String(20), nullable=False)
     name: Mapped[str] = mapped_column(String(180), nullable=False)
+    district: Mapped[str | None] = mapped_column(String(100))
     address: Mapped[str | None] = mapped_column(String(240))
     latitude: Mapped[float | None] = mapped_column(Float)
     longitude: Mapped[float | None] = mapped_column(Float)
@@ -126,6 +127,7 @@ class Personnel(Base):
         ForeignKey("organizations.organization_id", ondelete="CASCADE"), nullable=False, index=True
     )
     station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.station_id", ondelete="SET NULL"))
+    current_unit_id: Mapped[str | None] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(180), nullable=False)
     rank: Mapped[str | None] = mapped_column(String(80))
     role: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -238,6 +240,7 @@ class Incident(Base):
         ForeignKey("organizations.organization_id", ondelete="CASCADE"), nullable=False, index=True
     )
     station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.station_id", ondelete="SET NULL"))
+    primary_unit_id: Mapped[str | None] = mapped_column(ForeignKey("units.unit_id", ondelete="SET NULL"))
     title: Mapped[str] = mapped_column(String(220), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[str] = mapped_column(String(30), nullable=False)

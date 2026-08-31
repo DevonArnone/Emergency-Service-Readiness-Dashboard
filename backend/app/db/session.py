@@ -16,6 +16,8 @@ from app.security.tenant import current_organization_id, organization_scope
 
 def build_engine(database_url: str | None = None) -> Engine:
     url = database_url or settings.database_url
+    # Older local checkouts used an async SQLite URL before the runtime became synchronous.
+    url = url.replace("sqlite+aiosqlite://", "sqlite+pysqlite://")
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     return create_engine(
         url,
@@ -26,6 +28,14 @@ def build_engine(database_url: str | None = None) -> Engine:
 
 engine = build_engine()
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+
+
+@event.listens_for(engine, "connect")
+def enable_sqlite_foreign_keys(dbapi_connection, connection_record) -> None:
+    if engine.dialect.name == "sqlite":
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 @event.listens_for(Session, "after_begin")

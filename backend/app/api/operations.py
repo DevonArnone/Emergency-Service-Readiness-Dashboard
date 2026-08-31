@@ -30,6 +30,7 @@ router = APIRouter()
 @router.get("/api/dashboard/summary", response_model=DashboardSummary)
 async def get_dashboard_summary():
     unit_readiness = ReadinessService.check_all_units()
+    unit_records = dict(units_store.items())
     total = len(unit_readiness)
     ready = sum(1 for u in unit_readiness if u["readiness_score"] >= 85)
     degraded = sum(1 for u in unit_readiness if 60 <= u["readiness_score"] < 85)
@@ -41,7 +42,11 @@ async def get_dashboard_summary():
 
     station_summaries = []
     for st in stations_store.values():
-        st_units = [u for u in unit_readiness if units_store.get(u["unit_id"]) and units_store[u["unit_id"]].station_id == st.station_id]
+        st_units = [
+            unit for unit in unit_readiness
+            if unit_records.get(unit["unit_id"])
+            and unit_records[unit["unit_id"]].station_id == st.station_id
+        ]
         avg_score = (sum(u["readiness_score"] for u in st_units) / len(st_units)) if st_units else 0
         station_summaries.append({
             "station_id": st.station_id,
@@ -68,10 +73,11 @@ async def get_dashboard_summary():
 async def operations_snapshot(station_id: str | None = Query(None)):
     readiness = ReadinessService.check_all_units()
     if station_id:
+        unit_records = dict(units_store.items())
         readiness = [
             item for item in readiness
-            if units_store.get(item["unit_id"])
-            and units_store[item["unit_id"]].station_id == station_id
+            if unit_records.get(item["unit_id"])
+            and unit_records[item["unit_id"]].station_id == station_id
         ]
     alerts = [
         alert for alert in alerts_store.values()

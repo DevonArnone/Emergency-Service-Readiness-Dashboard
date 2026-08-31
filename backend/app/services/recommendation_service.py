@@ -23,22 +23,44 @@ class RecommendationService:
     def generate_recommendations() -> List[ReadinessRecommendation]:
         now = datetime.now(timezone.utc)
         recs: List[ReadinessRecommendation] = []
+        units = dict(units_store.items())
+        personnel = list(personnel_store.values())
+        assignments = list(unit_assignments_store.values())
+        assigned_ids = {
+            assignment.personnel_id
+            for assignment in assignments
+            if assignment.assignment_status.value in {"ON_SHIFT", "PENDING"}
+            and assignment.shift_start <= now <= assignment.shift_end
+        }
+        available = [
+            person for person in personnel
+            if not person.is_archived
+            and person.availability_status == AvailabilityStatus.AVAILABLE
+            and person.personnel_id not in assigned_ids
+        ]
+        personnel_by_unit: Dict[str, list] = {}
+        for person in personnel:
+            if person.current_unit_id:
+                personnel_by_unit.setdefault(person.current_unit_id, []).append(person)
 
-        for unit_id, unit_record in units_store.items():
+        for status in ReadinessService.check_all_units():
+            unit_id = status["unit_id"]
+            unit_record = units.get(unit_id)
+            if unit_record is None:
+                continue
             if unit_record.is_archived:
                 continue
-            status = ReadinessService.get_unit_readiness(unit_id)
-            if not status:
-                continue
-
-            unit = units_store[unit_id]
+            unit = unit_record
 
             # ── Understaffing ────────────────────────────────────────────────
             if status["staff_present"] < status["staff_required"]:
                 gap = status["staff_required"] - status["staff_present"]
 
                 # Find available qualified personnel not already assigned
-                candidates = RecommendationService._find_candidates(unit_id, unit)
+                candidates = [
+                    person for person in available
+                    if all(cert in person.certifications for cert in unit.required_certifications)
+                ]
 
                 if candidates:
                     names = ", ".join(p.name for p in candidates[:gap])
@@ -64,18 +86,9 @@ class RecommendationService:
 
             # ── Missing certifications ────────────────────────────────────────
             for cert in status["certifications_missing"]:
-                assigned_anywhere = {
-                    assignment.personnel_id
-                    for assignment in unit_assignments_store.values()
-                    if assignment.assignment_status.value in {"ON_SHIFT", "PENDING"}
-                    and assignment.shift_start <= now <= assignment.shift_end
-                }
                 candidates = [
-                    p for p in personnel_store.values()
-                    if cert in p.certifications
-                    and p.availability_status == AvailabilityStatus.AVAILABLE
-                    and p.personnel_id not in assigned_anywhere
-                    and not p.is_archived
+                    person for person in available
+                    if cert in person.certifications
                 ]
                 if candidates:
                     recs.append(ReadinessRecommendation(
@@ -112,9 +125,7 @@ class RecommendationService:
                     created_at=now,
                 ))
 
-            for person in personnel_store.values():
-                if person.current_unit_id != unit_id:
-                    continue
+            for person in personnel_by_unit.get(unit_id, []):
                 for cert_name, exp in person.cert_expirations.items():
                     if isinstance(exp, str):
                         try:

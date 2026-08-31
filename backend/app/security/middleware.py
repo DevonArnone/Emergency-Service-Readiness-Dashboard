@@ -9,6 +9,7 @@ from starlette.responses import Response
 
 from app.config import settings
 from app.security.identity import OPERATOR_ROLES, SERVICE_ROLES, authenticate_http
+from app.security.tenant import organization_scope
 
 
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -50,7 +51,8 @@ class AccessPolicyMiddleware(BaseHTTPMiddleware):
                     request,
                     HTTPException(status_code=403, detail="The public concept environment is read-only"),
                 )
-        return await call_next(request)
+        with organization_scope(principal.organization_id):
+            return await call_next(request)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

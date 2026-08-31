@@ -71,6 +71,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://aegis:aegis-local-only@postgres:5432/aegis
       DEFAULT_ORGANIZATION_ID: fcfrd-demo
+      AUTO_CREATE_SCHEMA: "false"
       APP_ENV: development
       AUTH_REQUIRED: "false"
       PUBLIC_DEMO_WRITE_ENABLED: "false"
@@ -107,7 +108,7 @@ services:
       KAFKA_REPLICATION_FACTOR: 1
       PIPELINE_PROFILE: ${PIPELINE_PROFILE:-optimized}
     depends_on:
-      postgres:
+      api:
         condition: service_healthy
       redpanda:
         condition: service_healthy
