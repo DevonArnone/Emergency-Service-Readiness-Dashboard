@@ -31,9 +31,11 @@ class Settings(BaseSettings):
     snowflake_account: str = "placeholder"
     snowflake_user: str = "placeholder"
     snowflake_password: str = "placeholder"
-    snowflake_role: str = "ACCOUNTADMIN"
-    snowflake_warehouse: str = "COMPUTE_WH"
-    snowflake_database: str = "WORKFORCE_DB"
+    snowflake_private_key_path: str = ""
+    snowflake_private_key_file_pwd: str = ""
+    snowflake_role: str = "AEGIS_LOADER"
+    snowflake_warehouse: str = "AEGIS_INGEST"
+    snowflake_database: str = "AEGIS_ANALYTICS"
     snowflake_schema: str = "RAW"
     
     # Application Configuration

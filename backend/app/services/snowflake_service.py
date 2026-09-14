@@ -1,799 +1,437 @@
-"""Snowflake service for data warehouse operations."""
-import logging
+"""Tenant-scoped Snowflake analytics with a relational local fallback."""
+
+from __future__ import annotations
+
 import json
+import logging
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import Optional
+
 import snowflake.connector
+
 from app.config import settings
 from app.models import AssignmentStatus, CoverageSummary, Personnel, ShiftEvent, Unit, UnitAssignment
+from app.security.tenant import current_organization_id
+
 
 logger = logging.getLogger(__name__)
 
 
+def _tenant_id() -> str:
+    return current_organization_id() or settings.default_organization_id
+
+
+def _configured() -> bool:
+    has_identity = settings.snowflake_account != "placeholder" and settings.snowflake_user != "placeholder"
+    has_credential = (
+        settings.snowflake_password != "placeholder"
+        or bool(settings.snowflake_private_key_path)
+    )
+    return has_identity and has_credential
+
+
 def _normalize_datetime(value: datetime) -> datetime:
-    """Normalize datetimes for consistent local analytics calculations."""
     if value.tzinfo is None:
         return value
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def _build_demo_coverage_summary(target_date: date) -> List[CoverageSummary]:
-    """Deterministic fallback analytics for local development and portfolio demos."""
-    scenarios = [
-        ("Station 1", 9, {7: 1, 8: 2, 17: 1, 18: 2}),
-        ("Station 3", 6, {6: 1, 14: 1, 15: 2}),
-        ("Rescue South", 4, {10: 1, 11: 1, 20: 1}),
-    ]
-    demo_rows: List[CoverageSummary] = []
-    for location, baseline, gaps in scenarios:
-        for hour in range(6, 21):
-            gap = gaps.get(hour, 0)
-            scheduled = baseline
-            actual = max(scheduled - gap, 0)
-            overtime_risk = hour in {15, 16, 17} and gap == 0 and location != "Rescue South"
-            demo_rows.append(
-                CoverageSummary(
-                    location=location,
-                    hour=hour,
-                    scheduled_headcount=scheduled,
-                    actual_headcount=actual,
-                    understaffed_flag=actual < scheduled,
-                    overtime_risk_flag=overtime_risk,
-                    date=datetime.combine(target_date, time.min),
-                )
-            )
-    return demo_rows
-
-
-def _build_local_coverage_summary(target_date: date, include_demo: bool = False) -> List[CoverageSummary]:
-    """Build coverage analytics from in-memory readiness stores."""
+def _build_local_coverage_summary(target_date: date, include_demo: bool = False) -> list[CoverageSummary]:
+    """Aggregate the normalized local runtime when Snowflake is not configured."""
     from app.stores import personnel_store, unit_assignments_store, units_store
 
+    units = dict(units_store.items())
+    personnel = dict(personnel_store.items())
     day_start = datetime.combine(target_date, time.min)
     day_end = day_start + timedelta(days=1)
-    coverage_map: Dict[tuple[str, int], Dict[str, object]] = {}
-
+    coverage: dict[tuple[str, int], dict] = {}
     for assignment in unit_assignments_store.values():
         if assignment.assignment_status != AssignmentStatus.ON_SHIFT:
             continue
-
-        unit = units_store.get(assignment.unit_id)
-        if not unit:
+        unit = units.get(assignment.unit_id)
+        person = personnel.get(assignment.personnel_id)
+        if unit is None:
             continue
-
-        person = personnel_store.get(assignment.personnel_id)
         start = _normalize_datetime(assignment.shift_start)
         end = _normalize_datetime(assignment.shift_end)
-
         if end <= day_start or start >= day_end:
             continue
-
         location = unit.station_id or (person.station_id if person else None) or unit.unit_name
-        overlap_start = max(start, day_start)
+        slot = max(start, day_start).replace(minute=0, second=0, microsecond=0)
         overlap_end = min(end, day_end)
-        slot = overlap_start.replace(minute=0, second=0, microsecond=0)
-
         while slot < overlap_end:
-            key = (location, slot.hour)
-            bucket = coverage_map.setdefault(
-                key,
-                {
-                    "location": location,
-                    "hour": slot.hour,
-                    "unit_requirements": {},
-                    "personnel_ids": set(),
-                    "long_shift_staff": set(),
-                },
+            bucket = coverage.setdefault(
+                (location, slot.hour),
+                {"unit_requirements": {}, "personnel_ids": set(), "long_shift": False},
             )
             bucket["unit_requirements"][unit.unit_id] = unit.minimum_staff
             bucket["personnel_ids"].add(assignment.personnel_id)
-            if (end - start) >= timedelta(hours=12):
-                bucket["long_shift_staff"].add(assignment.personnel_id)
+            bucket["long_shift"] = bucket["long_shift"] or (end - start) >= timedelta(hours=24)
             slot += timedelta(hours=1)
 
-    rows = []
-    for (location, hour), bucket in sorted(coverage_map.items(), key=lambda item: item[0]):
-        scheduled = sum(bucket["unit_requirements"].values())
-        actual = len(bucket["personnel_ids"])
-        rows.append(
-            CoverageSummary(
-                location=location,
-                hour=hour,
-                scheduled_headcount=scheduled,
-                actual_headcount=actual,
-                understaffed_flag=actual < scheduled,
-                overtime_risk_flag=bool(bucket["long_shift_staff"]),
-                date=datetime.combine(target_date, time.min),
-            )
+    rows = [
+        CoverageSummary(
+            location=location,
+            hour=hour,
+            scheduled_headcount=sum(bucket["unit_requirements"].values()),
+            actual_headcount=len(bucket["personnel_ids"]),
+            understaffed_flag=(
+                len(bucket["personnel_ids"]) < sum(bucket["unit_requirements"].values())
+            ),
+            overtime_risk_flag=bucket["long_shift"],
+            date=datetime.combine(target_date, time.min),
         )
-
-    if rows:
+        for (location, hour), bucket in sorted(coverage.items())
+    ]
+    if rows or not include_demo:
         return rows
-    return _build_demo_coverage_summary(target_date) if include_demo else []
+    return [
+        CoverageSummary(
+            location="Synthetic command reserve",
+            hour=hour,
+            scheduled_headcount=12,
+            actual_headcount=11 if hour in {7, 8, 18} else 12,
+            understaffed_flag=hour in {7, 8, 18},
+            overtime_risk_flag=False,
+            date=datetime.combine(target_date, time.min),
+        )
+        for hour in range(6, 21)
+    ]
 
 
-def _build_mock_readiness_history(unit_id: str, days: int = 7) -> List[dict]:
-    """Provide deterministic readiness history when Snowflake is unavailable."""
+def _build_mock_readiness_history(unit_id: str, days: int) -> list[dict]:
     from app.services.readiness_service import ReadinessService
 
     current = ReadinessService.get_unit_readiness(unit_id)
-    if not current:
+    if current is None:
         return []
-
-    base_score = current["readiness_score"]
-    history = []
-    for offset in range(days):
-        target_day = date.today() - timedelta(days=offset)
-        adjustment = (offset % 3) * 4
-        history.append(
-            {
-                "date": target_day.isoformat(),
-                "calculated_at": datetime.combine(target_day, time(hour=8)).isoformat(),
-                "current_staff": current["staff_present"],
-                "available_staff": current["staff_present"],
-                "readiness_score": max(base_score - adjustment, 0),
-                "understaffed_flag": current["is_understaffed"],
-                "missing_certifications": current["certifications_missing"],
-            }
-        )
-    return history
+    return [
+        {
+            "date": (date.today() - timedelta(days=offset)).isoformat(),
+            "calculated_at": datetime.combine(
+                date.today() - timedelta(days=offset), time(hour=8)
+            ).isoformat(),
+            "current_staff": current["staff_present"],
+            "available_staff": current["staff_present"],
+            "readiness_score": max(current["readiness_score"] - (offset % 3) * 4, 0),
+            "understaffed_flag": current["is_understaffed"],
+            "missing_certifications": current["certifications_missing"],
+        }
+        for offset in range(days)
+    ]
 
 
 class SnowflakeService:
-    """Service for interacting with Snowflake data warehouse."""
-    
-    def __init__(self):
-        """Initialize Snowflake connection."""
+    """Small warehouse client whose every read and write includes the tenant key."""
+
+    def __init__(self) -> None:
         self.conn = None
         self._connect()
-    
-    def _connect(self):
-        """Establish connection to Snowflake."""
-        # Skip connection if using placeholder values
-        if (settings.snowflake_account == "placeholder" or 
-            settings.snowflake_user == "placeholder" or
-            settings.snowflake_password == "placeholder"):
-            logger.info("Snowflake not configured (using placeholder values). Using mock service.")
-            self.conn = None
+
+    def _connect(self) -> None:
+        if not _configured():
             return
-        
+        credential: dict[str, str] = {}
+        if settings.snowflake_private_key_path:
+            credential = {
+                "authenticator": "SNOWFLAKE_JWT",
+                "private_key_file": settings.snowflake_private_key_path,
+            }
+            if settings.snowflake_private_key_file_pwd:
+                credential["private_key_file_pwd"] = settings.snowflake_private_key_file_pwd
+        else:
+            credential = {"password": settings.snowflake_password}
         try:
-            logger.info(f"Attempting to connect to Snowflake: account={settings.snowflake_account}, user={settings.snowflake_user}, database={settings.snowflake_database}, schema={settings.snowflake_schema}")
-            
-            # Use connection timeouts to prevent hanging
             self.conn = snowflake.connector.connect(
                 account=settings.snowflake_account,
                 user=settings.snowflake_user,
-                password=settings.snowflake_password,
                 role=settings.snowflake_role,
                 warehouse=settings.snowflake_warehouse,
                 database=settings.snowflake_database,
                 schema=settings.snowflake_schema,
-                login_timeout=10,  # 10 second login timeout
-                network_timeout=10,  # 10 second network timeout
+                login_timeout=10,
+                network_timeout=10,
+                **credential,
             )
-            logger.info("Connected to Snowflake successfully")
-            
-            # Test the connection with a simple query
-            cursor = self.conn.cursor()
-            cursor.execute("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()")
-            result = cursor.fetchone()
-            cursor.close()
-            logger.info(f"Snowflake connection verified - Database: {result[0]}, Schema: {result[1]}")
-            
-        except Exception as e:
-            logger.error(f"Could not connect to Snowflake: {e}", exc_info=True)
-            logger.warning("Snowflake connection failed - app will continue without Snowflake")
+        except Exception as exc:
+            logger.warning("Snowflake unavailable; relational fallback remains active: %s", exc)
             self.conn = None
-    
-    def insert_shift_event(self, event: ShiftEvent) -> bool:
-        """
-        Insert a shift event into RAW.SHIFT_EVENTS table.
-        
-        Args:
-            event: ShiftEvent to insert
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, skipping insert")
-            return False
-        
-        try:
-            cursor = self.conn.cursor()
-            
-            # Insert into RAW.SHIFT_EVENTS
-            query = """
-                INSERT INTO RAW.SHIFT_EVENTS (
-                    event_id,
-                    shift_id,
-                    employee_id,
-                    event_type,
-                    event_time,
-                    payload
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            
-            import json
-            payload_json = json.dumps(event.payload) if event.payload else None
-            
-            cursor.execute(query, (
-                event.event_id,
-                event.shift_id,
-                event.employee_id,
-                event.event_type.value,
-                event.event_time,
-                payload_json,
-            ))
-            
-            cursor.close()
-            logger.info(f"Inserted shift event into Snowflake: {event.event_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error inserting into Snowflake: {e}")
-            return False
-    
-    def get_shift_coverage_summary(self, target_date: date) -> List[CoverageSummary]:
-        """
-        Query analytics view for shift coverage summary.
-        
-        Args:
-            target_date: Date to query coverage for
-            
-        Returns:
-            List of CoverageSummary objects
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, using local fallback analytics")
-            return _build_local_coverage_summary(target_date)
-        
-        try:
-            cursor = self.conn.cursor()
-            
-            # First, check if the table exists
-            try:
-                check_query = """
-                    SELECT COUNT(*) 
-                    FROM INFORMATION_SCHEMA.TABLES 
-                    WHERE TABLE_SCHEMA = 'ANALYTICS' 
-                    AND TABLE_NAME = 'SHIFT_COVERAGE_HOURLY'
-                """
-                cursor.execute(check_query)
-                table_exists = cursor.fetchone()[0] > 0
-                
-                if not table_exists:
-                    logger.warning("SHIFT_COVERAGE_HOURLY table does not exist in ANALYTICS schema")
-                    cursor.close()
-                    return []
-            except Exception as e:
-                logger.warning(f"Could not check if table exists: {e}")
-            
-            # Query analytics table (SHIFT_COVERAGE_HOURLY is a table, not a view)
-            # Use DATE() function to ensure proper date comparison
-            query = """
-                SELECT 
-                    location,
-                    hour,
-                    scheduled_headcount,
-                    actual_headcount,
-                    understaffed_flag,
-                    overtime_risk_flag,
-                    date
-                FROM ANALYTICS.SHIFT_COVERAGE_HOURLY
-                WHERE date = %s
-                ORDER BY location, hour
-            """
-            
-            # Convert date to string format that Snowflake expects (YYYY-MM-DD)
-            date_str = target_date.isoformat()
-            logger.info(f"Querying Snowflake for coverage data on date: {date_str}")
-            
-            try:
-                cursor.execute(query, (date_str,))
-                results = cursor.fetchall()
-                
-                logger.info(f"Retrieved {len(results)} rows from Snowflake")
-                
-                coverage_summaries = []
-                for row in results:
-                    try:
-                        coverage_summaries.append(CoverageSummary(
-                            location=row[0] or "UNKNOWN",
-                            hour=row[1] or 0,
-                            scheduled_headcount=row[2] or 0,
-                            actual_headcount=row[3] or 0,
-                            understaffed_flag=bool(row[4]) if row[4] is not None else False,
-                            overtime_risk_flag=bool(row[5]) if row[5] is not None else False,
-                            date=str(row[6]) if row[6] else target_date.isoformat(),
-                        ))
-                    except Exception as e:
-                        logger.error(f"Error parsing coverage row: {e}, row: {row}")
-                        continue
-                
-                cursor.close()
-                if coverage_summaries:
-                    logger.info(f"Successfully parsed {len(coverage_summaries)} coverage summaries")
-                    return coverage_summaries
 
-                logger.warning("Snowflake returned no coverage rows for requested date, using local fallback analytics")
-                return _build_local_coverage_summary(target_date)
-                
-            except Exception as query_error:
-                error_msg = str(query_error)
-                logger.error(f"SQL Query failed: {error_msg}")
-                logger.error(f"Query was: {query}")
-                logger.error(f"Parameters: date={date_str}")
-                cursor.close()
-                return _build_local_coverage_summary(target_date)
-            
-        except Exception as e:
-            logger.error(f"Error querying Snowflake analytics: {e}", exc_info=True)
+    def insert_shift_event(self, event: ShiftEvent) -> bool:
+        if self.conn is None:
+            return False
+        query = """
+            INSERT INTO RAW.OPERATIONAL_EVENTS (
+                organization_id, event_id, event_type, priority, topic_class, source,
+                schema_version, aggregate_type, aggregate_id, occurred_at, payload
+            ) SELECT
+                %s, %s, %s, 'NORMAL', 'bulk', 'fastapi', 1, 'shift', %s, %s, PARSE_JSON(%s)
+        """
+        return self._execute(query, (
+            _tenant_id(), event.event_id, event.event_type.value, event.shift_id,
+            event.event_time, json.dumps(event.payload or {}),
+        ))
+
+    def get_shift_coverage_summary(self, target_date: date) -> list[CoverageSummary]:
+        if self.conn is None:
             return _build_local_coverage_summary(target_date)
-    
+        query = """
+            SELECT
+                COALESCE(station_id, 'UNKNOWN') AS location,
+                HOUR(hour_start) AS hour,
+                SUM(minimum_staff) AS scheduled_headcount,
+                SUM(staff_present) AS actual_headcount,
+                BOOLOR_AGG(understaffed_flag) AS understaffed_flag,
+                FALSE AS overtime_risk_flag,
+                TO_DATE(hour_start) AS date
+            FROM ANALYTICS.UNIT_READINESS_HOURLY
+            WHERE organization_id = %s AND TO_DATE(hour_start) = %s
+            GROUP BY organization_id, COALESCE(station_id, 'UNKNOWN'), HOUR(hour_start), TO_DATE(hour_start)
+            ORDER BY location, hour
+        """
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(query, (_tenant_id(), target_date.isoformat()))
+            rows = [
+                CoverageSummary(
+                    location=row[0] or "UNKNOWN", hour=row[1] or 0,
+                    scheduled_headcount=row[2] or 0, actual_headcount=row[3] or 0,
+                    understaffed_flag=bool(row[4]), overtime_risk_flag=bool(row[5]),
+                    date=row[6] or target_date,
+                )
+                for row in cursor.fetchall()
+            ]
+            cursor.close()
+            return rows or _build_local_coverage_summary(target_date)
+        except Exception as exc:
+            logger.warning("Snowflake coverage query failed: %s", exc)
+            return _build_local_coverage_summary(target_date)
+
     def insert_personnel(self, personnel: Personnel) -> bool:
-        """
-        Insert or update personnel in RAW.PERSONNEL table.
-        
-        Args:
-            personnel: Personnel to insert/update
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, skipping insert")
+        if self.conn is None:
             return False
-        
-        try:
-            cursor = self.conn.cursor()
-            
-            # Convert certifications list and expirations dict to Snowflake-compatible format
-            certs_json = json.dumps(personnel.certifications) if personnel.certifications else '[]'
-            expirations_json = json.dumps({
-                k: v.isoformat() if isinstance(v, datetime) else str(v)
-                for k, v in personnel.cert_expirations.items()
-            }) if personnel.cert_expirations else '{}'
-            
-            # Use MERGE for upsert (Snowflake doesn't support ON CONFLICT)
-            query = """
-                MERGE INTO RAW.PERSONNEL AS target
-                USING (
-                    SELECT 
-                        %s as personnel_id,
-                        %s as name,
-                        %s as rank,
-                        %s as role,
-                        PARSE_JSON(%s) as certifications,
-                        PARSE_JSON(%s) as cert_expirations,
-                        %s as availability_status,
-                        %s as last_check_in,
-                        %s as station_id,
-                        %s as current_unit_id,
-                        %s as notes
-                ) AS source
-                ON target.personnel_id = source.personnel_id
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        name = source.name,
-                        rank = source.rank,
-                        role = source.role,
-                        certifications = source.certifications,
-                        cert_expirations = source.cert_expirations,
-                        availability_status = source.availability_status,
-                        last_check_in = source.last_check_in,
-                        station_id = source.station_id,
-                        current_unit_id = source.current_unit_id,
-                        notes = source.notes,
-                        updated_at = CURRENT_TIMESTAMP()
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        personnel_id, name, rank, role, certifications,
-                        cert_expirations, availability_status, last_check_in,
-                        station_id, current_unit_id, notes
-                    )
-                    VALUES (
-                        source.personnel_id, source.name, source.rank, source.role, source.certifications,
-                        source.cert_expirations, source.availability_status, source.last_check_in,
-                        source.station_id, source.current_unit_id, source.notes
-                    )
-            """
-            
-            cursor.execute(query, (
-                personnel.personnel_id,
-                personnel.name,
-                personnel.rank,
-                personnel.role,
-                certs_json,
-                expirations_json,
-                personnel.availability_status.value if hasattr(personnel.availability_status, 'value') else str(personnel.availability_status),
-                personnel.last_check_in,
-                personnel.station_id,
-                personnel.current_unit_id,
-                personnel.notes,
-            ))
-            
-            # Explicitly commit the transaction
-            self.conn.commit()
-            cursor.close()
-            logger.info(f"Inserted/updated personnel in Snowflake: {personnel.personnel_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error inserting personnel into Snowflake: {e}")
-            return False
-    
+        query = """
+            MERGE INTO RAW.PERSONNEL target USING (
+                SELECT %s organization_id, %s personnel_id, %s station_id, %s current_unit_id,
+                    %s name, %s rank, %s role, %s availability_status, %s last_check_in,
+                    PARSE_JSON(%s)::ARRAY certifications, PARSE_JSON(%s)::OBJECT cert_expirations,
+                    %s notes
+            ) source
+            ON target.organization_id = source.organization_id
+               AND target.personnel_id = source.personnel_id
+            WHEN MATCHED THEN UPDATE SET
+                station_id=source.station_id, current_unit_id=source.current_unit_id,
+                name=source.name, rank=source.rank, role=source.role,
+                availability_status=source.availability_status, last_check_in=source.last_check_in,
+                certifications=source.certifications, cert_expirations=source.cert_expirations,
+                notes=source.notes, updated_at=CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN INSERT (
+                organization_id, personnel_id, station_id, current_unit_id, name, rank, role,
+                availability_status, last_check_in, certifications, cert_expirations, notes
+            ) VALUES (
+                source.organization_id, source.personnel_id, source.station_id, source.current_unit_id,
+                source.name, source.rank, source.role, source.availability_status, source.last_check_in,
+                source.certifications, source.cert_expirations, source.notes
+            )
+        """
+        expirations = {
+            key: value.isoformat() if isinstance(value, datetime) else str(value)
+            for key, value in personnel.cert_expirations.items()
+        }
+        return self._execute(query, (
+            _tenant_id(), personnel.personnel_id, personnel.station_id, personnel.current_unit_id,
+            personnel.name, personnel.rank, personnel.role, personnel.availability_status.value,
+            personnel.last_check_in, json.dumps(personnel.certifications), json.dumps(expirations),
+            personnel.notes,
+        ))
+
     def insert_unit(self, unit: Unit) -> bool:
-        """
-        Insert or update unit in RAW.UNITS table.
-        
-        Args:
-            unit: Unit to insert/update
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, skipping insert")
+        if self.conn is None:
             return False
-        
-        try:
-            cursor = self.conn.cursor()
-            
-            # Convert certifications list to Snowflake-compatible format
-            certs_json = json.dumps(unit.required_certifications) if unit.required_certifications else '[]'
-            
-            # Use MERGE for upsert
-            query = """
-                MERGE INTO RAW.UNITS AS target
-                USING (
-                    SELECT 
-                        %s as unit_id,
-                        %s as unit_name,
-                        %s as type,
-                        %s as minimum_staff,
-                        PARSE_JSON(%s) as required_certifications,
-                        %s as station_id
-                ) AS source
-                ON target.unit_id = source.unit_id
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        unit_name = source.unit_name,
-                        type = source.type,
-                        minimum_staff = source.minimum_staff,
-                        required_certifications = source.required_certifications,
-                        station_id = source.station_id,
-                        updated_at = CURRENT_TIMESTAMP()
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        unit_id, unit_name, type, minimum_staff,
-                        required_certifications, station_id
-                    )
-                    VALUES (
-                        source.unit_id, source.unit_name, source.type, source.minimum_staff,
-                        source.required_certifications, source.station_id
-                    )
-            """
-            
-            cursor.execute(query, (
-                unit.unit_id,
-                unit.unit_name,
-                unit.type.value if hasattr(unit.type, 'value') else str(unit.type),
-                unit.minimum_staff,
-                certs_json,
-                unit.station_id,
-            ))
-            
-            # Explicitly commit the transaction
-            self.conn.commit()
-            cursor.close()
-            logger.info(f"Inserted/updated unit in Snowflake: {unit.unit_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error inserting unit into Snowflake: {e}")
-            return False
-    
+        query = """
+            MERGE INTO RAW.UNITS target USING (
+                SELECT %s organization_id, %s unit_id, %s station_id, %s call_sign,
+                    %s unit_type, %s minimum_staff, PARSE_JSON(%s)::ARRAY required_certifications,
+                    %s operational_status
+            ) source
+            ON target.organization_id = source.organization_id AND target.unit_id = source.unit_id
+            WHEN MATCHED THEN UPDATE SET
+                station_id=source.station_id, call_sign=source.call_sign, unit_type=source.unit_type,
+                minimum_staff=source.minimum_staff,
+                required_certifications=source.required_certifications,
+                operational_status=source.operational_status, updated_at=CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN INSERT (
+                organization_id, unit_id, station_id, call_sign, unit_type, minimum_staff,
+                required_certifications, operational_status
+            ) VALUES (
+                source.organization_id, source.unit_id, source.station_id, source.call_sign,
+                source.unit_type, source.minimum_staff, source.required_certifications,
+                source.operational_status
+            )
+        """
+        return self._execute(query, (
+            _tenant_id(), unit.unit_id, unit.station_id, unit.unit_name, unit.type.value,
+            unit.minimum_staff, json.dumps(unit.required_certifications), unit.operational_status.value,
+        ))
+
     def insert_unit_assignment(self, assignment: UnitAssignment) -> bool:
-        """
-        Insert or update unit assignment in RAW.UNIT_ASSIGNMENTS table.
-        
-        Args:
-            assignment: UnitAssignment to insert/update
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, skipping insert")
+        if self.conn is None:
             return False
-        
-        try:
-            cursor = self.conn.cursor()
-            
-            # Use MERGE for upsert
-            query = """
-                MERGE INTO RAW.UNIT_ASSIGNMENTS AS target
-                USING (
-                    SELECT 
-                        %s as assignment_id,
-                        %s as unit_id,
-                        %s as personnel_id,
-                        %s as shift_start,
-                        %s as shift_end,
-                        %s as assignment_status
-                ) AS source
-                ON target.assignment_id = source.assignment_id
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        unit_id = source.unit_id,
-                        personnel_id = source.personnel_id,
-                        shift_start = source.shift_start,
-                        shift_end = source.shift_end,
-                        assignment_status = source.assignment_status
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        assignment_id, unit_id, personnel_id,
-                        shift_start, shift_end, assignment_status
-                    )
-                    VALUES (
-                        source.assignment_id, source.unit_id, source.personnel_id,
-                        source.shift_start, source.shift_end, source.assignment_status
-                    )
-            """
-            
-            cursor.execute(query, (
-                assignment.assignment_id,
-                assignment.unit_id,
-                assignment.personnel_id,
-                assignment.shift_start,
-                assignment.shift_end,
-                assignment.assignment_status.value if hasattr(assignment.assignment_status, 'value') else str(assignment.assignment_status),
-            ))
-            
-            # Explicitly commit the transaction
-            self.conn.commit()
-            cursor.close()
-            logger.info(f"Inserted/updated unit assignment in Snowflake: {assignment.assignment_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error inserting unit assignment into Snowflake: {e}")
-            return False
-    
-    def get_unit_readiness_history(self, unit_id: str, days: int = 7) -> List[dict]:
+        query = """
+            MERGE INTO RAW.UNIT_ASSIGNMENTS target USING (
+                SELECT %s organization_id, %s assignment_id, %s unit_id, %s personnel_id,
+                    %s shift_start, %s shift_end, %s assignment_status
+            ) source
+            ON target.organization_id = source.organization_id
+               AND target.assignment_id = source.assignment_id
+            WHEN MATCHED THEN UPDATE SET
+                unit_id=source.unit_id, personnel_id=source.personnel_id,
+                shift_start=source.shift_start, shift_end=source.shift_end,
+                assignment_status=source.assignment_status, updated_at=CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN INSERT (
+                organization_id, assignment_id, unit_id, personnel_id,
+                shift_start, shift_end, assignment_status
+            ) VALUES (
+                source.organization_id, source.assignment_id, source.unit_id, source.personnel_id,
+                source.shift_start, source.shift_end, source.assignment_status
+            )
         """
-        Query readiness history for a unit.
-        
-        Args:
-            unit_id: Unit ID to query
-            days: Number of days of history to retrieve
-            
-        Returns:
-            List of readiness records
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available, using local fallback readiness history")
+        return self._execute(query, (
+            _tenant_id(), assignment.assignment_id, assignment.unit_id, assignment.personnel_id,
+            assignment.shift_start, assignment.shift_end, assignment.assignment_status.value,
+        ))
+
+    def get_unit_readiness_history(self, unit_id: str, days: int = 7) -> list[dict]:
+        if self.conn is None:
             return _build_mock_readiness_history(unit_id, days)
-        
+        query = """
+            SELECT TO_DATE(hour_start), hour_start, staff_present, staff_present,
+                readiness_score, understaffed_flag, missing_certifications
+            FROM ANALYTICS.UNIT_READINESS_HOURLY
+            WHERE organization_id = %s AND unit_id = %s
+              AND hour_start >= DATEADD('DAY', -%s, CURRENT_TIMESTAMP())
+            ORDER BY hour_start DESC
+        """
         try:
             cursor = self.conn.cursor()
-            
-            query = """
-                SELECT 
-                    date,
-                    calculated_at,
-                    current_staff,
-                    available_staff,
-                    readiness_score,
-                    understaffed_flag,
-                    missing_certifications
-                FROM ANALYTICS.UNIT_READINESS_AGGREGATES
-                WHERE unit_id = %s
-                    AND date >= DATEADD(day, -%s, CURRENT_DATE())
-                ORDER BY date DESC, calculated_at DESC
-            """
-            
-            cursor.execute(query, (unit_id, days))
-            results = cursor.fetchall()
-            
+            cursor.execute(query, (_tenant_id(), unit_id, days))
             history = []
-            for row in results:
+            for row in cursor.fetchall():
+                missing = row[6] or []
+                if isinstance(missing, str):
+                    missing = json.loads(missing)
                 history.append({
-                    'date': row[0],
-                    'calculated_at': row[1],
-                    'current_staff': row[2],
-                    'available_staff': row[3],
-                    'readiness_score': row[4],
-                    'understaffed_flag': row[5],
-                    'missing_certifications': json.loads(row[6]) if row[6] else [],
+                    "date": row[0], "calculated_at": row[1], "current_staff": row[2],
+                    "available_staff": row[3], "readiness_score": row[4],
+                    "understaffed_flag": row[5], "missing_certifications": missing,
                 })
-            
             cursor.close()
-            return history if history else _build_mock_readiness_history(unit_id, days)
-            
-        except Exception as e:
-            logger.error(f"Error querying unit readiness history: {e}")
+            return history or _build_mock_readiness_history(unit_id, days)
+        except Exception as exc:
+            logger.warning("Snowflake history query failed: %s", exc)
             return _build_mock_readiness_history(unit_id, days)
-    
+
     def populate_coverage_from_assignments(self) -> bool:
-        """
-        Manually populate SHIFT_COVERAGE_HOURLY from UNIT_ASSIGNMENTS.
-        This is a fallback if the task hasn't run yet.
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        if not self.conn:
-            logger.warning("Snowflake connection not available")
+        """Materialize a manual recovery snapshot; normal operation uses Kafka tasks."""
+        if self.conn is None:
             return False
-        
+        from app.services.readiness_service import ReadinessService
+        from app.stores import units_store
+
+        units = dict(units_store.items())
+        query = """
+            MERGE INTO ANALYTICS.UNIT_READINESS_HOURLY target USING (
+                SELECT %s organization_id, DATE_TRUNC('HOUR', CURRENT_TIMESTAMP()) hour_start,
+                    %s unit_id, %s station_id, %s unit_type, %s minimum_staff,
+                    %s staff_present, %s readiness_score, %s understaffed_flag,
+                    PARSE_JSON(%s)::ARRAY missing_certifications, %s source_event_id
+            ) source
+            ON target.organization_id=source.organization_id
+               AND target.hour_start=source.hour_start AND target.unit_id=source.unit_id
+            WHEN MATCHED THEN UPDATE SET
+                station_id=source.station_id, unit_type=source.unit_type,
+                minimum_staff=source.minimum_staff, staff_present=source.staff_present,
+                readiness_score=source.readiness_score, understaffed_flag=source.understaffed_flag,
+                missing_certifications=source.missing_certifications,
+                source_event_id=source.source_event_id, updated_at=CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN INSERT (
+                organization_id, hour_start, unit_id, station_id, unit_type, minimum_staff,
+                staff_present, readiness_score, understaffed_flag, missing_certifications, source_event_id
+            ) VALUES (
+                source.organization_id, source.hour_start, source.unit_id, source.station_id,
+                source.unit_type, source.minimum_staff, source.staff_present, source.readiness_score,
+                source.understaffed_flag, source.missing_certifications, source.source_event_id
+            )
+        """
         try:
             cursor = self.conn.cursor()
-            
-            # Use the same logic as the task
-            query = """
-                MERGE INTO ANALYTICS.SHIFT_COVERAGE_HOURLY AS target
-                USING (
-                    WITH active_assignments AS (
-                        SELECT
-                            ua.unit_id,
-                            ua.personnel_id,
-                            ua.shift_start,
-                            ua.shift_end,
-                            ua.assignment_status,
-                            COALESCE(u.station_id, p.station_id, 'UNKNOWN') as location,
-                            u.minimum_staff
-                        FROM RAW.UNIT_ASSIGNMENTS ua
-                        JOIN RAW.UNITS u ON ua.unit_id = u.unit_id
-                        LEFT JOIN RAW.PERSONNEL p ON ua.personnel_id = p.personnel_id
-                        WHERE ua.assignment_status = 'ON_SHIFT'
-                            AND DATE(ua.shift_start) >= DATEADD(day, -7, CURRENT_DATE())
-                    ),
-                    hourly_breakdown AS (
-                        SELECT
-                            DATE(shift_start) as coverage_date,
-                            location,
-                            HOUR(shift_start) as hour,
-                            unit_id,
-                            personnel_id,
-                            minimum_staff
-                        FROM active_assignments
-                        WHERE HOUR(shift_start) >= 0 AND HOUR(shift_start) < 24
-                    ),
-                    hourly_unit_coverage AS (
-                        SELECT
-                            coverage_date as date,
-                            location,
-                            hour,
-                            unit_id,
-                            MAX(minimum_staff) as required_staff,
-                            COUNT(DISTINCT personnel_id) as staffed_positions,
-                            MAX(CASE WHEN TIMESTAMPDIFF(HOUR, shift_start, shift_end) >= 12 THEN 1 ELSE 0 END) as overtime_risk_unit
-                        FROM hourly_breakdown
-                        GROUP BY coverage_date, location, hour, unit_id
-                    ),
-                    hourly_aggregates AS (
-                        SELECT
-                            date,
-                            location,
-                            hour,
-                            SUM(required_staff) as scheduled_headcount,
-                            SUM(staffed_positions) as actual_headcount,
-                            MAX(overtime_risk_unit) = 1 as overtime_risk_flag
-                        FROM hourly_unit_coverage
-                        GROUP BY date, location, hour
-                    )
-                    SELECT
-                        date,
-                        location,
-                        hour,
-                        scheduled_headcount,
-                        actual_headcount,
-                        CASE WHEN actual_headcount < scheduled_headcount THEN TRUE ELSE FALSE END as understaffed_flag,
-                        overtime_risk_flag
-                    FROM hourly_aggregates
-                ) AS source
-                ON target.date = source.date
-                    AND target.location = source.location
-                    AND target.hour = source.hour
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        scheduled_headcount = source.scheduled_headcount,
-                        actual_headcount = source.actual_headcount,
-                        understaffed_flag = source.understaffed_flag,
-                        overtime_risk_flag = source.overtime_risk_flag,
-                        last_updated = CURRENT_TIMESTAMP()
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        date, location, hour,
-                        scheduled_headcount, actual_headcount,
-                        understaffed_flag, overtime_risk_flag
-                    )
-                    VALUES (
-                        source.date, source.location, source.hour,
-                        source.scheduled_headcount, source.actual_headcount,
-                        source.understaffed_flag, source.overtime_risk_flag
-                    )
-            """
-            
-            cursor.execute(query)
-            # Explicitly commit the transaction
+            batch_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+            for status in ReadinessService.check_all_units():
+                unit = units[status["unit_id"]]
+                cursor.execute(query, (
+                    _tenant_id(), status["unit_id"], unit.station_id, status["unit_type"],
+                    status["staff_required"], status["staff_present"], status["readiness_score"],
+                    status["is_understaffed"], json.dumps(status["certifications_missing"]),
+                    f"manual-{batch_id}-{status['unit_id']}",
+                ))
             self.conn.commit()
             cursor.close()
-            logger.info("Successfully populated coverage data from unit assignments")
             return True
-            
-        except Exception as e:
-            logger.error(f"Error populating coverage data: {e}", exc_info=True)
+        except Exception as exc:
+            logger.error("Snowflake recovery snapshot failed: %s", exc, exc_info=True)
             return False
-    
-    def close(self):
-        """Close Snowflake connection."""
-        if self.conn:
+
+    def _execute(self, query: str, parameters: tuple) -> bool:
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(query, parameters)
+            self.conn.commit()
+            cursor.close()
+            return True
+        except Exception as exc:
+            logger.error("Snowflake write failed: %s", exc)
+            return False
+
+    def close(self) -> None:
+        if self.conn is not None:
             self.conn.close()
             self.conn = None
 
 
-# Global instance
-snowflake_service: Optional[SnowflakeService] = None
+class MockSnowflakeService:
+    """Deterministic local behavior when warehouse credentials are absent."""
+
+    conn = None
+
+    def insert_shift_event(self, event: ShiftEvent) -> bool:
+        return True
+
+    def get_shift_coverage_summary(self, target_date: date) -> list[CoverageSummary]:
+        return _build_local_coverage_summary(target_date, include_demo=True)
+
+    def insert_personnel(self, personnel: Personnel) -> bool:
+        return True
+
+    def insert_unit(self, unit: Unit) -> bool:
+        return True
+
+    def insert_unit_assignment(self, assignment: UnitAssignment) -> bool:
+        return True
+
+    def get_unit_readiness_history(self, unit_id: str, days: int = 7) -> list[dict]:
+        return _build_mock_readiness_history(unit_id, days)
+
+    def close(self) -> None:
+        return None
 
 
-def get_snowflake_service() -> SnowflakeService:
-    """Get or create Snowflake service instance (lazy initialization)."""
+snowflake_service: Optional[SnowflakeService | MockSnowflakeService] = None
+
+
+def get_snowflake_service() -> SnowflakeService | MockSnowflakeService:
     global snowflake_service
     if snowflake_service is None:
-        try:
-            # Only create real service if not using placeholders
-            if (settings.snowflake_account == "placeholder" or 
-                settings.snowflake_user == "placeholder" or
-                settings.snowflake_password == "placeholder"):
-                # Use mock service immediately if not configured
-                snowflake_service = MockSnowflakeService()
-            else:
-                # Try to create real service (with timeout protection)
-                snowflake_service = SnowflakeService()
-        except Exception as e:
-            logger.warning(f"Failed to initialize Snowflake service: {e}")
-            # Return a mock service on any error
+        snowflake_service = SnowflakeService() if _configured() else MockSnowflakeService()
+        if isinstance(snowflake_service, SnowflakeService) and snowflake_service.conn is None:
             snowflake_service = MockSnowflakeService()
     return snowflake_service
-
-
-class MockSnowflakeService:
-    """Mock Snowflake service for development when Snowflake is not available."""
-    
-    def insert_shift_event(self, event: ShiftEvent) -> bool:
-        """Mock insert that just logs."""
-        logger.info(f"[MOCK] Would insert event into Snowflake: {event.event_id}")
-        return True
-    
-    def get_shift_coverage_summary(self, target_date: date) -> List[CoverageSummary]:
-        """Build meaningful local analytics or demo coverage when Snowflake is unavailable."""
-        logger.info(f"[MOCK] Would query Snowflake for date: {target_date}")
-        return _build_local_coverage_summary(target_date, include_demo=True)
-    
-    def insert_personnel(self, personnel: Personnel) -> bool:
-        """Mock insert that just logs."""
-        logger.info(f"[MOCK] Would insert personnel into Snowflake: {personnel.personnel_id}")
-        return True
-    
-    def insert_unit(self, unit: Unit) -> bool:
-        """Mock insert that just logs."""
-        logger.info(f"[MOCK] Would insert unit into Snowflake: {unit.unit_id}")
-        return True
-    
-    def insert_unit_assignment(self, assignment: UnitAssignment) -> bool:
-        """Mock insert that just logs."""
-        logger.info(f"[MOCK] Would insert unit assignment into Snowflake: {assignment.assignment_id}")
-        return True
-    
-    def get_unit_readiness_history(self, unit_id: str, days: int = 7) -> List[dict]:
-        """Build local readiness history when Snowflake is unavailable."""
-        logger.info(f"[MOCK] Would query unit readiness history for: {unit_id}")
-        return _build_mock_readiness_history(unit_id, days)
-    
-    def close(self):
-        """Mock close."""
-        pass
