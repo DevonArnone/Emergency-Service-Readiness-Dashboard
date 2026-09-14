@@ -1,5 +1,6 @@
 import './globals.css'
 import './command.css'
+import './identity.css'
 import type { Metadata } from 'next'
 import AppShell from '@/components/AppShell'
 import AppProviders from '@/components/AppProviders'

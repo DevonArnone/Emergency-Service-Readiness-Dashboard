@@ -264,6 +264,7 @@ async def readiness_trends(
 
     result = []
     current_readiness = ReadinessService.check_all_units()
+    unit_records = dict(units_store.items())
     for day_offset in range(days - 1, -1, -1):
         day = (now - timedelta(days=day_offset)).strftime("%Y-%m-%d")
         entry: dict = {"date": day}
@@ -276,7 +277,7 @@ async def readiness_trends(
                 st_scores = [
                     r["readiness_score"]
                     for r in current_readiness
-                    if units_store.get(r["unit_id"]) and units_store[r["unit_id"]].station_id == st.station_id
+                    if unit_records.get(r["unit_id"]) and unit_records[r["unit_id"]].station_id == st.station_id
                 ]
                 score = round(sum(st_scores) / len(st_scores), 1) if st_scores else 0
             entry[st.station_id] = score
@@ -326,9 +327,10 @@ async def certification_risk(
 async def staffing_gaps(station_id: str | None = Query(None)):
     """Return staffing gaps by unit for the selected station scope."""
     readiness = ReadinessService.check_all_units()
+    unit_records = dict(units_store.items())
     rows = []
     for r in readiness:
-        unit = units_store.get(r["unit_id"])
+        unit = unit_records.get(r["unit_id"])
         if not unit:
             continue
         if station_id and unit.station_id != station_id:
@@ -426,5 +428,5 @@ async def simulate_staffing_gap(body: SimulationRequest):
 @router.post("/api/demo/reset")
 async def demo_reset():
     counts = seed_demo()
-    record_audit("RESET", "demo", "ridgecrest", "Reset Ridgecrest demo data")
+    record_audit("RESET", "demo", "fcfrd-demo", "Reset synthetic Fairfax concept data")
     return {"status": "ok", "seeded": counts}

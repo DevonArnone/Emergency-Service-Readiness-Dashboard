@@ -11,7 +11,8 @@ from typing import Any
 from urllib.request import Request as UrlRequest, urlopen
 
 from fastapi import Depends, HTTPException, Request, status
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 
 from app.config import settings
 
@@ -55,7 +56,7 @@ class OidcVerifier:
             discovery_request = UrlRequest(discovery_url, headers={"Accept": "application/json"})
             with urlopen(discovery_request, timeout=5) as response:  # noqa: S310 - trusted configured issuer
                 discovery = json.load(response)
-            jwks_request = UrlRequest(discovery["jwks_uri"], headers={"Accept": "application/json"})
+            jwks_request = UrlRequest(settings.oidc_jwks_url or discovery["jwks_uri"], headers={"Accept": "application/json"})
             with urlopen(jwks_request, timeout=5) as response:  # noqa: S310 - URI comes from trusted issuer
                 payload = json.load(response)
             self._keys = {key["kid"]: key for key in payload.get("keys", []) if key.get("kid")}
@@ -73,11 +74,11 @@ class OidcVerifier:
             raise JWTError("Token signing key is not trusted")
         return jwt.decode(
             token,
-            key,
+            jwt.PyJWK.from_dict(key).key,
             algorithms=settings.oidc_algorithms_list,
             audience=settings.oidc_audience,
             issuer=settings.oidc_issuer,
-            options={"verify_at_hash": False},
+            options={"require": ["exp", "sub", "iss", "aud"]},
         )
 
 
@@ -91,16 +92,16 @@ def principal_from_claims(claims: dict[str, Any]) -> Principal:
     realm_roles = claims.get("realm_access", {}).get("roles", [])
     direct_roles = claims.get("roles", [])
     roles = frozenset(str(role) for role in [*realm_roles, *direct_roles])
-    organization_id = str(
-        claims.get("organization_id") or claims.get("tenant_id") or settings.default_organization_id
-    )
+    organization_id = str(claims.get("organization_id") or claims.get("tenant_id") or "").strip()
+    if not organization_id or len(organization_id) > 64:
+        raise HTTPException(status_code=401, detail="A valid organization claim is required")
     return Principal(
         subject_id=subject_id,
         organization_id=organization_id,
         roles=roles,
         display_name=claims.get("name") or claims.get("preferred_username"),
         email=claims.get("email"),
-        is_public_demo=bool(claims.get("is_public_demo", False)),
+        is_public_demo=organization_id == settings.default_organization_id or claims.get("is_public_demo") is True,
     )
 
 

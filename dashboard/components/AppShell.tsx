@@ -22,7 +22,9 @@ import {
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { api, queryKeys } from '@/lib/api'
+import { api, apiRequest, queryKeys } from '@/lib/api'
+import { OIDC_ENABLED, signOut } from '@/lib/auth'
+import { z } from 'zod'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useOperationsStream } from '@/hooks/useOperationsStream'
 import { useStationScope } from './ScopeContext'
@@ -47,6 +49,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [commandQuery, setCommandQuery] = useState('')
 
   const streamState = useOperationsStream()
+  const session = useQuery({ queryKey: ['session'], queryFn: () => apiRequest('/api/v1/session', z.object({
+    display_name: z.string().nullable(), can_write: z.boolean(), can_reset_demo: z.boolean(),
+  })) })
 
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
@@ -117,10 +122,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className={cn('system-pulse', snapshot.isError && 'system-pulse-error')} />
             <div><strong>{snapshot.isError ? 'API unavailable' : streamState === 'live' ? 'Operations connected' : 'Connecting to operations'}</strong><small>{snapshot.isError ? 'Connection requires attention' : streamState === 'live' ? 'Synthetic operational feed' : streamState}</small></div>
           </div>
-          <button className="sidebar-reset" type="button" onClick={() => resetDemo.mutate()} disabled={resetDemo.isPending}>
+          <div className="identity-status"><ShieldCheck size={14} /><span>{session.data?.can_write ? session.data.display_name || 'Operator access' : 'Read-only concept'}</span>{OIDC_ENABLED && <button onClick={() => void signOut().catch(() => window.location.assign('/'))}>Sign out</button>}</div>
+          {session.data?.can_reset_demo && <button className="sidebar-reset" type="button" onClick={() => { if (window.confirm('Replace all synthetic demo records? This cannot be undone.')) resetDemo.mutate() }} disabled={resetDemo.isPending}>
             <RefreshCw className={cn('size-4', resetDemo.isPending && 'animate-spin')} aria-hidden="true" />
             {resetDemo.isPending ? 'Restoring data' : 'Restore demo data'}
-          </button>
+          </button>}
+          {resetDemo.isError && <p role="alert">Unable to restore demo data.</p>}
         </div>
       </aside>
 
@@ -193,7 +200,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 return <button key={item.href} type="button" onClick={() => navigate(item.href)}><span><Icon className="size-[18px]" /></span><strong>{item.name}</strong><small>Open</small></button>
               })}
               <span className="command-label">System</span>
-              <button type="button" onClick={() => resetDemo.mutate()} disabled={resetDemo.isPending}><span><RefreshCw className={cn('size-[18px]', resetDemo.isPending && 'animate-spin')} /></span><strong>Restore demo data</strong><small>Reset</small></button>
+              {session.data?.can_reset_demo && <button type="button" onClick={() => { if (window.confirm('Replace all synthetic demo records? This cannot be undone.')) resetDemo.mutate() }} disabled={resetDemo.isPending}><span><RefreshCw className={cn('size-[18px]', resetDemo.isPending && 'animate-spin')} /></span><strong>Restore demo data</strong><small>Reset</small></button>}
             </div>
             <div className="command-footer"><span><Command className="size-3.5" />Aegis command menu</span><span>Tab navigate · Enter select</span></div>
           </Dialog.Content>

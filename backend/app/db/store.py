@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import re
+import uuid
 from collections.abc import Iterable, Iterator, MutableMapping
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
+from fastapi import HTTPException
 from sqlalchemy import delete, select
 
 from app.config import settings
@@ -64,6 +66,8 @@ def _organization_id() -> str:
 
 def _ensure_organization(session, organization_id: str) -> None:
     if session.get(Organization, organization_id) is None:
+        if organization_id != settings.default_organization_id:
+            raise HTTPException(status_code=403, detail="Organization is not provisioned")
         session.add(Organization(
             organization_id=organization_id,
             slug="fairfax-concept" if organization_id == settings.default_organization_id else organization_id,
@@ -364,6 +368,26 @@ def _audit_from_row(row: AuditEventRow) -> AuditEvent:
 
 
 def _save(kind: str, session, organization_id: str, value: BaseModel) -> None:
+    row_type, _ = _ROW_KEYS[kind]
+    existing_row = session.get(row_type, getattr(value, _ID_FIELDS[kind]))
+    if existing_row is not None and existing_row.organization_id != organization_id:
+        raise HTTPException(status_code=409, detail="Record identifier is unavailable")
+    references = {
+        "station_id": StationRow, "unit_id": UnitRow, "current_unit_id": UnitRow,
+        "personnel_id": PersonnelRow, "shift_id": ShiftRow,
+    }
+    for field, target in references.items():
+        if field == _ID_FIELDS[kind]:
+            continue
+        key = getattr(value, field, None)
+        if key:
+            row = session.get(target, key)
+            if row is None or row.organization_id != organization_id:
+                raise HTTPException(status_code=422, detail=f"{field} must reference a record in your organization")
+    for unit_id in getattr(value, "assigned_unit_ids", []) or []:
+        row = session.get(UnitRow, unit_id)
+        if row is None or row.organization_id != organization_id:
+            raise HTTPException(status_code=422, detail="Assigned units must belong to your organization")
     if kind == "personnel":
         row = PersonnelRow(
             personnel_id=value.personnel_id, organization_id=organization_id,
@@ -389,13 +413,13 @@ def _save(kind: str, session, organization_id: str, value: BaseModel) -> None:
             certification = existing.get(code)
             if certification is None:
                 certification = CertificationType(
-                    certification_type_id=f"cert-{re.sub('[^a-z0-9]+', '-', code.lower()).strip('-')}",
+                    certification_type_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{organization_id}:cert:{code}")),
                     organization_id=organization_id, code=code, name=code,
                 )
                 session.merge(certification)
                 session.flush()
             session.add(PersonnelCertification(
-                personnel_certification_id=f"pc-{value.personnel_id}-{certification.certification_type_id}"[:64],
+                personnel_certification_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{organization_id}:pc:{value.personnel_id}:{certification.certification_type_id}")),
                 organization_id=organization_id,
                 personnel_id=value.personnel_id,
                 certification_type_id=certification.certification_type_id,
@@ -464,7 +488,7 @@ def _save(kind: str, session, organization_id: str, value: BaseModel) -> None:
         assigned = list(dict.fromkeys(value.assigned_unit_ids or ([value.unit_id] if value.unit_id else [])))
         for unit_id in assigned:
             session.add(IncidentUnit(
-                incident_unit_id=f"iu-{value.incident_id}-{unit_id}"[:64],
+                incident_unit_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{organization_id}:iu:{value.incident_id}:{unit_id}")),
                 organization_id=organization_id, incident_id=value.incident_id, unit_id=unit_id,
             ))
         return

@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     auth_required: bool = False
     oidc_issuer: str = ""
     oidc_discovery_url: str = ""
+    oidc_jwks_url: str = ""
     oidc_audience: str = "aegis-api"
     oidc_algorithms: str = "RS256"
     jwks_cache_seconds: int = 300
@@ -88,6 +89,8 @@ class Settings(BaseSettings):
             problems.append("AUTH_REQUIRED must be enabled")
         if not self.oidc_issuer.startswith("https://"):
             problems.append("OIDC_ISSUER must use HTTPS")
+        if any(url and not url.startswith("https://") for url in (self.oidc_discovery_url, self.oidc_jwks_url)):
+            problems.append("OIDC discovery and JWKS overrides must use HTTPS")
         if self.jwt_secret == "dev-secret-key-change-in-production":
             problems.append("JWT_SECRET must not use the development value")
         if self.database_url.startswith("sqlite"):

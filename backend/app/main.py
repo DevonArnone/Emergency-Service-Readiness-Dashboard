@@ -1,5 +1,6 @@
 """FastAPI application — Emergency Readiness Platform."""
 import json
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -21,9 +22,13 @@ from app.services.demo_service import seed_demo
 from app.stores import personnel_store, units_store
 from app.security.middleware import AccessPolicyMiddleware, SecurityHeadersMiddleware
 from app.security.tickets import realtime_ticket_broker
-from app.security.identity import demo_principal
+from app.security.identity import Principal, READ_ROLES, demo_principal
+from app.security.tenant import organization_scope
 from app.realtime.hub import operations_hub, redis_fanout_subscriber
 from app.services.kafka_service import close_kafka_service
+from app.security.logging import protect_request_logs
+
+protect_request_logs()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +42,9 @@ app = FastAPI(
     version="2.0.0",
 )
 
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts_list)
+app.add_middleware(AccessPolicyMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -44,9 +52,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts_list)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(AccessPolicyMiddleware)
 
 app.include_router(shifts.router)
 app.include_router(readiness.router)
@@ -146,12 +151,28 @@ async def health():
     }
 
 
+async def websocket_identity(websocket: WebSocket, ticket: str | None) -> Principal | None:
+    origin = websocket.headers.get("origin")
+    if origin and origin not in settings.cors_origins_list:
+        await websocket.close(code=4403, reason="Origin is not allowed")
+        return None
+    principal = await asyncio.to_thread(realtime_ticket_broker.consume, ticket) if ticket else None
+    if (ticket or settings.auth_required) and not principal:
+        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+        return None
+    principal = principal or demo_principal()
+    if not principal.has_any_role(READ_ROLES):
+        await websocket.close(code=4403, reason="Read access is required")
+        return None
+    return principal
+
+
 @app.websocket("/ws/shifts")
 async def websocket_shifts(websocket: WebSocket, ticket: str | None = None):
-    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
-        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+    principal = await websocket_identity(websocket, ticket)
+    if principal is None:
         return
-    await websocket_manager.connect(websocket)
+    await websocket_manager.connect(websocket, principal.organization_id)
     try:
         while True:
             data = await websocket.receive_text()
@@ -162,10 +183,14 @@ async def websocket_shifts(websocket: WebSocket, ticket: str | None = None):
 
 @app.websocket("/ws/unit-readiness/{unit_id}")
 async def websocket_unit_readiness(websocket: WebSocket, unit_id: str, ticket: str | None = None):
-    if settings.auth_required and (not ticket or not realtime_ticket_broker.consume(ticket)):
-        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+    principal = await websocket_identity(websocket, ticket)
+    if principal is None:
         return
-    await unit_readiness_manager.connect(websocket, unit_id)
+    with organization_scope(principal.organization_id):
+        if units_store.get(unit_id) is None:
+            await websocket.close(code=4404, reason="Unit not found")
+            return
+        await unit_readiness_manager.connect(websocket, unit_id)
     try:
         while True:
             await websocket.receive_text()
@@ -176,11 +201,14 @@ async def websocket_unit_readiness(websocket: WebSocket, unit_id: str, ticket: s
 @app.websocket("/ws/operations")
 async def websocket_operations(websocket: WebSocket, ticket: str | None = None):
     """Aggregated operations channel for dashboard summaries, alerts, and incidents."""
-    principal = realtime_ticket_broker.consume(ticket) if ticket else None
-    if settings.auth_required and not principal:
-        await websocket.close(code=4401, reason="A valid realtime ticket is required")
+    principal = await websocket_identity(websocket, ticket)
+    if principal is None:
         return
-    principal = principal or demo_principal()
+    with organization_scope(principal.organization_id):
+        await _operations_stream(websocket, principal)
+
+
+async def _operations_stream(websocket: WebSocket, principal: Principal):
     from app.stores import alerts_store, incidents_store
     from app.models import AlertState
     from app.services.readiness_service import ReadinessService
@@ -217,7 +245,10 @@ async def websocket_operations(websocket: WebSocket, ticket: str | None = None):
                 },
             }
             await websocket.send_text(json.dumps(payload))
-            await asyncio.sleep(15)
+            try:
+                await asyncio.wait_for(websocket.receive_text(), timeout=15)
+            except asyncio.TimeoutError:
+                pass
     except WebSocketDisconnect:
         operations_hub.disconnect(websocket, principal.organization_id)
     except Exception as exc:

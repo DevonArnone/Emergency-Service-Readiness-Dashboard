@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.responses import Response
 
 from app.config import settings
-from app.security.identity import OPERATOR_ROLES, SERVICE_ROLES, authenticate_http
+from app.security.identity import OPERATOR_ROLES, READ_ROLES, SERVICE_ROLES, authenticate_http
 from app.security.tenant import organization_scope
 
 
@@ -33,24 +33,33 @@ class AccessPolicyMiddleware(BaseHTTPMiddleware):
         if not request.url.path.startswith("/api"):
             return await call_next(request)
         mutation = request.method.upper() not in SAFE_METHODS
-        demo_reset = request.url.path == "/api/demo/reset" and settings.app_env == "development"
+        ticket_request = request.url.path == "/api/v1/realtime-tickets"
         try:
-            principal = await authenticate_http(request, required=mutation and not demo_reset)
+            principal = await authenticate_http(request, required=settings.auth_required or (mutation and not ticket_request))
         except HTTPException as exc:
             return error_response(request, exc)
         request.state.organization_id = principal.organization_id
-        if mutation and not demo_reset:
+        if not mutation or ticket_request:
+            if not principal.has_any_role(READ_ROLES):
+                return error_response(request, HTTPException(status_code=403, detail="Read access is required"))
+        if mutation and not ticket_request:
             allowed = OPERATOR_ROLES | (SERVICE_ROLES if request.url.path.startswith("/api/v1/ingest") else set())
             if not principal.has_any_role(allowed):
                 return error_response(
                     request,
                     HTTPException(status_code=403, detail="Role does not permit this action"),
                 )
-            if principal.is_public_demo and not settings.public_demo_write_enabled:
+            if (principal.is_public_demo or principal.organization_id == settings.default_organization_id) and not settings.public_demo_write_enabled:
                 return error_response(
                     request,
                     HTTPException(status_code=403, detail="The public concept environment is read-only"),
                 )
+            if request.url.path == "/api/demo/reset" and (
+                settings.app_env != "development"
+                or principal.organization_id != settings.default_organization_id
+                or not settings.public_demo_write_enabled
+            ):
+                return error_response(request, HTTPException(status_code=403, detail="Demo reset is disabled"))
         with organization_scope(principal.organization_id):
             return await call_next(request)
 

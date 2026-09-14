@@ -38,7 +38,7 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 
 - [ ] Record the baseline, target architecture, and migration decisions.
 - [ ] Add PostgreSQL models, migrations, tenant context, and compatibility import tooling.
-- [ ] Add authentication, authorization, security middleware, audit controls, and realtime tickets.
+- [x] Add authentication, authorization, security middleware, audit controls, and realtime tickets.
 - [ ] Add the local PostgreSQL, Kafka, Redis, identity, worker, and observability stack.
 - [ ] Implement outbox publishing, priority/bulk topics, consumers, Redis fan-out, and event schemas.
 - [ ] Add the reproducible baseline-versus-optimized benchmark and evidence output.
@@ -73,4 +73,4 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 
 ## Completion Notes
 
-In progress. September 14: the map-led command screen, responsive Aegis visual system, and live-data browser checks are implemented. Eight Chromium checks pass; populated desktop and mobile captures are in `pictures/`. Point lookups now use primary-key queries instead of loading entire tenant collections. Authentication and tenant-boundary follow-up remains required before completion; infrastructure and performance claims remain gated on integration evidence.
+In progress. September 14: the map-led command screen and responsive Aegis visual system are implemented. All sixteen Chromium/Firefox workspace checks pass; populated desktop and mobile captures are in `pictures/`. Repeated database lookups have been removed. Thirty-five backend tests, direct PostgreSQL RLS checks, and two real Keycloak/Redis/PostgreSQL operator-access browser tests pass. Both dependency audits report no known vulnerabilities. See `docs/security.md` for remaining deployment gates. Kafka reliability/performance and live Snowflake evidence remain outstanding.

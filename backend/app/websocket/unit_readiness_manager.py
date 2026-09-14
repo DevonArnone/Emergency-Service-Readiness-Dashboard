@@ -4,6 +4,8 @@ import logging
 from typing import Set, Dict
 from fastapi import WebSocket
 from app.services.readiness_service import ReadinessService
+from app.config import settings
+from app.security.tenant import current_organization_id
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +16,15 @@ class UnitReadinessManager:
     def __init__(self):
         """Initialize unit readiness WebSocket manager."""
         # Map of unit_id -> set of WebSocket connections
-        self.unit_connections: Dict[str, Set[WebSocket]] = {}
+        self.unit_connections: Dict[tuple[str, str], Set[WebSocket]] = {}
         # Map of WebSocket -> unit_id (for cleanup)
-        self.connection_units: Dict[WebSocket, str] = {}
+        self.connection_units: Dict[WebSocket, tuple[str, str]] = {}
     
     async def connect(self, websocket: WebSocket, unit_id: str):
         """Accept a new WebSocket connection for a specific unit."""
         await websocket.accept()
+        readiness = ReadinessService.get_unit_readiness(unit_id)
+        unit_id = (current_organization_id() or settings.default_organization_id, unit_id)
         
         if unit_id not in self.unit_connections:
             self.unit_connections[unit_id] = set()
@@ -31,7 +35,6 @@ class UnitReadinessManager:
         logger.info(f"Unit readiness WebSocket connected for unit {unit_id}. Total: {len(self.unit_connections[unit_id])}")
         
         # Send initial readiness status
-        readiness = ReadinessService.get_unit_readiness(unit_id)
         if readiness:
             await self.send_readiness_update(websocket, readiness)
     
@@ -64,7 +67,8 @@ class UnitReadinessManager:
         Args:
             unit_id: Unit ID to broadcast for
         """
-        if unit_id not in self.unit_connections:
+        key = (current_organization_id() or settings.default_organization_id, unit_id)
+        if key not in self.unit_connections:
             return
         
         readiness = ReadinessService.get_unit_readiness(unit_id)
@@ -78,7 +82,7 @@ class UnitReadinessManager:
         message_json = json.dumps(message)
         
         disconnected = set()
-        for connection in self.unit_connections[unit_id]:
+        for connection in list(self.unit_connections[key]):
             try:
                 await connection.send_text(message_json)
             except Exception as e:
@@ -94,4 +98,3 @@ class UnitReadinessManager:
 
 # Global unit readiness manager instance
 unit_readiness_manager = UnitReadinessManager()
-

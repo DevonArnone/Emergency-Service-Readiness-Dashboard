@@ -1,4 +1,5 @@
 import { z, type ZodType } from 'zod'
+import { accessToken } from './auth'
 import {
   alertSchema,
   auditEventSchema,
@@ -67,6 +68,7 @@ export async function apiRequest<T>(
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
+      const token = await accessToken()
       const response = await fetch(`${API_BASE}${path}`, {
         ...options,
         method,
@@ -75,6 +77,7 @@ export async function apiRequest<T>(
           Accept: 'application/json',
           ...(options.body ? { 'Content-Type': 'application/json' } : {}),
           ...options.headers,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       })
       const payload = await response.json().catch(() => null) as ApiErrorPayload | null

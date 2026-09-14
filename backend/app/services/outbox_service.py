@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import uuid
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,7 +22,7 @@ def enqueue_event(session: Session, envelope: EventEnvelope) -> OutboxEvent:
     if existing:
         return existing
     record = OutboxEvent(
-        outbox_event_id=envelope.event_id,
+        outbox_event_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{envelope.organization_id}:{envelope.event_id}")),
         organization_id=envelope.organization_id,
         idempotency_key=envelope.event_id,
         topic_class=envelope.topic_class,

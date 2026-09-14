@@ -23,7 +23,7 @@ async def ingest_event(
     principal: Principal = Depends(require_roles("integration_service", "admin")),
 ) -> dict:
     organization_id = body.organization_id or principal.organization_id
-    if organization_id != principal.organization_id and "admin" not in principal.roles:
+    if organization_id != principal.organization_id:
         raise HTTPException(status_code=403, detail="Organization scope does not permit this event")
     envelope = EventEnvelope(
         event_id=body.event_id or str(uuid.uuid4()),
@@ -40,13 +40,7 @@ async def ingest_event(
     )
     with session_scope(organization_id) as session:
         if not session.get(Organization, organization_id):
-            session.add(Organization(
-                organization_id=organization_id,
-                slug=organization_id,
-                name="Synthetic integration tenant",
-                is_public_demo=organization_id == "fcfrd-demo",
-            ))
-            session.flush()
+            raise HTTPException(status_code=403, detail="Organization is not provisioned")
         record = enqueue_event(session, envelope)
     return {
         "status": "accepted",

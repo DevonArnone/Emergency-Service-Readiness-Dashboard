@@ -23,12 +23,25 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*"],
+      "redirectUris": ["http://localhost:3000/auth/callback"],
       "webOrigins": ["http://localhost:3000"],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000"
       },
       "protocolMappers": [
+        {
+          "name": "organization-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "organization_id",
+            "claim.value": "fcfrd-demo",
+            "jsonType.label": "String",
+            "access.token.claim": "true"
+          }
+        },
         {
           "name": "aegis-api-audience",
           "protocol": "openid-connect",
@@ -112,7 +125,7 @@
       "username": "service-account-aegis-benchmark",
       "enabled": true,
       "serviceAccountClientId": "aegis-benchmark",
-      "realmRoles": ["integration_service"]
+      "realmRoles": ["integration_service", "viewer"]
     }
   ]
 }

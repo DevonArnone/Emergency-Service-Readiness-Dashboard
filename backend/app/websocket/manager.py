@@ -4,6 +4,8 @@ import logging
 from typing import Set
 from fastapi import WebSocket
 from app.models import ShiftEvent
+from app.config import settings
+from app.security.tenant import current_organization_id
 
 logger = logging.getLogger(__name__)
 
@@ -13,17 +15,17 @@ class WebSocketManager:
     
     def __init__(self):
         """Initialize WebSocket manager."""
-        self.active_connections: Set[WebSocket] = set()
+        self.active_connections: dict[WebSocket, str] = {}
     
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, organization_id: str):
         """Accept a new WebSocket connection."""
         await websocket.accept()
-        self.active_connections.add(websocket)
+        self.active_connections[websocket] = organization_id
         logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
     
     def disconnect(self, websocket: WebSocket):
         """Remove a WebSocket connection."""
-        self.active_connections.discard(websocket)
+        self.active_connections.pop(websocket, None)
         logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
     
     async def broadcast_event(self, event: ShiftEvent):
@@ -53,7 +55,10 @@ class WebSocketManager:
         
         # Broadcast to all connections
         disconnected = set()
-        for connection in self.active_connections:
+        organization_id = current_organization_id() or settings.default_organization_id
+        for connection, tenant in list(self.active_connections.items()):
+            if tenant != organization_id:
+                continue
             try:
                 await connection.send_text(message_json)
             except Exception as e:
@@ -69,4 +74,3 @@ class WebSocketManager:
 
 # Global WebSocket manager instance
 websocket_manager = WebSocketManager()
-

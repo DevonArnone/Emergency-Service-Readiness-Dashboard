@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { useState } from 'react'
 import { ScopeProvider } from './ScopeContext'
+import AuthBoundary from './AuthBoundary'
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -21,7 +22,7 @@ export default function AppProviders({ children }: { children: React.ReactNode }
   return (
     <QueryClientProvider client={queryClient}>
       <Tooltip.Provider delayDuration={300}>
-        <ScopeProvider>{children}</ScopeProvider>
+        <AuthBoundary><ScopeProvider>{children}</ScopeProvider></AuthBoundary>
       </Tooltip.Provider>
     </QueryClientProvider>
   )

@@ -130,6 +130,10 @@ def validate_markdown_links(errors: list[str]) -> None:
         if ".git" not in path.parts
         and "node_modules" not in path.parts
         and ".next" not in path.parts
+        and "venv" not in path.parts
+        and ".venv" not in path.parts
+        and "test-results" not in path.parts
+        and ".claude" not in path.parts
     ]
     link_pattern = re.compile(r"\[[^\]]+\]\((?!https?://|mailto:|#)([^)]+)\)")
 

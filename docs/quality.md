@@ -53,8 +53,15 @@ Then inspect the edited SQL for idempotency, schema separation, and task cadence
 | Documentation drift | `scripts/check_harness.py` verifies required docs, links, and plan sections |
 | Boundary shape drift | Keep API and WebSocket payloads modeled in `backend/app/models.py` |
 | Visual regression | Validate desktop and mobile routes in a real browser and refresh `pictures/` after major UI changes |
-| External-service coupling | Preserve placeholder-backed local mode for Kafka and Snowflake |
+| External-service coupling | Keep fallback mode explicit; verify real services independently and never label mock results as integration evidence |
 | Long-running plan loss | Use checked-in execution plans for multi-step work |
+
+## September 14 security and interface checkpoint
+
+- Sixteen Chromium/Firefox workspace checks passed after removing repeated tenant-wide and per-station database lookups.
+- Real Keycloak PKCE sign-in, operator incident creation/resolution, analyst write denial, authenticated Redis-backed WebSocket connection, and logout passed against PostgreSQL.
+- Frontend `npm audit` and backend `pip-audit` reported no known vulnerabilities after dependency updates; backend dependency compatibility passed.
+- See [security model and deployment gates](./security.md). Kafka end-to-end throughput, Snowflake live connectivity, and requested resume performance numbers remain unverified.
 
 ## Promotion Rule
 
