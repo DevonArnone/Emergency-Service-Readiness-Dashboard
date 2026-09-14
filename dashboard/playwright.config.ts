@@ -7,7 +7,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: 2,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://127.0.0.1:3010',
@@ -16,7 +16,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `cd ../backend && CORS_ORIGINS=http://127.0.0.1:3010 STATE_DATABASE_PATH=/tmp/emergency-readiness-e2e.db SNOWFLAKE_ACCOUNT=placeholder SNOWFLAKE_USER=placeholder SNOWFLAKE_PASSWORD=placeholder ${python} -m uvicorn app.main:app --host 127.0.0.1 --port 8010`,
+      command: `cd ../backend && CORS_ORIGINS=http://127.0.0.1:3010 DATABASE_URL=sqlite+pysqlite:////tmp/aegis-ui-e2e.db STATE_DATABASE_PATH=/tmp/emergency-readiness-e2e.db SNOWFLAKE_ACCOUNT=placeholder SNOWFLAKE_USER=placeholder SNOWFLAKE_PASSWORD=placeholder ${python} -m uvicorn app.main:app --host 127.0.0.1 --port 8010`,
       url: 'http://127.0.0.1:8010/health',
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,

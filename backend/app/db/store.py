@@ -87,10 +87,8 @@ class RelationalStore(MutableMapping[str, ModelT], Generic[ModelT]):
         return value
 
     def get(self, key: str, default=None):
-        for entity_key, value in self.items():
-            if entity_key == key:
-                return value
-        return default
+        values = _load_all(self.kind, _organization_id(), key)
+        return values[0] if values else default
 
     def __setitem__(self, key: str, value: ModelT) -> None:
         validated = self.model.model_validate(value)
@@ -172,17 +170,21 @@ def clear_operational_data(organization_id: str | None = None) -> None:
             session.execute(delete(row_type).where(row_type.organization_id == target))
 
 
-def _load_all(kind: str, organization_id: str) -> list[BaseModel]:
-    row_type, _ = _ROW_KEYS[kind]
+def _load_all(kind: str, organization_id: str, key: str | None = None) -> list[BaseModel]:
+    row_type, id_column = _ROW_KEYS[kind]
     with session_scope(organization_id) as session:
-        rows = session.scalars(
-            select(row_type).where(row_type.organization_id == organization_id)
-        ).all()
+        query = select(row_type).where(row_type.organization_id == organization_id)
+        if key is not None:
+            query = query.where(id_column == key)
+        rows = session.scalars(query).all()
+        if not rows:
+            return []
         if kind == "personnel":
             associations = session.execute(
                 select(PersonnelCertification, CertificationType)
                 .join(CertificationType, PersonnelCertification.certification_type_id == CertificationType.certification_type_id)
                 .where(PersonnelCertification.organization_id == organization_id)
+                .where(PersonnelCertification.personnel_id.in_([row.personnel_id for row in rows]))
             ).all()
             certs: dict[str, list[tuple[PersonnelCertification, CertificationType]]] = {}
             for association, certification in associations:

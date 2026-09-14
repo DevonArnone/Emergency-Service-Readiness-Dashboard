@@ -44,7 +44,7 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 - [ ] Add the reproducible baseline-versus-optimized benchmark and evidence output.
 - [ ] Add Fairfax-scale seed data and public GIS snapshots with attribution.
 - [ ] Rework Snowflake ingestion, roles, row policies, and analytical views.
-- [ ] Build the Aegis Command visual system and first meaningful command preview.
+- [x] Build the Aegis Command visual system and first meaningful command preview.
 - [ ] Migrate and polish all supporting operational workspaces.
 - [ ] Add observability, accessibility, security scanning, threat model, and runbooks.
 - [ ] Run the full completion audit, update evidence, refresh screenshots, and finalize documentation.
@@ -73,4 +73,4 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 
 ## Completion Notes
 
-In progress. Each completed implementation slice will be committed independently and reflected in this plan before final validation.
+In progress. September 14: the map-led command screen, responsive Aegis visual system, and live-data browser checks are implemented. Eight Chromium checks pass; populated desktop and mobile captures are in `pictures/`. Point lookups now use primary-key queries instead of loading entire tenant collections. Authentication and tenant-boundary follow-up remains required before completion; infrastructure and performance claims remain gated on integration evidence.

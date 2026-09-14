@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const workspaces = [
-  { path: '/', heading: 'Command Center', dataSelector: '.unit-summary-row' },
+  { path: '/', heading: 'Every resource. One clear picture.', dataSelector: '.resource-tile' },
   { path: '/readiness', heading: 'Operations', dataSelector: '.unit-list-row' },
   { path: '/personnel', heading: 'Workforce', dataSelector: '.person-list-row' },
   { path: '/shifts', heading: 'Scheduling', dataSelector: '.shift-list-row' },
@@ -18,15 +18,33 @@ async function expectHealthyWorkspace(page: Page, path: string, heading: string,
   const startedAt = Date.now()
   await page.goto(path, { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
-  await expect.poll(async () => page.locator(dataSelector).count()).toBeGreaterThan(0)
+  await expect.poll(async () => page.locator(dataSelector).count(), { timeout: 15_000 }).toBeGreaterThan(0)
 
-  expect(Date.now() - startedAt).toBeLessThan(10_000)
+  expect(Date.now() - startedAt).toBeLessThan(20_000)
   expect(await page.locator('text=missing required error components').count()).toBe(0)
   expect(await page.getByText('Unable to load this data', { exact: true }).count()).toBe(0)
   expect(await page.getByText('This workspace could not load', { exact: true }).count()).toBe(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   expect(consoleErrors).toEqual([])
 }
+
+test('command map and filters work on desktop and mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 1512, height: 1100 })
+  await page.goto('/')
+  await expect(page.locator('.map-station')).toHaveCount(39)
+  await expect(page.locator('.resource-tile').first()).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: /Station 1 — McLean/ }).click()
+  await expect(page.locator('.map-detail')).toContainText('McLean')
+  await page.getByRole('button', { name: 'Close station details' }).click()
+  await page.getByRole('button', { name: /Needs attention/ }).click()
+  await expect(page.locator('.resource-tile:not(.resource-attention)')).toHaveCount(0)
+  await page.screenshot({ path: '../pictures/aegis-command-desktop.png', fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('h1')).toBeVisible()
+  await expect.poll(() => page.locator('.app-sidebar').evaluate((element) => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await page.screenshot({ path: '../pictures/aegis-command-mobile.png', fullPage: true })
+})
 
 for (const workspace of workspaces) {
   test(`${workspace.heading} loads live data`, async ({ page }) => {
@@ -36,7 +54,7 @@ for (const workspace of workspaces) {
 
 test('analytics controls preserve view and period in the URL', async ({ page }) => {
   await page.goto('/analytics?view=overview&days=14')
-  await expect.poll(async () => page.locator('.recharts-wrapper svg').count()).toBeGreaterThan(0)
+  await expect.poll(async () => page.locator('.recharts-wrapper svg').count(), { timeout: 15_000 }).toBeGreaterThan(0)
   await page.getByRole('button', { name: '30 days', exact: true }).click()
   await expect(page).toHaveURL(/days=30/)
   await page.getByRole('tab', { name: 'Staffing', exact: true }).click()

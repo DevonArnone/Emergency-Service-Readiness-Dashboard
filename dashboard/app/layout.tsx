@@ -1,11 +1,12 @@
 import './globals.css'
+import './command.css'
 import type { Metadata } from 'next'
 import AppShell from '@/components/AppShell'
 import AppProviders from '@/components/AppProviders'
 
 export const metadata: Metadata = {
-  title: 'Emergency Readiness Dashboard',
-  description: 'Real-time emergency staffing, certification readiness, and Snowflake-backed command analytics.',
+  title: 'Aegis Command | Fairfax County Concept',
+  description: 'An unofficial Fairfax County Fire and Rescue coordination concept with synthetic operational data.',
 }
 
 export default function RootLayout({

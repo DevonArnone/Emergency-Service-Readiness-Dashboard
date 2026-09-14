@@ -4,19 +4,19 @@
 
 :root {
   color-scheme: dark;
-  --canvas: #111514;
-  --canvas-soft: #171c1a;
-  --sidebar: #0b0f0e;
-  --surface: #1d2321;
-  --surface-raised: #252c29;
-  --surface-muted: #181d1b;
+  --canvas: #09111c;
+  --canvas-soft: #0e1927;
+  --sidebar: #080f19;
+  --surface: #111e2b;
+  --surface-raised: #182b3b;
+  --surface-muted: #0d1723;
   --line: rgba(231, 237, 233, 0.11);
   --line-strong: rgba(231, 237, 233, 0.18);
   --text: #f5f7f6;
-  --text-secondary: #b7c0bb;
-  --text-muted: #7f8a85;
-  --brand: #6ee7b7;
-  --brand-strong: #34d399;
+  --text-secondary: #b2c4d2;
+  --text-muted: #8095a8;
+  --brand: #68dbc1;
+  --brand-strong: #44cbaa;
   --info: #5cc8ff;
   --warning: #f6c65b;
   --danger: #ff7a72;

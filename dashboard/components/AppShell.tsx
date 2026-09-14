@@ -4,7 +4,6 @@ import * as Dialog from '@radix-ui/react-dialog'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Activity,
   AlarmClock,
   BarChart3,
   Bell,
@@ -47,7 +46,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
 
-  useOperationsStream()
+  const streamState = useOperationsStream()
 
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
@@ -90,9 +89,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <aside className={cn('app-sidebar', mobileMenuOpen && 'app-sidebar-open')}>
         <div className="brand-block">
-          <Link href="/" className="brand-mark" onClick={() => setMobileMenuOpen(false)} aria-label="Ridgecrest command center">
-            <span><Activity className="size-5" aria-hidden="true" /></span>
-            <span><strong>Ridgecrest</strong><small>Emergency Services</small></span>
+          <Link href="/" className="brand-mark" onClick={() => setMobileMenuOpen(false)} aria-label="Aegis command center">
+            <span><ShieldCheck className="size-5" aria-hidden="true" /></span>
+            <span><strong>AEGIS</strong><small>Command Platform</small></span>
           </Link>
           <button className="sidebar-close lg:hidden" type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation"><X className="size-5" /></button>
         </div>
@@ -112,10 +111,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        <div className="sidebar-agency"><span>CONCEPT ENVIRONMENT</span><strong>Fairfax County<br />Fire and Rescue</strong><small>Public geography · synthetic operations</small></div>
         <div className="sidebar-footer">
           <div className="system-status">
             <span className={cn('system-pulse', snapshot.isError && 'system-pulse-error')} />
-            <div><strong>{snapshot.isError ? 'API unavailable' : 'Systems operational'}</strong><small>{snapshot.isError ? 'Connection requires attention' : 'Live operations feed connected'}</small></div>
+            <div><strong>{snapshot.isError ? 'API unavailable' : streamState === 'live' ? 'Operations connected' : 'Connecting to operations'}</strong><small>{snapshot.isError ? 'Connection requires attention' : streamState === 'live' ? 'Synthetic operational feed' : streamState}</small></div>
           </div>
           <button className="sidebar-reset" type="button" onClick={() => resetDemo.mutate()} disabled={resetDemo.isPending}>
             <RefreshCw className={cn('size-4', resetDemo.isPending && 'animate-spin')} aria-hidden="true" />
@@ -129,7 +129,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="app-topbar">
         <div className="topbar-title">
           <IconButton label="Open navigation" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}><Menu className="size-5" /></IconButton>
-          <div><span>Ridgecrest ESD</span><strong>{currentPage.name}</strong></div>
+          <div><span>FAIRFAX COUNTY / AEGIS</span><strong>{currentPage.name}</strong></div>
         </div>
         <div className="topbar-actions">
           <label className="station-scope">
@@ -195,7 +195,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className="command-label">System</span>
               <button type="button" onClick={() => resetDemo.mutate()} disabled={resetDemo.isPending}><span><RefreshCw className={cn('size-[18px]', resetDemo.isPending && 'animate-spin')} /></span><strong>Restore demo data</strong><small>Reset</small></button>
             </div>
-            <div className="command-footer"><span><Command className="size-3.5" />Ridgecrest command menu</span><span>↑↓ navigate · Enter select</span></div>
+            <div className="command-footer"><span><Command className="size-3.5" />Aegis command menu</span><span>Tab navigate · Enter select</span></div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
