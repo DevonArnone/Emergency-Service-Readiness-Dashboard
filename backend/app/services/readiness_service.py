@@ -103,22 +103,15 @@ class ReadinessService:
             return None
         
         # Get active assignments for this unit
-        # Include assignments that are currently active OR scheduled for today
+        # Future assignments must not inflate current operational readiness.
         now = datetime.now(timezone.utc)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         
         active_assignments = [
             a for a in unit_assignments_store.values()
             if a.unit_id == unit_id
             and a.assignment_status == AssignmentStatus.ON_SHIFT
-            and (
-                # Currently active
-                (a.shift_start <= now <= a.shift_end)
-                or
-                # Scheduled for today (future shifts today)
-                (a.shift_start >= today_start and a.shift_start <= today_end)
-            )
+            and a.shift_start <= now < a.shift_end
+            and not a.clocked_out_at
         ]
         
         # Get personnel for these assignments
@@ -154,16 +147,12 @@ class ReadinessService:
     def check_all_units() -> List[Dict]:
         """Check readiness in one relational snapshot instead of querying per unit."""
         now = datetime.now(timezone.utc)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
         assignments_by_unit: Dict[str, List[UnitAssignment]] = {}
         for assignment in unit_assignments_store.values():
             if (
                 assignment.assignment_status == AssignmentStatus.ON_SHIFT
-                and (
-                    assignment.shift_start <= now <= assignment.shift_end
-                    or today_start <= assignment.shift_start <= today_end
-                )
+                and assignment.shift_start <= now < assignment.shift_end
+                and not assignment.clocked_out_at
             ):
                 assignments_by_unit.setdefault(assignment.unit_id, []).append(assignment)
         personnel_by_id = {

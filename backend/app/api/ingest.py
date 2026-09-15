@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/v1/ingest", tags=["ingestion"])
 
 
 @router.post("/events", status_code=status.HTTP_202_ACCEPTED)
-async def ingest_event(
+def ingest_event(
     body: IngestEventRequest,
     principal: Principal = Depends(require_roles("integration_service", "admin")),
 ) -> dict:

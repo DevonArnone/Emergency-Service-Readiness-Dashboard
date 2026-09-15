@@ -9,6 +9,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 from starlette.websockets import WebSocketDisconnect
 from sqlalchemy import create_engine
+from sqlalchemy import select, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -17,7 +18,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.config import settings
 from app.db.base import Base
-from app.db.models import Organization
+from app.db.models import Organization, OutboxEvent
 from app.models import Station, Unit, Personnel
 from app.stores import stations_store, units_store, personnel_store
 from app.security.identity import OidcVerifier, Principal, principal_from_claims
@@ -76,6 +77,12 @@ class IdentityTests(unittest.TestCase):
 
 
 class SecurityMiddlewareTests(unittest.TestCase):
+    def test_api_exposes_more_than_thirty_operations(self) -> None:
+        paths = app.openapi()['paths']
+        operations = [(path, method) for path, methods in paths.items() for method in methods
+                      if path.startswith('/api/') and method in {'get', 'post', 'put', 'patch', 'delete'}]
+        self.assertGreaterEqual(len(operations), 30)
+
     def test_protected_reads_require_authentication(self) -> None:
         with patch.object(settings, "auth_required", True):
             response = TestClient(app).get("/api/stations")
@@ -152,6 +159,23 @@ class TenantStoreTests(unittest.TestCase):
                 personnel_store["person-b"] = Personnel(personnel_id="person-b", name="Synthetic", role="Officer", station_id="station-org-a")
             self.assertEqual(result.exception.status_code, 422)
             self.assertIsNone(personnel_store.get("person-b"))
+
+    def test_operational_change_and_outbox_commit_together(self) -> None:
+        from app.db.session import session_scope
+        with organization_scope('org-a'):
+            personnel_store['new-person'] = Personnel(personnel_id='new-person', name='Private synthetic name', role='Officer')
+            with session_scope('org-a') as session:
+                event = session.scalar(select(OutboxEvent).where(OutboxEvent.aggregate_id == 'new-person'))
+                self.assertEqual(event.organization_id, 'org-a')
+                self.assertNotIn('Private synthetic name', str(event.payload))
+            with self.assertRaises(HTTPException):
+                personnel_store.bulk_set([
+                    ('rolled-back', Personnel(personnel_id='rolled-back', name='Rollback', role='Officer')),
+                    ('invalid-reference', Personnel(personnel_id='invalid-reference', name='Invalid', role='Officer', station_id='station-org-b')),
+                ])
+            self.assertIsNone(personnel_store.get('rolled-back'))
+            with session_scope('org-a') as session:
+                self.assertEqual(session.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.aggregate_id == 'rolled-back')), 0)
 
     def test_same_certification_code_is_independent_between_tenants(self) -> None:
         for org in ["org-a", "org-b"]:

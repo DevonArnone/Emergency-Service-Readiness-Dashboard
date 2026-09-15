@@ -111,6 +111,7 @@ class RelationalStore(MutableMapping[str, ModelT], Generic[ModelT]):
                 if getattr(value, id_field, None) != key:
                     value = value.model_copy(update={id_field: key})
                 _save(self.kind, session, organization_id, value)
+                _enqueue_change(session, organization_id, self.kind, key, value)
 
     def __delitem__(self, key: str) -> None:
         organization_id = _organization_id()
@@ -124,6 +125,7 @@ class RelationalStore(MutableMapping[str, ModelT], Generic[ModelT]):
             )
             if not result.rowcount:
                 raise KeyError(key)
+            _enqueue_change(session, organization_id, self.kind, key, None)
 
     def __iter__(self) -> Iterator[str]:
         return iter(dict(self.items()))
@@ -365,6 +367,24 @@ def _audit_from_row(row: AuditEventRow) -> AuditEvent:
         event_hash=row.event_hash,
         created_at=_aware(row.created_at),
     )
+
+
+def _enqueue_change(session, organization_id: str, kind: str, key: str, value: BaseModel | None) -> None:
+    from app.models import EventEnvelope, EventPriority
+    from app.services.outbox_service import enqueue_event
+    # Send identifiers and operational state, not names, free text, or credential details.
+    fields = {"station_id", "unit_id", "personnel_id", "shift_id", "priority", "state",
+              "is_active", "operational_status", "assignment_status", "availability_status", "minimum_staff"}
+    payload = value.model_dump(mode="json", include=fields) if value else {"deleted": True}
+    urgent = kind == "alerts" or (kind == "incidents" and payload.get("priority") in {"HIGH", "CRITICAL"})
+    aggregate_type = {"incidents": "incident", "alerts": "alert", "units": "unit", "shifts": "shift"}.get(kind, kind)
+    enqueue_event(session, EventEnvelope(
+        event_id=str(uuid.uuid4()), organization_id=organization_id, source="aegis-api",
+        event_type=f"{aggregate_type}.{'updated' if value else 'deleted'}",
+        priority=EventPriority.HIGH if urgent else EventPriority.NORMAL,
+        topic_class="alert" if urgent else "audit" if kind == "audit_events" else "bulk",
+        occurred_at=datetime.now(timezone.utc), aggregate_type=aggregate_type, aggregate_id=key, payload=payload,
+    ))
 
 
 def _save(kind: str, session, organization_id: str, value: BaseModel) -> None:

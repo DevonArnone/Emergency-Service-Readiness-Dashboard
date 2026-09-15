@@ -45,7 +45,7 @@ services:
       - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy: true'"]
+      test: ["CMD-SHELL", "rpk cluster health | grep -Eq 'Healthy:[[:space:]]+true'"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -98,7 +98,7 @@ services:
       OIDC_JWKS_URL: http://keycloak:8080/realms/aegis/protocol/openid-connect/certs
       OIDC_AUDIENCE: aegis-api
       CORS_ORIGINS: http://localhost:3000
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${API_WORKERS:-4}"]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -119,7 +119,7 @@ services:
   outbox-worker:
     build:
       context: ./backend
-    command: ["python", "-m", "app.workers.outbox"]
+    command: ["python", "-m", "app.workers.outbox", "--stream", "bulk"]
     environment:
       DATABASE_URL: postgresql+psycopg://aegis_runtime:aegis-runtime-local-only@postgres:5432/aegis
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
@@ -129,6 +129,18 @@ services:
       api:
         condition: service_healthy
       redpanda:
+        condition: service_healthy
+
+  alert-outbox-worker:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.workers.outbox", "--stream", "alerts"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://aegis_runtime:aegis-runtime-local-only@postgres:5432/aegis
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      PIPELINE_PROFILE: ${PIPELINE_PROFILE:-optimized}
+    depends_on:
+      api:
         condition: service_healthy
 
   alert-bridge:

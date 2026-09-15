@@ -92,17 +92,34 @@ async def operations_snapshot(station_id: str | None = Query(None)):
         task for task in renewal_tasks_store.values()
         if task.status.value not in {"COMPLETED", "CANCELLED"}
     ]
+    summary = await get_dashboard_summary()
+    recommendations = RecommendationService.generate_recommendations()
+    if station_id:
+        unit_ids = {item['unit_id'] for item in readiness}
+        people = dict(personnel_store.items())
+        renewals = [task for task in renewals if task.personnel_id in people and people[task.personnel_id].station_id == station_id]
+        recommendations = [item for item in recommendations if item.unit_id in unit_ids]
+        summary = summary.model_copy(update={
+            'total_units': len(readiness),
+            'ready_units': sum(item['readiness_score'] >= 85 for item in readiness),
+            'degraded_units': sum(60 <= item['readiness_score'] < 85 for item in readiness),
+            'critical_units': sum(item['readiness_score'] < 60 for item in readiness),
+            'overall_readiness_pct': round(sum(item['readiness_score'] for item in readiness) / len(readiness), 1) if readiness else 0,
+            'open_alerts': sum(alert.state == AlertState.OPEN for alert in alerts),
+            'active_incidents': len(incidents),
+            'station_summaries': [item for item in summary.station_summaries if item['station_id'] == station_id],
+        })
     activity = sorted(
         audit_events_store.values(),
         key=lambda event: event.created_at or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,
     )[:12]
     return {
-        "summary": await get_dashboard_summary(),
+        "summary": summary,
         "units": readiness,
         "alerts": alerts,
         "incidents": incidents,
-        "recommendations": RecommendationService.generate_recommendations()[:8],
+        "recommendations": recommendations[:8],
         "renewals": renewals,
         "activity": activity,
         "timestamp": datetime.now(timezone.utc).isoformat(),

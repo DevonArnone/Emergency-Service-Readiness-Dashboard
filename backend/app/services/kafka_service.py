@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 import uuid
 from datetime import timezone
 from typing import Any, Protocol
 
 try:
     from confluent_kafka import Producer
-    from confluent_kafka.admin import AdminClient, NewTopic
+    from confluent_kafka.admin import AdminClient, NewTopic, NewPartitions
 
     KAFKA_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised by the local fallback
@@ -21,6 +22,7 @@ except ImportError:  # pragma: no cover - exercised by the local fallback
 
 from app.config import settings
 from app.models import EventEnvelope, EventPriority, ShiftEvent
+from app.security.tenant import current_organization_id
 
 
 logger = logging.getLogger(__name__)
@@ -128,10 +130,15 @@ class KafkaService:
                 for topic_name, future in futures.items():
                     future.result(timeout=15)
                     logger.info("Created Kafka topic %s", topic_name)
+            expansions = [NewPartitions(name, count) for name, count in definitions.items()
+                          if name in metadata.topics and len(metadata.topics[name].partitions) < count]
+            if expansions:
+                for future in admin.create_partitions(expansions).values():
+                    future.result(timeout=15)
         except Exception as exc:
             logger.warning("Kafka topic bootstrap deferred: %s", exc)
 
-    def publish(self, envelope: EventEnvelope) -> bool:
+    def publish(self, envelope: EventEnvelope, on_delivery=None) -> bool:
         topic = topic_for(envelope, profile=self.profile)
         key = f"{envelope.organization_id}:{envelope.aggregate_id}"
         payload = envelope.model_dump_json().encode("utf-8")
@@ -147,7 +154,7 @@ class KafkaService:
                     "priority": envelope.priority.value,
                     "schema_version": str(envelope.schema_version),
                 },
-                on_delivery=lambda error, message: self._delivery_callback(envelope.event_id, error, message),
+                on_delivery=lambda error, message: self._delivery_callback(envelope.event_id, error, message, on_delivery),
             )
             self.producer.poll(0)
             return True
@@ -163,9 +170,11 @@ class KafkaService:
                 self._pending.discard(envelope.event_id)
             return False
 
-    def _delivery_callback(self, event_id: str, error: Any, message: Any) -> None:
+    def _delivery_callback(self, event_id: str, error: Any, message: Any, callback=None) -> None:
         with self._lock:
             self._pending.discard(event_id)
+        if callback:
+            callback(error is None)
         if error:
             logger.error("Kafka delivery failed for %s: %s", event_id, error)
         else:
@@ -188,7 +197,7 @@ class KafkaService:
         )
         envelope = EventEnvelope(
             event_id=event.event_id or str(uuid.uuid4()),
-            organization_id=settings.default_organization_id,
+            organization_id=current_organization_id() or settings.default_organization_id,
             source="aegis-api",
             event_type=f"shift.{event.event_type.value.lower()}",
             priority=priority,
@@ -206,6 +215,19 @@ class KafkaService:
 
     def flush(self, timeout: float = 10) -> int:
         return self.producer.flush(timeout=timeout)
+
+    def publish_confirmed(self, envelopes: list[EventEnvelope], timeout: float = 5) -> set[str]:
+        """Queue a batch, then await broker acknowledgments without per-event flushes."""
+        delivered: dict[str, bool | None] = {event.event_id: None for event in envelopes}
+        for envelope in envelopes:
+            key = envelope.event_id
+            accepted = self.publish(envelope, on_delivery=lambda ok, key=key: delivered.__setitem__(key, ok))
+            if not accepted:
+                delivered[key] = False
+        deadline = time.monotonic() + timeout
+        while any(value is None for value in delivered.values()) and time.monotonic() < deadline:
+            self.producer.poll(0.01)
+        return {key for key, success in delivered.items() if success is True}
 
     @property
     def pending_count(self) -> int:

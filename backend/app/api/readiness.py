@@ -37,6 +37,8 @@ def _validate_assignment(assignment: UnitAssignment, ignore_id: str | None = Non
     unit = units_store.get(assignment.unit_id)
     if not unit or unit.is_archived:
         raise HTTPException(status_code=404, detail="Unit not found")
+    if unit.operational_status.value in {'OUT_OF_SERVICE', 'MAINTENANCE'}:
+        raise HTTPException(status_code=409, detail='Unit is not available for assignment')
     personnel = personnel_store.get(assignment.personnel_id)
     if not personnel or personnel.is_archived:
         raise HTTPException(status_code=404, detail="Personnel not found")
@@ -61,13 +63,13 @@ def _validate_assignment(assignment: UnitAssignment, ignore_id: str | None = Non
     now = datetime.now(timezone.utc)
     expired_required = [
         cert for cert in unit.required_certifications
-        if isinstance(personnel.cert_expirations.get(cert), datetime)
-        and personnel.cert_expirations[cert] < now
+        if not personnel.cert_expirations.get(cert)
+        or personnel.cert_expirations[cert].replace(tzinfo=personnel.cert_expirations[cert].tzinfo or timezone.utc) < max(now, assignment.shift_end)
     ]
     if expired_required:
         raise HTTPException(
             status_code=400,
-            detail=f"Personnel has expired required certifications: {', '.join(expired_required)}",
+            detail=f"Required credentials must remain valid through shift end: {', '.join(expired_required)}",
         )
     return unit, personnel
 

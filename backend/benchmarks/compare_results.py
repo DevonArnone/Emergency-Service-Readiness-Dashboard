@@ -16,8 +16,22 @@ def compare(baseline: dict, optimized: dict) -> dict:
         else 0
     )
     optimized_latency = optimized["end_to_end_latency_ms"]["p95"]
+    workload = baseline.get('workload')
+    valid_runs = all(
+        result.get('pipeline', {}).get('transport') == 'kafka'
+        and result.get('pipeline', {}).get('redis_fanout') is True
+        and result.get('accepted', 0) >= 100
+        and result.get('accepted') == result.get('workload', {}).get('events')
+        and result.get('delivered') == result.get('accepted')
+        and not result.get('sender_errors') and not result.get('receiver_errors')
+        and result.get('accepted_per_second', 0) >= result.get('workload', {}).get('rate_per_second', float('inf')) * 0.95
+        for result in (baseline, optimized)
+    )
     passes = (
-        baseline.get("evidence_level") == "local_integration"
+        valid_runs and bool(workload) and workload == optimized.get('workload')
+        and bool(baseline.get('resource_profile')) and baseline.get('resource_profile') == optimized.get('resource_profile')
+        and baseline.get('profile') == 'baseline' and optimized.get('profile') == 'optimized'
+        and baseline.get("evidence_level") == "local_integration"
         and optimized.get("evidence_level") == "local_integration"
         and baseline.get("lost") == 0
         and optimized.get("lost") == 0
@@ -27,6 +41,8 @@ def compare(baseline: dict, optimized: dict) -> dict:
     )
     return {
         "claim_eligible": passes,
+        "original_consumer_lag_claim_eligible": False,
+        "workload_and_delivery_valid": valid_runs,
         "optimized_alert_p95_ms": optimized_latency,
         "alert_delivery_backlog_reduction_pct": round(reduction, 2),
         "requested_targets": {
@@ -35,7 +51,9 @@ def compare(baseline: dict, optimized: dict) -> dict:
         },
         "scope_note": (
             "Backlog reduction measures accepted-but-not-yet-delivered priority events. "
-            "It must not be described as Kafka consumer offset lag without broker offset evidence."
+            "Baseline broker sampling includes all shared traffic; optimized sampling includes only alerts. "
+            "Those offset totals are not equivalent and cannot substantiate the original consumer-lag claim. "
+            "Paired runs must use identical resources and sustain at least 95% of the requested rate."
         ),
     }
 

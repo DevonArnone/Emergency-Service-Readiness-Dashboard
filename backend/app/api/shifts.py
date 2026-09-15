@@ -1,7 +1,7 @@
 """REST API endpoints for duty shifts and personnel rosters."""
 import logging
 import uuid
-from datetime import datetime, date, timezone
+from datetime import datetime, date, time, timedelta, timezone
 from typing import List
 from fastapi import APIRouter, HTTPException
 
@@ -11,11 +11,11 @@ from app.models import (
     UnitAssignment, AssignmentStatus, AvailabilityStatus,
 )
 from app.websocket.manager import websocket_manager
-from app.services.kafka_service import get_kafka_service
 from app.services.snowflake_service import get_snowflake_service
 from app.services.audit_service import record_audit
 from app.models import EventType
 from app.stores import personnel_store, shifts_store, unit_assignments_store, units_store
+from app.api.readiness import _validate_assignment
 
 logger = logging.getLogger(__name__)
 
@@ -27,25 +27,17 @@ async def _emit_shift_event(
     employee_id: str = None,
     payload: dict = None
 ):
-    """Helper to emit shift events to Kafka, Snowflake, and WebSocket."""
+    """Legacy local socket notification; relational writes own durable outbox events."""
     event = ShiftEvent(
         event_id=str(uuid.uuid4()),
         shift_id=shift_id,
         employee_id=employee_id,
         event_type=event_type,
-        event_time=datetime.utcnow(),
+        event_time=datetime.now(timezone.utc),
         payload=payload or {},
     )
     
-    # 1. Produce to Kafka (non-blocking)
-    kafka_service = get_kafka_service()
-    kafka_service.produce_shift_event(event)
-    
-    # 2. Insert to Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_shift_event(event)
-    
-    # 3. Broadcast via WebSocket (async)
+    # The durable pipeline is committed with each underlying relational write.
     try:
         await websocket_manager.broadcast_event(event)
     except Exception as e:
@@ -135,8 +127,16 @@ async def cancel_shift(shift_id: str):
     shifts_store[shift_id] = shift
     for assignment_id, assignment in list(unit_assignments_store.items()):
         if assignment.shift_id == shift_id:
+            was_active = assignment.assignment_status == AssignmentStatus.ON_SHIFT and assignment.shift_start <= datetime.now(timezone.utc) < assignment.shift_end
             assignment.assignment_status = AssignmentStatus.CANCELLED
+            if assignment.clocked_in_at and not assignment.clocked_out_at:
+                assignment.clocked_out_at = datetime.now(timezone.utc)
             unit_assignments_store[assignment_id] = assignment
+            person = personnel_store.get(assignment.personnel_id)
+            if was_active and person and person.current_unit_id == assignment.unit_id:
+                person.current_unit_id = None
+                person.availability_status = AvailabilityStatus.AVAILABLE
+                personnel_store[person.personnel_id] = person
     record_audit("CANCELLED", "shift", shift_id, f"Cancelled shift at {shift.location}")
     return shift
 
@@ -150,6 +150,8 @@ async def assign_employee_to_shift(shift_id: str, employee_id: str):
     if not person or person.is_archived:
         raise HTTPException(status_code=404, detail="Personnel not found")
     shift = shifts_store[shift_id]
+    if shift.status == 'CANCELLED':
+        raise HTTPException(status_code=409, detail='Cannot assign personnel to a cancelled shift')
     unit_id = shift.unit_id or person.current_unit_id
     if not unit_id:
         station_units = [
@@ -169,6 +171,7 @@ async def assign_employee_to_shift(shift_id: str, employee_id: str):
         shift_end=shift.end_time,
         assignment_status=AssignmentStatus.PENDING,
     )
+    _validate_assignment(assignment)
     unit_assignments_store[assignment_id] = assignment
     # Emit ASSIGNED event
     await _emit_shift_event(shift_id, EventType.ASSIGNED, employee_id)
@@ -196,6 +199,12 @@ async def clock_in(shift_id: str, request: ClockInRequest):
     ), None)
     if not assignment:
         raise HTTPException(status_code=404, detail="Roster assignment not found")
+    shift = shifts_store[shift_id]
+    if shift.status == 'CANCELLED' or assignment.assignment_status == AssignmentStatus.CANCELLED:
+        raise HTTPException(status_code=409, detail='Cannot clock in to a cancelled shift')
+    if not shift.start_time <= datetime.now(timezone.utc) < shift.end_time:
+        raise HTTPException(status_code=409, detail='Clock-in is available only during the shift window')
+    _validate_assignment(assignment, assignment.assignment_id)
     assignment.clocked_in_at = datetime.now(timezone.utc)
     assignment.clocked_out_at = None
     assignment.assignment_status = AssignmentStatus.ON_SHIFT
@@ -232,6 +241,8 @@ async def clock_out(shift_id: str, request: ClockOutRequest):
     ), None)
     if not assignment:
         raise HTTPException(status_code=404, detail="Roster assignment not found")
+    if not assignment.clocked_in_at or assignment.clocked_out_at:
+        raise HTTPException(status_code=409, detail='Personnel is not currently clocked in')
     assignment.clocked_out_at = datetime.now(timezone.utc)
     assignment.assignment_status = AssignmentStatus.EARLY_OFF
     unit_assignments_store[assignment.assignment_id] = assignment
@@ -248,25 +259,30 @@ async def clock_out(shift_id: str, request: ClockOutRequest):
 
 
 @router.get("/shifts/live", response_model=List[LiveShiftStatus])
-async def get_live_shifts():
-    """Get current live status of all shifts."""
-    today = datetime.now(timezone.utc).date()
+async def get_live_shifts(target_date: date | None = None):
+    """Attendance for shifts overlapping the selected UTC date, including overnight watches."""
+    today = target_date or datetime.now(timezone.utc).date()
+    day_start = datetime.combine(today, time.min, tzinfo=timezone.utc)
+    day_end = day_start + timedelta(days=1)
     live_statuses = []
+    assignments = list(unit_assignments_store.values())
+    people = dict(personnel_store.items())
+    units = dict(units_store.items())
     
     for shift_id, shift in shifts_store.items():
-        # Only show shifts for today
-        if shift.start_time.date() != today:
+        if shift.status == 'CANCELLED' or shift.start_time >= day_end or shift.end_time <= day_start:
             continue
         
         roster = [
-            assignment for assignment in unit_assignments_store.values()
-            if assignment.shift_id == shift_id
+            assignment for assignment in assignments
+            if assignment.shift_id == shift_id and assignment.assignment_status != AssignmentStatus.CANCELLED
         ]
         if not roster and shift.station_id:
             roster = [
-                assignment for assignment in unit_assignments_store.values()
-                if units_store.get(assignment.unit_id)
-                and units_store[assignment.unit_id].station_id == shift.station_id
+                assignment for assignment in assignments
+                if not assignment.shift_id and assignment.assignment_status != AssignmentStatus.CANCELLED
+                and units.get(assignment.unit_id)
+                and units[assignment.unit_id].station_id == shift.station_id
                 and assignment.shift_start < shift.end_time
                 and assignment.shift_end > shift.start_time
             ]
@@ -306,13 +322,14 @@ async def get_live_shifts():
             assigned_personnel=[
                 {
                     "personnel_id": assignment.personnel_id,
-                    "name": personnel_store[assignment.personnel_id].name,
+                    "name": people[assignment.personnel_id].name,
                     "unit_id": assignment.unit_id,
                     "status": assignment.assignment_status.value,
                     "clocked_in_at": assignment.clocked_in_at.isoformat() if assignment.clocked_in_at else None,
+                    "clocked_out_at": assignment.clocked_out_at.isoformat() if assignment.clocked_out_at else None,
                 }
                 for assignment in roster
-                if assignment.personnel_id in personnel_store
+                if assignment.personnel_id in people
             ],
         )
         live_statuses.append(live_status)

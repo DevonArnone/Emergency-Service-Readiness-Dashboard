@@ -2,172 +2,51 @@
 
 ## System Overview
 
-The Workforce & Shift Management Dashboard is built on a modern, event-driven architecture that combines real-time updates, event streaming, and data warehousing for comprehensive workforce analytics.
+Aegis Command is an unofficial Fairfax County Fire and Rescue coordination concept using public station geography and synthetic operational records. PostgreSQL owns operational state. Snowflake is a separate analytical plane, not the transactional database.
 
-## High-Level Architecture
+## Components
 
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        UI[Next.js Dashboard<br/>React + TypeScript]
-    end
-    
-    subgraph "Backend Layer"
-        API[FastAPI Server<br/>REST + WebSocket]
-        WS[WebSocket Manager<br/>Real-time Broadcast]
-    end
-    
-    subgraph "Event Streaming"
-        KAFKA[Kafka Topic<br/>shift_events<br/>Confluent Cloud]
-    end
-    
-    subgraph "Data Warehouse"
-        SF_RAW[Snowflake RAW Schema<br/>Tables: SHIFT_EVENTS,<br/>SHIFTS, EMPLOYEES]
-        SF_STREAM[Snowflake Stream<br/>On SHIFT_EVENTS]
-        SF_TASK[Snowflake Task<br/>ETL Pipeline]
-        SF_ANALYTICS[Snowflake ANALYTICS Schema<br/>Views: SHIFT_COVERAGE_HOURLY]
-    end
-    
-    subgraph "Storage"
-        SQLITE[(SQLite<br/>Local Dev)]
-    end
-    
-    UI -->|REST API| API
-    UI -->|WebSocket| WS
-    API --> WS
-    API -->|Produce Events| KAFKA
-    API -->|Query Analytics| SF_ANALYTICS
-    API -->|Insert Events| SF_RAW
-    API -->|Local Dev| SQLITE
-    KAFKA -.->|Ingest| SF_RAW
-    SF_RAW -->|Stream| SF_STREAM
-    SF_STREAM -->|Process| SF_TASK
-    SF_TASK -->|Update| SF_ANALYTICS
-    WS -->|Broadcast| UI
-```
+| Component | Responsibility |
+| --- | --- |
+| Next.js dashboard | Map-led command surface, six operational workspaces, scoped queries, typed response validation |
+| OIDC provider | Authorization-code/PKCE login, roles and explicit organization claims |
+| FastAPI | 64 API method/path operations, authorization, validation, tenant context and live snapshots; four Compose processes by default (`API_WORKERS` configurable) |
+| PostgreSQL | Normalized operational records, audit events and transactional outbox |
+| Alert outbox worker | Independently publishes priority events and waits for broker acknowledgment |
+| Bulk outbox worker | Publishes non-priority events; the baseline profile uses a single shared outbox path |
+| Kafka / local Redpanda | Six priority partitions, twelve bulk partitions, audit and dead-letter topics |
+| Realtime bridges | Publish validated Kafka events to tenant Redis channels, commit only after delivery or quarantine |
+| Redis | Cross-process single-use upgrade tickets and cross-node live fan-out |
+| Snowflake deployment | Tenant-scoped RAW ingestion, independent streams, hourly aggregates and secured views |
 
-## Data Flow
+## Operational writes
 
-### 1. Real-Time Event Flow
+Relational store changes and their outbox events commit in one database transaction. Rollback removes both. The event payload contains identifiers and operational state rather than names and free-text notes. Existing REST workflows retain local legacy socket notifications, but no longer synchronously dual-write clock events to the warehouse.
 
-```
-User Action (Clock In/Out)
-    ↓
-FastAPI Endpoint
-    ↓
-┌─────────────────────────────────┐
-│ 1. Persist to SQLite (dev)      │
-│ 2. Produce to Kafka topic        │
-│ 3. Broadcast via WebSocket      │
-└─────────────────────────────────┘
-    ↓
-Frontend receives update instantly
-```
+Outbox publishing is at-least-once. A successful producer enqueue is not a broker acknowledgment. Unconfirmed deliveries remain pending with retry backoff. A crash after delivery but before database commit can duplicate an event; consumers and warehouse aggregations must deduplicate using organization plus event ID. Integration ingestion accepts an idempotency key within the tenant.
 
-### 2. Analytics Pipeline
+## Realtime delivery and recovery
 
-```
-Kafka Events (shift_events)
-    ↓
-Snowflake Ingestion (Snowpipe or direct insert)
-    ↓
-RAW.SHIFT_EVENTS table
-    ↓
-Snowflake Stream (captures new rows)
-    ↓
-Snowflake Task (runs every 5 minutes)
-    ↓
-ANALYTICS.SHIFT_COVERAGE_HOURLY view
-    ↓
-FastAPI queries analytics
-    ↓
-Dashboard displays charts
-```
+Priority and bulk traffic use independent outbox workers, topics and consumer groups. The shared baseline intentionally routes both through one topic and publisher path. The benchmark records these topology differences; it is not an equal-consumer-count comparison.
 
-## Component Details
+Bridges validate event contracts. Invalid events go to a dead-letter topic before their source offset advances. Transient delivery failures retry the same offset. Redis Pub/Sub is not a durable client replay log: disconnected dashboards recover from the authenticated relational snapshot, not guaranteed delivery of every historical push.
 
-### Frontend (Next.js)
+WebSocket tickets expire after 30 seconds by default and are consumed once. Every channel retains organization scope. The operations channel pushes pipeline events and sends a recovery snapshot approximately every 15 seconds. Frontend queries invalidate on both event types.
 
-- **Command shell**: Persistent desktop navigation, mobile bottom navigation, station scope, notifications, and command menu.
-- **Workspaces**: `/`, `/readiness`, `/personnel`, `/shifts`, `/certifications-management`, and `/analytics`.
-- **Boundary parsing**: Zod schemas validate every response used by the dashboard.
-- **Server state**: TanStack Query owns caching, invalidation, loading, and mutation recovery.
-- **Real-time updates**: The unified operations WebSocket invalidates the relevant scoped queries.
+## Persistence and tenancy
 
-### Backend (FastAPI)
+The schema includes organizations, memberships, battalions, stations, units, personnel, certification types and associations, assignments, shifts, incidents, alerts, renewals, audit events and outbox records. Indexed relational point lookups replace whole-tenant reads for individual records.
 
-- **REST API**: Standard CRUD operations for employees, shifts, assignments
-- **WebSocket**: Broadcasts shift events to all connected clients
-- **Kafka Producer**: Sends events to `shift_events` topic
-- **Snowflake Service**: 
-  - Inserts events into RAW schema
-  - Queries analytics views for dashboard
+Compose runs migration/seed work under a dedicated migration identity and serves API traffic under a non-superuser, non-bypass-RLS role. Tenant policies are enabled and forced. Application adapters additionally validate record ownership and foreign references. Direct PostgreSQL tests verify no rows without tenant context, the expected demo rows in scope, and no rows under another tenant.
 
-### Data Pipeline (Snowflake)
+SQLite uses the normalized schema for lightweight development only. The legacy JSON-store module remains solely for compatibility/import tooling and its regression test.
 
-1. **RAW Schema**: Landing zone for all events
-   - `SHIFT_EVENTS` - All shift-related events
-   - `SHIFTS` - Shift definitions
-   - `EMPLOYEES` - Employee master data
+## Analytics and evidence limits
 
-2. **Streams**: Capture changes to RAW tables
+Snowflake SQL and Python queries include organization scope. Deployment requires an external account, appropriate edition/features, roles, connector configuration and live verification. Static SQL checks do not prove that an account has been provisioned or that warehouse throughput scales.
 
-3. **Tasks**: Automated ETL that:
-   - Reads from streams
-   - Aggregates data by hour/location
-   - Calculates coverage metrics
-   - Flags understaffing and overtime risks
+Local historical charts use synthetic trajectories and must not be presented as measured historical operations. The benchmark saves HTTP-to-WebSocket latency and broker offset observations; neither mock data nor a small smoke run establishes the requested resume claims. See the [reproducible measurements and limitations](../backend/benchmarks/README.md).
 
-4. **ANALYTICS Schema**: Pre-aggregated views for fast queries
-   - `SHIFT_COVERAGE_HOURLY` - Hourly coverage by location
+## Security and operations
 
-## Technology Choices
-
-### Why FastAPI?
-- High performance async/await support
-- Built-in WebSocket support
-- Automatic API documentation
-- Type hints with Pydantic
-
-### Why Kafka?
-- Decouples event production from consumption
-- Scalable event streaming
-- Enables future microservices
-- Reliable message delivery
-
-### Why Snowflake?
-- Serverless data warehouse
-- Automatic scaling
-- Time-travel and zero-copy cloning
-- Streams & Tasks for automated ETL
-- Excellent for analytics workloads
-
-### Why Next.js?
-- Server-side rendering for SEO
-- API routes (if needed)
-- Excellent developer experience
-- Optimized production builds
-
-## Scalability Considerations
-
-- **Horizontal Scaling**: FastAPI can run multiple instances behind a load balancer
-- **WebSocket Scaling**: Use Redis pub/sub for WebSocket broadcasting across instances
-- **Kafka**: Handles high-throughput event streaming
-- **Snowflake**: Auto-scales compute for analytics queries
-
-## Security
-
-- CORS configuration for frontend origins
-- Environment-based secrets management
-- Snowflake role-based access control
-
-Authentication and role-based authorization remain future production work; the current application is a local demonstration environment.
-
-## Future Enhancements
-
-- Redis for WebSocket broadcasting across instances
-- Authentication & authorization (JWT)
-- Role-based access (Manager vs Employee)
-- Mobile app (React Native)
-- Advanced analytics (ML predictions for staffing needs)
-- Integration with payroll systems
+See [security model and deployment gates](security.md), [quality checks](quality.md), [target research](target-research.md), and the [active execution plan](exec-plans/active/2026-08-31-aegis-command-overhaul.md). TLS, production secret management, gateway limits, deployment-specific ACLs, immutable audit retention, recovery drills and an independent review remain prerequisites for real operational use.

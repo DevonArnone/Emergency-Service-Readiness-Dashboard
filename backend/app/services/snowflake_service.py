@@ -7,7 +7,10 @@ import logging
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Optional
 
-import snowflake.connector
+try:
+    import snowflake.connector as snowflake_connector
+except ImportError:  # The core local profile intentionally omits the warehouse client.
+    snowflake_connector = None
 
 from app.config import settings
 from app.models import AssignmentStatus, CoverageSummary, Personnel, ShiftEvent, Unit, UnitAssignment
@@ -131,6 +134,8 @@ class SnowflakeService:
     def _connect(self) -> None:
         if not _configured():
             return
+        if snowflake_connector is None:
+            raise RuntimeError('Install full backend requirements to enable Snowflake')
         credential: dict[str, str] = {}
         if settings.snowflake_private_key_path:
             credential = {
@@ -142,7 +147,7 @@ class SnowflakeService:
         else:
             credential = {"password": settings.snowflake_password}
         try:
-            self.conn = snowflake.connector.connect(
+            self.conn = snowflake_connector.connect(
                 account=settings.snowflake_account,
                 user=settings.snowflake_user,
                 role=settings.snowflake_role,

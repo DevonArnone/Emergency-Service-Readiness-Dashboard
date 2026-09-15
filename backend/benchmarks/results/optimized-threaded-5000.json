@@ -1,0 +1,64 @@
+{
+  "profile": "optimized",
+  "measured_at": "2026-09-14T21:31:42.765086+00:00",
+  "evidence_level": "local_integration",
+  "workload": {
+    "events": 5000,
+    "rate_per_second": 500.0,
+    "alert_ratio": 0.1,
+    "concurrent_streams": 40
+  },
+  "pipeline": {
+    "profile": "optimized",
+    "transport": "kafka",
+    "topics": {
+      "alerts": {
+        "name": "ops.alerts.v1",
+        "partitions": 6
+      },
+      "events": {
+        "name": "ops.events.v1",
+        "partitions": 12
+      },
+      "audit": {
+        "name": "ops.audit.v1",
+        "partitions": 6
+      },
+      "shared_baseline": {
+        "name": "ops.shared.v1",
+        "partitions": 3
+      }
+    },
+    "priority_isolated": true,
+    "redis_fanout": true
+  },
+  "accepted": 5000,
+  "delivered": 5000,
+  "lost": 0,
+  "sender_errors": [],
+  "receiver_errors": [],
+  "broker_lag": {
+    "p95": 1.0,
+    "peak": 2,
+    "samples": 115,
+    "errors": [],
+    "topic": "ops.alerts.v1",
+    "definition": "Sum of high-water mark minus committed offset. Baseline shared traffic versus optimized alert-only traffic; not equivalent total workloads."
+  },
+  "throughput_per_second": 134.8,
+  "accepted_per_second": 135.78,
+  "sending_seconds": 36.824,
+  "end_to_end_latency_ms": {
+    "p50": 1266.717,
+    "p95": 1492.403,
+    "p99": 1567.185,
+    "max": 1594.622
+  },
+  "alert_delivery_backlog": {
+    "p95": 0.0,
+    "peak": 1,
+    "note": "End-to-end undelivered alert count; not Kafka offset lag."
+  },
+  "claim_eligible": false,
+  "claim_gate_note": "Run compare_results.py with baseline and optimized results."
+}

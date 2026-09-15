@@ -1,0 +1,12 @@
+{
+  "claim_eligible": false,
+  "original_consumer_lag_claim_eligible": false,
+  "workload_and_delivery_valid": false,
+  "optimized_alert_p95_ms": 1094.147,
+  "alert_delivery_backlog_reduction_pct": 0,
+  "requested_targets": {
+    "optimized_alert_p95_ms": 200,
+    "backlog_reduction_pct": 60
+  },
+  "scope_note": "Backlog reduction measures accepted-but-not-yet-delivered priority events. Baseline broker sampling includes all shared traffic; optimized sampling includes only alerts. Those offset totals are not equivalent and cannot substantiate the original consumer-lag claim. Paired runs must use identical resources and sustain at least 95% of the requested rate."
+}

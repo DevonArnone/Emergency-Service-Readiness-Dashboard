@@ -141,7 +141,7 @@ class Personnel(BaseModel):
     rank: Optional[str] = None
     role: str
     certifications: List[str] = Field(default_factory=list)
-    cert_expirations: Dict[str, Union[datetime, str]] = Field(default_factory=dict)
+    cert_expirations: Dict[str, datetime] = Field(default_factory=dict)
     availability_status: AvailabilityStatus = AvailabilityStatus.AVAILABLE
     last_check_in: Optional[datetime] = None
     station_id: Optional[str] = None
@@ -415,28 +415,28 @@ class EventPriority(str, Enum):
 class EventEnvelope(BaseModel):
     """Versioned contract shared by ingestion, Kafka, Redis, and WebSockets."""
 
-    event_id: str
-    organization_id: str
-    source: str
-    event_type: str
+    event_id: str = Field(min_length=1, max_length=128)
+    organization_id: str = Field(min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+    source: str = Field(min_length=1, max_length=120)
+    event_type: str = Field(min_length=1, max_length=160)
     priority: EventPriority = EventPriority.NORMAL
     topic_class: Literal["alert", "bulk", "audit"] = "bulk"
     occurred_at: datetime
-    schema_version: int = Field(default=1, ge=1)
-    aggregate_type: str
-    aggregate_id: str
+    schema_version: Literal[1] = 1
+    aggregate_type: str = Field(min_length=1, max_length=80)
+    aggregate_id: str = Field(min_length=1, max_length=128)
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
 class IngestEventRequest(BaseModel):
-    event_id: Optional[str] = None
-    organization_id: Optional[str] = None
-    source: str
-    event_type: str
+    event_id: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    organization_id: Optional[str] = Field(default=None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+    source: str = Field(min_length=1, max_length=120)
+    event_type: str = Field(min_length=1, max_length=160)
     priority: EventPriority = EventPriority.NORMAL
     topic_class: Literal["alert", "bulk", "audit"] = "bulk"
     occurred_at: Optional[datetime] = None
-    schema_version: int = Field(default=1, ge=1)
-    aggregate_type: str
-    aggregate_id: str
+    schema_version: Literal[1] = 1
+    aggregate_type: str = Field(min_length=1, max_length=80)
+    aggregate_id: str = Field(min_length=1, max_length=128)
     payload: Dict[str, Any] = Field(default_factory=dict)
