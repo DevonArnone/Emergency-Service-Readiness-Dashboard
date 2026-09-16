@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime, date, time, timedelta, timezone
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models import (
     Employee, Personnel, Shift, ShiftAssignment, ShiftEvent,
@@ -259,10 +259,13 @@ async def clock_out(shift_id: str, request: ClockOutRequest):
 
 
 @router.get("/shifts/live", response_model=List[LiveShiftStatus])
-async def get_live_shifts(target_date: date | None = None):
-    """Attendance for shifts overlapping the selected UTC date, including overnight watches."""
+async def get_live_shifts(
+    target_date: date | None = None,
+    timezone_offset_minutes: int = Query(0, ge=-840, le=840),
+):
+    """Attendance for shifts overlapping the selected client-local date."""
     today = target_date or datetime.now(timezone.utc).date()
-    day_start = datetime.combine(today, time.min, tzinfo=timezone.utc)
+    day_start = datetime.combine(today, time.min, tzinfo=timezone.utc) + timedelta(minutes=timezone_offset_minutes)
     day_end = day_start + timedelta(days=1)
     live_statuses = []
     assignments = list(unit_assignments_store.values())

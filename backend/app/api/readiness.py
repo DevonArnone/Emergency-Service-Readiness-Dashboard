@@ -79,43 +79,13 @@ def _validate_assignment(assignment: UnitAssignment, ignore_id: str | None = Non
 # ---------------------------------------------------------------------------
 @router.post("/personnel", response_model=Personnel)
 async def create_personnel(profile: Personnel) -> Personnel:
-    """Create a new personnel profile."""
-    try:
-        personnel_id = str(uuid.uuid4())
-        profile.personnel_id = personnel_id
-        profile.last_check_in = profile.last_check_in or datetime.now(timezone.utc)
-        
-        # Ensure cert_expirations are datetime objects (validator should handle this, but double-check)
-        if profile.cert_expirations:
-            normalized_expirations = {}
-            for cert_name, exp_date in profile.cert_expirations.items():
-                if isinstance(exp_date, str):
-                    try:
-                        if exp_date.endswith('Z'):
-                            exp_date = exp_date.replace('Z', '+00:00')
-                        if 'T' in exp_date:
-                            normalized_expirations[cert_name] = datetime.fromisoformat(exp_date)
-                        else:
-                            normalized_expirations[cert_name] = datetime.fromisoformat(exp_date + 'T23:59:59+00:00')
-                    except (ValueError, AttributeError):
-                        # Keep as string if parsing fails
-                        normalized_expirations[cert_name] = exp_date
-                else:
-                    normalized_expirations[cert_name] = exp_date
-            profile.cert_expirations = normalized_expirations
-        
-        personnel_store[personnel_id] = profile
-        
-        # Insert into Snowflake (non-blocking)
-        snowflake_service = get_snowflake_service()
-        snowflake_service.insert_personnel(profile)
-        record_audit("CREATED", "personnel", personnel_id, f"Created {profile.name}")
-        return profile
-    except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error creating personnel: {e}", exc_info=True)
-        raise HTTPException(status_code=400, detail=f"Failed to create personnel: {str(e)}")
+    """Persist the record and its durable change event without warehouse coupling."""
+    personnel_id = str(uuid.uuid4())
+    profile.personnel_id = personnel_id
+    profile.last_check_in = profile.last_check_in or datetime.now(timezone.utc)
+    personnel_store[personnel_id] = profile
+    record_audit("CREATED", "personnel", personnel_id, f"Created {profile.name}")
+    return profile
 
 
 @router.get("/personnel", response_model=List[Personnel])
@@ -152,9 +122,7 @@ async def update_personnel(personnel_id: str, profile: Personnel) -> Personnel:
     profile.last_check_in = profile.last_check_in or personnel_store[personnel_id].last_check_in
     personnel_store[personnel_id] = profile
     
-    # Update in Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_personnel(profile)
+    # The relational adapter commits the corresponding durable outbox event.
     record_audit("UPDATED", "personnel", personnel_id, f"Updated {profile.name}")
     return profile
 
@@ -189,9 +157,7 @@ async def create_unit(unit: Unit) -> Unit:
     unit.unit_id = unit_id
     units_store[unit_id] = unit
     
-    # Insert into Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_unit(unit)
+    # The relational adapter commits the corresponding durable outbox event.
     record_audit("CREATED", "unit", unit_id, f"Created {unit.unit_name}")
     return unit
 
@@ -223,9 +189,7 @@ async def update_unit(unit_id: str, unit: Unit) -> Unit:
     unit.unit_id = unit_id
     units_store[unit_id] = unit
     
-    # Update in Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_unit(unit)
+    # The relational adapter commits the corresponding durable outbox event.
     record_audit("UPDATED", "unit", unit_id, f"Updated {unit.unit_name}")
     return unit
 
@@ -266,10 +230,7 @@ async def assign_personnel_to_unit(assignment: UnitAssignment) -> UnitAssignment
     personnel.availability_status = AvailabilityStatus.DEPLOYED
     personnel_store[personnel.personnel_id] = personnel
 
-    # Insert into Snowflake (non-blocking)
-    snowflake_service = get_snowflake_service()
-    snowflake_service.insert_unit_assignment(assignment)
-    snowflake_service.insert_personnel(personnel)  # Update personnel record
+    # The relational adapter commits the corresponding durable outbox event.
 
     # Broadcast readiness update via WebSocket
     asyncio.create_task(unit_readiness_manager.broadcast_unit_readiness(unit.unit_id))

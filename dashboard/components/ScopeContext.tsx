@@ -13,15 +13,17 @@ export function ScopeProvider({ children }: { children: React.ReactNode }) {
   const [stationId, setStationId] = useState('all')
 
   useEffect(() => {
-    const savedScope = window.localStorage.getItem('ridgecrest-station-scope')
-    if (savedScope) setStationId(savedScope)
+    try {
+      const savedScope = window.localStorage.getItem('aegis-station-scope')
+      if (savedScope) setStationId(savedScope)
+    } catch { /* Browsing still works when persistence is unavailable. */ }
   }, [])
 
   const value = useMemo(() => ({
     stationId,
     setStationId: (nextStationId: string) => {
       setStationId(nextStationId)
-      window.localStorage.setItem('ridgecrest-station-scope', nextStationId)
+      try { window.localStorage.setItem('aegis-station-scope', nextStationId) } catch { /* Keep the session scope. */ }
     },
   }), [stationId])
 

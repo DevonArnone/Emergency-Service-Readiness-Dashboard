@@ -105,6 +105,7 @@ export const liveShiftSchema = shiftSchema.pick({
     unit_id: z.string(),
     status: z.string(),
     clocked_in_at: nullableDate,
+    clocked_out_at: nullableDate,
   }).passthrough()).default([]),
 })
 

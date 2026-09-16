@@ -1,6 +1,7 @@
 import './globals.css'
 import './command.css'
 import './identity.css'
+import './workspaces.css'
 import type { Metadata } from 'next'
 import AppShell from '@/components/AppShell'
 import AppProviders from '@/components/AppProviders'
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <a className="skip-link" href="#main-content">Skip to workspace</a>
         <AppProviders>
           <AppShell>{children}</AppShell>
         </AppProviders>

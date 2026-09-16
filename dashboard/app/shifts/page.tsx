@@ -17,9 +17,11 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
+import ConfirmAction from '@/components/ConfirmAction'
+import { usePagination } from '@/hooks/usePagination'
 import FormDialog, { Field } from '@/components/FormDialog'
 import { useStationScope } from '@/components/ScopeContext'
-import { Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
+import { WriteButton as Button, EmptyState, ErrorState, LoadingState, PageHeader, Pagination, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
 import { api, queryKeys } from '@/lib/api'
 import type { LiveShift, Shift } from '@/lib/schemas'
 import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
@@ -27,7 +29,7 @@ import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
 type Notice = { tone: 'success' | 'danger'; message: string } | null
 
 function dateInput(date = new Date()) {
-  return date.toISOString().slice(0, 10)
+  return formatDate(date.toISOString(), 'yyyy-MM-dd')
 }
 
 function shiftTone(status: string) {
@@ -48,7 +50,7 @@ export default function SchedulingPage() {
   const [notice, setNotice] = useState<Notice>(null)
 
   const shifts = useQuery({ queryKey: queryKeys.shifts, queryFn: api.shifts })
-  const liveShifts = useQuery({ queryKey: queryKeys.liveShifts, queryFn: api.liveShifts, refetchInterval: 15_000 })
+  const liveShifts = useQuery({ queryKey: [...queryKeys.liveShifts, selectedDate], queryFn: () => api.liveShifts(selectedDate), refetchInterval: 15_000 })
   const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const activity = useQuery({ queryKey: queryKeys.audit, queryFn: () => api.auditEvents(80) })
@@ -65,7 +67,7 @@ export default function SchedulingPage() {
   }
   const createShift = useMutation({
     mutationFn: api.createShift,
-    onSuccess: async (shift) => { await invalidate(); setSelectedId(shift.shift_id); setShiftDialog(false); setNotice({ tone: 'success', message: 'Shift created.' }) },
+    onSuccess: async (shift) => { await invalidate(); setSelectedId(shift.shift_id); setSelectedDate(formatDate(shift.start_time, 'yyyy-MM-dd')); setShiftDialog(false); setNotice({ tone: 'success', message: 'Shift created.' }) },
     onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
   const cancelShift = useMutation({
@@ -85,7 +87,7 @@ export default function SchedulingPage() {
   })
 
   const filteredShifts = useMemo(() => (shifts.data || []).filter((shift) => {
-    const dateMatches = shift.start_time.slice(0, 10) === selectedDate
+    const dateMatches = formatDate(shift.start_time, 'yyyy-MM-dd') === selectedDate
     const scopeMatches = stationId === 'all' || shift.station_id === stationId
     const searchMatches = shift.location.toLowerCase().includes(search.toLowerCase())
     return dateMatches && scopeMatches && searchMatches
@@ -95,6 +97,7 @@ export default function SchedulingPage() {
   const scopedLive = liveShifts.data?.filter((shift) => stationId === 'all' || shift.station_id === stationId) || []
   const required = scopedLive.reduce((sum, shift) => sum + shift.required_headcount, 0)
   const clocked = scopedLive.reduce((sum, shift) => sum + shift.clocked_in_count, 0)
+  const rosterPage = usePagination(liveSelected?.assigned_personnel || [], selected?.shift_id || 'none', 20)
   const shiftActivity = activity.data?.filter((event) => event.entity_type === 'shift' && (!selected || event.entity_id === selected.shift_id)).slice(0, 10) || []
 
   const submitShift = (event: FormEvent<HTMLFormElement>) => {
@@ -102,7 +105,7 @@ export default function SchedulingPage() {
     const data = new FormData(event.currentTarget)
     const station = stations.data?.find((item) => item.station_id === data.get('station_id'))
     createShift.mutate({
-      location: station?.name || data.get('location') || 'District coverage', station_id: data.get('station_id') || null,
+      location: data.get('location') || station?.name || 'District coverage', station_id: data.get('station_id') || null,
       start_time: new Date(String(data.get('start_time'))).toISOString(), end_time: new Date(String(data.get('end_time'))).toISOString(),
       required_headcount: Number(data.get('required_headcount')), status: 'SCHEDULED', notes: data.get('notes') || null,
     })
@@ -123,8 +126,8 @@ export default function SchedulingPage() {
         {(shifts.isError || liveShifts.isError) && <ErrorState message={shifts.error?.message || liveShifts.error?.message} retry={() => { shifts.refetch(); liveShifts.refetch() }} />}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Live coverage" value={required ? `${Math.round((clocked / required) * 100)}%` : '—'} detail={`${clocked} clocked in · ${required} required`} icon={Radio} tone={clocked >= required ? 'success' : 'danger'} />
-          <StatCard label="Today's shifts" value={scopedLive.length} detail="Across selected station scope" icon={CalendarDays} tone="info" />
+          <StatCard label="Roster attendance" value={required ? `${Math.round((clocked / required) * 100)}%` : '—'} detail={`${clocked} clocked in · ${required} required`} icon={Radio} tone={clocked >= required ? 'success' : 'danger'} />
+          <StatCard label="Shifts in view" value={scopedLive.length} detail="Selected date and station scope" icon={CalendarDays} tone="info" />
           <StatCard label="Staffing gaps" value={scopedLive.filter((shift) => shift.clocked_in_count < shift.required_headcount).length} detail="Shifts currently below minimum" icon={AlertTriangle} tone={scopedLive.some((shift) => shift.clocked_in_count < shift.required_headcount) ? 'danger' : 'success'} />
           <StatCard label="Scheduled roster" value={scopedLive.reduce((sum, shift) => sum + shift.assigned_count, 0)} detail="Personnel linked to live shifts" icon={Users} tone="info" />
         </section>
@@ -143,7 +146,7 @@ export default function SchedulingPage() {
             </section>
 
             <section className="ops-panel detail-panel">
-              {selected ? <div className="shift-detail"><div className="shift-detail-heading"><div><span className="eyebrow">{formatDate(selected.start_time, 'EEEE · MMM d')}</span><h2>{selected.location}</h2><p>{formatDate(selected.start_time, 'h:mm a')} – {formatDate(selected.end_time, 'h:mm a')}</p></div><StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge></div><div className="coverage-hero"><div><span>Clocked in</span><strong>{liveSelected?.clocked_in_count ?? 0}</strong></div><div><span>Assigned</span><strong>{liveSelected?.assigned_count ?? 0}</strong></div><div><span>Required</span><strong>{selected.required_headcount}</strong></div></div><div className="detail-toolbar"><Button variant="primary" onClick={() => setRosterDialog(true)} disabled={selected.status === 'CANCELLED'}><UserPlus className="size-4" />Add to roster</Button><Button variant="danger" onClick={() => cancelShift.mutate(selected.shift_id)} busy={cancelShift.isPending} disabled={selected.status === 'CANCELLED'}><XCircle className="size-4" />Cancel shift</Button></div><div className="detail-section"><SectionHeader title="Roster" description="Clock status updates readiness immediately" />{liveSelected?.assigned_personnel.map((person) => <div key={person.personnel_id} className="roster-row"><span className={cn('attendance-dot', person.clocked_in_at && 'attendance-live')} /><div className="min-w-0 flex-1"><strong>{person.name}</strong><small>{titleCase(person.status)} · Unit {person.unit_id.slice(0, 8)}</small></div>{person.clocked_in_at ? <Button onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'out' })} busy={clockAction.isPending}><LogOut className="size-4" />Clock out</Button> : <Button variant="primary" onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'in' })} busy={clockAction.isPending}><LogIn className="size-4" />Clock in</Button>}</div>)}{!liveSelected?.assigned_personnel.length && <div className="compact-empty">No personnel assigned to this shift.</div>}</div>{selected.notes && <div className="profile-notes"><strong>Shift notes</strong><p>{selected.notes}</p></div>}</div> : <EmptyState title="Select a shift" description="Choose a shift to review its coverage and roster." />}
+              {selected ? <div className="shift-detail"><div className="shift-detail-heading"><div><span className="eyebrow">{formatDate(selected.start_time, 'EEEE · MMM d')}</span><h2>{selected.location}</h2><p>{formatDate(selected.start_time, 'h:mm a')} – {formatDate(selected.end_time, 'h:mm a')}</p></div><StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge></div><div className="coverage-hero"><div><span>Clocked in</span><strong>{liveSelected?.clocked_in_count ?? 0}</strong></div><div><span>Assigned</span><strong>{liveSelected?.assigned_count ?? 0}</strong></div><div><span>Required</span><strong>{selected.required_headcount}</strong></div></div><div className="detail-toolbar"><Button variant="primary" onClick={() => setRosterDialog(true)} disabled={selected.status === 'CANCELLED'}><UserPlus className="size-4" />Add to roster</Button><ConfirmAction title="Cancel this shift?" description={`${selected.location}: linked roster assignments will be cancelled and clocked-in personnel released.`} onConfirm={() => cancelShift.mutateAsync(selected.shift_id)} disabled={selected.status === 'CANCELLED'}><XCircle className="size-4" />Cancel shift</ConfirmAction></div><div className="detail-section"><SectionHeader title="Roster" description="Clock status updates readiness immediately" />{rosterPage.rows.map((person) => <div key={person.personnel_id} className="roster-row"><span className={cn('attendance-dot', person.clocked_in_at && !person.clocked_out_at && 'attendance-live')} /><div className="min-w-0 flex-1"><strong>{person.name}</strong><small>{titleCase(person.status)} · Unit {person.unit_id.slice(0, 8)}</small></div>{person.clocked_in_at && !person.clocked_out_at ? <Button onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'out' })} busy={clockAction.isPending}><LogOut className="size-4" />Clock out</Button> : <Button variant="primary" onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'in' })} busy={clockAction.isPending}><LogIn className="size-4" />Clock in</Button>}</div>)}{!liveSelected?.assigned_personnel.length && <div className="compact-empty">No personnel assigned to this shift.</div>}{liveSelected?.assigned_personnel.length ? <Pagination {...rosterPage} /> : null}</div>{selected.notes && <div className="profile-notes"><strong>Shift notes</strong><p>{selected.notes}</p></div>}</div> : <EmptyState title="Select a shift" description="Choose a shift to review its coverage and roster." />}
             </section>
           </div>
         )}
@@ -154,8 +157,8 @@ export default function SchedulingPage() {
         </section>
       </div>
 
-      <FormDialog open={shiftDialog} onOpenChange={setShiftDialog} title="Create shift" description="Define the station, time window, and minimum coverage target." submitLabel="Create shift" submitting={createShift.isPending} onSubmit={submitShift}><div className="form-grid"><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId} required><option value="">Select station</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Location override"><input className="form-control" name="location" placeholder="Defaults to station name" /></Field><Field label="Start"><input className="form-control" type="datetime-local" name="start_time" required /></Field><Field label="End"><input className="form-control" type="datetime-local" name="end_time" required /></Field><Field label="Required headcount"><input className="form-control" type="number" min="1" name="required_headcount" defaultValue="7" required /></Field><Field label="Shift notes"><textarea className="form-control min-h-24" name="notes" /></Field></div></FormDialog>
-      <FormDialog open={rosterDialog} onOpenChange={setRosterDialog} title={`Add to ${selected?.location || 'shift'}`} description="The service validates active personnel, unit availability, and assignment overlap." submitLabel="Add to roster" submitting={assignPerson.isPending} onSubmit={submitRoster}><Field label="Personnel"><select className="form-control" name="personnel_id" required><option value="">Select available personnel</option>{personnel.data?.filter((person) => !liveSelected?.assigned_personnel.some((assigned) => assigned.personnel_id === person.personnel_id)).map((person) => <option key={person.personnel_id} value={person.personnel_id}>{person.name} · {titleCase(person.availability_status)}</option>)}</select></Field></FormDialog>
+      <FormDialog open={shiftDialog} onOpenChange={setShiftDialog} title="Create shift" description="Define the station, time window, and minimum coverage target." submitLabel="Create shift" submitting={createShift.isPending} error={createShift.error?.message} onSubmit={submitShift}><div className="form-grid"><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId} required><option value="">Select station</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Location override"><input className="form-control" name="location" placeholder="Defaults to station name" /></Field><Field label="Start"><input className="form-control" type="datetime-local" name="start_time" required /></Field><Field label="End"><input className="form-control" type="datetime-local" name="end_time" required /></Field><Field label="Required headcount"><input className="form-control" type="number" min="1" name="required_headcount" defaultValue="7" required /></Field><Field label="Shift notes"><textarea className="form-control min-h-24" name="notes" /></Field></div></FormDialog>
+      <FormDialog open={rosterDialog} onOpenChange={setRosterDialog} title={`Add to ${selected?.location || 'shift'}`} description="The service validates active personnel, unit availability, and assignment overlap." submitLabel="Add to roster" submitting={assignPerson.isPending} error={assignPerson.error?.message} onSubmit={submitRoster}><Field label="Personnel"><select className="form-control" name="personnel_id" required><option value="">Select available personnel</option>{personnel.data?.filter((person) => !liveSelected?.assigned_personnel.some((assigned) => assigned.personnel_id === person.personnel_id)).map((person) => <option key={person.personnel_id} value={person.personnel_id}>{person.name} · {titleCase(person.availability_status)}</option>)}</select></Field></FormDialog>
     </div>
   )
 }

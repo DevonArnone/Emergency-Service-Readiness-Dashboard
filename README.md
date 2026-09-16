@@ -1,26 +1,46 @@
-# Emergency Readiness Platform
+# Aegis Command
 
-A full-stack emergency operations command center built to demonstrate production-grade architecture: durable local operations, real-time WebSocket push, an event-driven Kafka pipeline, Snowflake warehouse analytics, and a FastAPI + Next.js application layer — all grounded in realistic emergency-services domain logic.
+A map-led emergency coordination concept built with FastAPI, Next.js, normalized PostgreSQL, OIDC identity, Kafka priority channels, Redis fan-out, and a tenant-scoped Snowflake analytics deployment.
 
-**Live demo district:** Ridgecrest Emergency Services District (3 stations, 8 units, 25 personnel, seeded automatically on startup).
+**Target:** Fairfax County Fire and Rescue Department. **Unofficial portfolio concept—not affiliated with or endorsed by Fairfax County.** Public station geography is paired with 131 synthetic units, 1,450 synthetic personnel, eight synthetic battalion assignments, and a 363-position staffing model. No real incidents, personnel records, patient data, or county-system connections are included. See [target research and provenance](docs/target-research.md).
 
-## Command Center View
-![Command center with live readiness, alerts, and incidents](pictures/command-center-view.png)
+## Product tour
 
-## Operations Board View
-![Operations board view](pictures/operations-view.png)
+### Command Center
 
-## Workforce View
-![Workforce view](pictures/workforce-view.png)
+![Aegis command center with Fairfax station geography and synthetic readiness](pictures/aegis-command-desktop.png)
 
-## Credentials View
-![Credentials view](pictures/credentials-view.png)
+The command screen includes a keyboard-accessible station map, staffing exceptions, incident priorities, a downloadable shift-handover brief, resource filtering, and a live command log. [View the mobile command center](pictures/aegis-command-mobile.png).
 
-## Shifts View
-![Shifts view](pictures/shifts-view.png)
+### Operations
 
-## Analytics View
-![Analytics view](pictures/analytics-view.png)
+![Aegis operations workspace with readiness, alerts, incidents, and contingency tools](pictures/aegis-readiness-desktop.png)
+
+Unit readiness, exception resolution, incident command, qualified assignments, and non-destructive staffing scenarios share one operational workspace. [View Operations on mobile](pictures/aegis-readiness-mobile.png).
+
+### Workforce
+
+![Aegis workforce workspace with searchable roster and operational profile](pictures/aegis-personnel-desktop.png)
+
+The department-scale roster supports station scope, status filters, pagination, verified credential dates, availability control, guarded archival, and active assignments. [View Workforce on mobile](pictures/aegis-personnel-mobile.png).
+
+### Scheduling
+
+![Aegis scheduling workspace with coverage metrics and live roster](pictures/aegis-shifts-desktop.png)
+
+Operators can create shifts, validate coverage windows, assign qualified personnel, clock roster members in and out, and safely cancel shifts. [View Scheduling on mobile](pictures/aegis-shifts-mobile.png).
+
+### Credentials
+
+![Aegis credentials workspace with renewal queue and qualification risk](pictures/aegis-certifications-management-desktop.png)
+
+Credential work includes renewal ownership, scheduling, completion tracking, workforce risk, protected definitions, and unit qualification requirements. [View Credentials on mobile](pictures/aegis-certifications-management-mobile.png).
+
+### Analytics
+
+![Aegis analytics workspace with readiness and staffing visualizations](pictures/aegis-analytics-desktop.png)
+
+The analytics workspace exposes readiness, staffing, qualification risk, and coverage trends with shareable URL state and station scope. [View Analytics on mobile](pictures/aegis-analytics-mobile.png).
 
 ---
 
@@ -30,26 +50,31 @@ A full-stack emergency operations command center built to demonstrate production
 |---|---|
 | Frontend | Next.js 16 · React 19 · TypeScript · TanStack Query · Zod · Radix UI · Recharts |
 | API | FastAPI · Pydantic v2 · Python 3.11+ |
-| Streaming | Apache Kafka (Confluent) · WebSockets (3 channels) |
+| Streaming | Kafka protocol (local Redpanda) · transactional outbox · Redis · tenant-scoped WebSockets |
 | Warehouse | Snowflake · Streams & Tasks · SQL aggregation pipeline |
-| Data store | SQLite durable entity store (local) · Snowflake RAW schema (warehouse) |
+| Data store | Normalized PostgreSQL with migrations and row security · relational SQLite fallback |
+| Identity | OIDC authorization code + PKCE · Keycloak local fixture · role-based API policy |
 
 ---
 
 ## Architecture
 
 ```
-Browser ──WebSocket──▶ FastAPI ──Kafka producer──▶ Snowflake (via Snowpipe)
-    │                     │                               │
-    └──── typed REST ─────┤                     Streams & Tasks → ANALYTICS views
-                          │
-                    SQLite entity store
+Browser → authenticated FastAPI → PostgreSQL records + outbox
+                                      ↓
+                    separate priority / bulk Kafka topics
+                                      ↓
+                           Redis → tenant WebSockets
+
+Kafka → configured Snowflake connector → RAW → Streams & Tasks → ANALYTICS
 ```
 
 Three WebSocket channels:
 - `/ws/shifts` — shift-level clock-in/out and alert events
 - `/ws/unit-readiness/{unit_id}` — per-unit readiness push
-- `/ws/operations` — versioned operational snapshot (5s heartbeat)
+- `/ws/operations` — event push plus a 15-second recovery snapshot
+
+See [architecture](docs/architecture.md) and [security boundaries](docs/security.md). Live Snowflake deployment is not yet verified. [Measured local pipeline results](backend/benchmarks/README.md) include 1,000/1,000 delivered events at 100 offered events/second with 28.953 ms p95 alert latency. At 500 offered events/second the stack saturated around 183 accepted events/second and missed the 200 ms target. A 60% consumer-lag reduction is **not substantiated**.
 
 ## Engineering Harness
 
@@ -104,7 +129,7 @@ OPEN → ACKNOWLEDGED (actor + note) → RESOLVED
 Alert types: `UNDERSTAFFED_UNIT`, `EXPIRED_CERTIFICATION`, `EXPIRING_CERTIFICATION`, `OVERTIME_RISK`, `UNIT_OFFLINE`
 
 ### Recommendation Engine
-Rules-based engine fires on every readiness check:
+The rules-based recommendation endpoint evaluates current readiness:
 - **REASSIGN** — available qualified personnel found for understaffed unit
 - **ESCALATE** — no qualified replacements; triggers mutual-aid recommendation
 - **RENEW_CERT** — expired or expiring credential requires renewal scheduling
@@ -114,7 +139,9 @@ Rules-based engine fires on every readiness check:
 
 ---
 
-## API Reference (key endpoints)
+## API Reference (64 method/path operations)
+
+The current OpenAPI document exposes 64 operations under `/api/`, exceeding the 30+ endpoint requirement. The count includes compatibility and administrative operations, not 64 independent product features.
 
 ```
 GET  /api/dashboard/summary          — overall readiness, alerts, incidents, station summaries
@@ -128,7 +155,7 @@ GET  /api/analytics/readiness-trends — readiness by ?days= and optional ?stati
 GET  /api/analytics/certification-risk — risk by ?days_ahead= and optional ?station_id=
 GET  /api/analytics/staffing-gaps    — staffing gap by optional ?station_id=
 POST /api/simulations/staffing-gap   — what-if simulation
-POST /api/demo/reset                 — reset and re-seed Ridgecrest demo data
+POST /api/demo/reset                 — authenticated, opt-in local synthetic reset only
 GET  /api/readiness/units            — live unit readiness scores
 GET  /api/personnel                  — personnel list
 GET  /api/certifications/expiring    — certs expiring within N days
@@ -146,7 +173,15 @@ Full Swagger docs at `http://localhost:8000/docs`.
 - (Optional) Confluent Kafka credentials
 - (Optional) Snowflake account
 
-### Backend
+### Complete local stack
+
+```bash
+docker compose up --build -d
+```
+
+This starts PostgreSQL, the migration/seed job, Redis, Redpanda, Keycloak, the API, workers, and dashboard. The default concept is read-only. For sign-in and writable synthetic workflows, follow the explicit [local operator profile](docs/security.md#local-operator-profile). Local credentials must never be deployed. Volumes preserve data across restarts.
+
+### Lightweight backend
 
 ```bash
 cd backend
@@ -155,10 +190,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Demo data seeds automatically on startup. Reset at any time:
-```bash
-curl -X POST http://localhost:8000/api/demo/reset
-```
+Without a database override, this profile uses normalized SQLite and seeds an empty local database. It is useful for UI development, but is not PostgreSQL or Kafka integration evidence. Anonymous reset and other mutations are denied.
 
 ### Frontend
 
@@ -198,12 +230,12 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ## Snowflake Pipeline (optional)
 
 The `data-pipeline/snowflake/` directory contains SQL scripts for:
-1. RAW schema tables (SHIFT_EVENTS, PERSONNEL, UNITS, UNIT_ASSIGNMENTS)
-2. Snowpipe ingestion from Kafka
+1. Tenant-scoped RAW operational events and reference tables
+2. Kafka connector ingestion and envelope normalization
 3. Streams and Tasks for automated ETL
 4. ANALYTICS views (SHIFT_COVERAGE_HOURLY, UNIT_READINESS_AGGREGATES)
 
-See [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) for configuration steps.
+See the current [Snowflake deployment guide](data-pipeline/snowflake/README.md). Legacy setup notes are not the source of truth. Live account deployment, row-policy checks, and representative workload testing remain required.
 
 ---
 
@@ -216,8 +248,9 @@ See [SNOWFLAKE_SETUP.md](./SNOWFLAKE_SETUP.md) for configuration steps.
 │       ├── services/      # Readiness, certification, recommendation, demo, Kafka, Snowflake
 │       ├── websocket/     # WebSocket connection managers
 │       ├── models.py      # Pydantic domain models
-│       ├── persistence.py # SQLite-backed entity persistence
-│       ├── stores.py      # Typed durable domain stores
+│       ├── db/            # Normalized relational models and tenant-scoped adapters
+│       ├── workers/       # Outbox publishing and Kafka-to-Redis bridges
+│       ├── stores.py      # Typed relational domain stores
 │       └── main.py        # FastAPI app, startup seed, WebSocket endpoints
 ├── dashboard/
 │   ├── app/                # Route workspaces and shared visual system

@@ -1,0 +1,21 @@
+# Optional development overlay: run current source with an already-built backend image.
+# This avoids rebuilding an image for every local code edit; never use it in production.
+x-source: &source
+  volumes:
+    - ./backend/app:/app/app:ro
+
+services:
+  api:
+    <<: *source
+  migrate:
+    <<: *source
+  outbox-worker:
+    <<: *source
+  alert-outbox-worker:
+    <<: *source
+  alert-bridge:
+    <<: *source
+  bulk-bridge:
+    <<: *source
+  shared-bridge:
+    <<: *source

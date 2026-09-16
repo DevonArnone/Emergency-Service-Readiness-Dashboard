@@ -17,6 +17,8 @@ export function useOperationsStream() {
     let disposed = false
     let socket: WebSocket | undefined
     let refreshTimer: ReturnType<typeof setTimeout> | undefined
+    let lastMessage = Date.now()
+    let refreshAll = false
 
     const retry = () => {
       if (disposed) return
@@ -38,19 +40,24 @@ export function useOperationsStream() {
         return
       }
       socket.onopen = () => {
-        attempts.current = 0
-        setState('live')
+        lastMessage = Date.now()
       }
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data)
-          if ((message.type === 'operations.snapshot' || message.type === 'operations.event') && !refreshTimer) {
+          if (message.type !== 'operations.snapshot' && message.type !== 'operations.event') return
+          lastMessage = Date.now()
+          attempts.current = 0
+          setState('live')
+          refreshAll ||= message.type === 'operations.event'
+          if (!refreshTimer) {
             refreshTimer = setTimeout(() => {
               refreshTimer = undefined
               queryClient.invalidateQueries({ queryKey: ['operations'] })
               queryClient.invalidateQueries({ queryKey: ['shell-operations'] })
               queryClient.invalidateQueries({ queryKey: queryKeys.readiness })
-              if (message.type === 'operations.event') queryClient.invalidateQueries()
+              if (refreshAll) queryClient.invalidateQueries()
+              refreshAll = false
             }, 100)
           }
         } catch {
@@ -63,9 +70,13 @@ export function useOperationsStream() {
       }
     }
 
-    connect()
+    void connect()
+    const watchdog = setInterval(() => {
+      if (socket?.readyState === WebSocket.OPEN && Date.now() - lastMessage > 45_000) socket.close()
+    }, 5000)
     return () => {
       disposed = true
+      clearInterval(watchdog)
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       if (refreshTimer) clearTimeout(refreshTimer)
       socket?.close()

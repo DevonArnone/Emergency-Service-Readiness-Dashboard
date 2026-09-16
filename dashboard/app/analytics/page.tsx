@@ -76,7 +76,7 @@ function AnalyticsWorkspace() {
   })
   const liveShifts = useQuery({
     queryKey: queryKeys.liveShifts,
-    queryFn: api.liveShifts,
+    queryFn: () => api.liveShifts(),
     enabled: activeTab === 'coverage',
   })
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })

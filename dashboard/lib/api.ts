@@ -141,7 +141,11 @@ export const api = {
   updateAssignment: (id: string, value: unknown) => apiRequest(`/api/unit-assignments/${id}`, assignmentSchema, { method: 'PUT', body: jsonBody(value) }),
   cancelAssignment: (id: string) => apiRequest(`/api/unit-assignments/${id}`, assignmentSchema, { method: 'DELETE' }),
   shifts: () => apiRequest('/api/shifts', z.array(shiftSchema)),
-  liveShifts: () => apiRequest('/api/shifts/live', z.array(liveShiftSchema)),
+  liveShifts: (date?: string, timezoneOffsetMinutes = new Date().getTimezoneOffset()) => {
+    const query = new URLSearchParams({ timezone_offset_minutes: String(timezoneOffsetMinutes) })
+    if (date) query.set('target_date', date)
+    return apiRequest(`/api/shifts/live?${query}`, z.array(liveShiftSchema))
+  },
   createShift: (value: unknown) => apiRequest('/api/shifts', shiftSchema, { method: 'POST', body: jsonBody(value) }),
   updateShift: (id: string, value: unknown) => apiRequest(`/api/shifts/${id}`, shiftSchema, { method: 'PUT', body: jsonBody(value) }),
   cancelShift: (id: string) => apiRequest(`/api/shifts/${id}`, shiftSchema, { method: 'DELETE' }),

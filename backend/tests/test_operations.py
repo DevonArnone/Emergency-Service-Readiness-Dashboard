@@ -118,16 +118,16 @@ class OperationsApiTests(unittest.IsolatedAsyncioTestCase):
             await assign_employee_to_shift(shift.shift_id, 'qa-person')
         self.assertEqual(conflict.exception.status_code, 409)
         await clock_in(shift.shift_id, ClockInRequest(employee_id='qa-person'))
-        live = next(item for item in await get_live_shifts(now.date()) if item.shift_id == shift.shift_id)
+        live = next(item for item in await get_live_shifts(now.date(), 0) if item.shift_id == shift.shift_id)
         self.assertEqual(live.clocked_in_count, 1)
         await clock_out(shift.shift_id, ClockOutRequest(employee_id='qa-person'))
-        live = next(item for item in await get_live_shifts(now.date()) if item.shift_id == shift.shift_id)
+        live = next(item for item in await get_live_shifts(now.date(), 0) if item.shift_id == shift.shift_id)
         self.assertEqual(live.clocked_in_count, 0)
         self.assertIsNotNone(live.assigned_personnel[0]['clocked_out_at'])
         await clock_in(shift.shift_id, ClockInRequest(employee_id='qa-person'))
         await cancel_shift(shift.shift_id)
         self.assertEqual(personnel_store['qa-person'].availability_status, AvailabilityStatus.AVAILABLE)
-        self.assertFalse(any(item.shift_id == shift.shift_id for item in await get_live_shifts(now.date())))
+        self.assertFalse(any(item.shift_id == shift.shift_id for item in await get_live_shifts(now.date(), 0)))
         with self.assertRaises(HTTPException):
             await clock_in(shift.shift_id, ClockInRequest(employee_id='qa-person'))
 
@@ -137,7 +137,7 @@ class OperationsApiTests(unittest.IsolatedAsyncioTestCase):
         start = datetime.now(timezone.utc).replace(hour=20, minute=0, second=0, microsecond=0)
         shift = await create_shift(Shift(location='Overnight watch', start_time=start, end_time=start+timedelta(hours=12), required_headcount=1))
         tomorrow = (start+timedelta(days=1)).date()
-        self.assertTrue(any(item.shift_id == shift.shift_id for item in await get_live_shifts(tomorrow)))
+        self.assertTrue(any(item.shift_id == shift.shift_id for item in await get_live_shifts(tomorrow, 0)))
 
     def test_future_assignments_do_not_count_as_present(self) -> None:
         from app.models import Unit, UnitAssignment

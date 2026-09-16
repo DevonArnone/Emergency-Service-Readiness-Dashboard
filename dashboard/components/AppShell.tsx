@@ -22,9 +22,9 @@ import {
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { api, apiRequest, queryKeys } from '@/lib/api'
+import { api, queryKeys } from '@/lib/api'
 import { OIDC_ENABLED, signOut } from '@/lib/auth'
-import { z } from 'zod'
+import { useAccess } from '@/hooks/useAccess'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useOperationsStream } from '@/hooks/useOperationsStream'
 import { useStationScope } from './ScopeContext'
@@ -49,9 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [commandQuery, setCommandQuery] = useState('')
 
   const streamState = useOperationsStream()
-  const session = useQuery({ queryKey: ['session'], queryFn: () => apiRequest('/api/v1/session', z.object({
-    display_name: z.string().nullable(), can_write: z.boolean(), can_reset_demo: z.boolean(),
-  })) })
+  const session = useAccess()
 
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
@@ -119,7 +117,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-agency"><span>CONCEPT ENVIRONMENT</span><strong>Fairfax County<br />Fire and Rescue</strong><small>Public geography · synthetic operations</small></div>
         <div className="sidebar-footer">
           <div className="system-status">
-            <span className={cn('system-pulse', snapshot.isError && 'system-pulse-error')} />
+            <span className={cn('system-pulse', (snapshot.isError || streamState !== 'live') && 'system-pulse-error')} />
             <div><strong>{snapshot.isError ? 'API unavailable' : streamState === 'live' ? 'Operations connected' : 'Connecting to operations'}</strong><small>{snapshot.isError ? 'Connection requires attention' : streamState === 'live' ? 'Synthetic operational feed' : streamState}</small></div>
           </div>
           <div className="identity-status"><ShieldCheck size={14} /><span>{session.data?.can_write ? session.data.display_name || 'Operator access' : 'Read-only concept'}</span>{OIDC_ENABLED && <button onClick={() => void signOut().catch(() => window.location.assign('/'))}>Sign out</button>}</div>
@@ -163,7 +161,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="notification-list">
                   {openAlerts.slice(0, 5).map((alert) => (
                     <DropdownMenu.Item key={alert.alert_id} asChild>
-                      <Link href="/readiness" className="notification-item">
+                      <Link href="/readiness?view=alerts" className="notification-item">
                         <span className="notification-dot" /><div><strong>{alert.message}</strong><small>{formatRelativeTime(alert.created_at)}</small></div>
                       </Link>
                     </DropdownMenu.Item>
@@ -177,7 +175,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="app-main">{children}</main>
+      <main className="app-main" id="main-content">
+        {(snapshot.isError || streamState === 'offline' || streamState === 'reconnecting') && <div className="connection-notice" role="status"><RefreshCw size={15} /><span>Live updates interrupted. Showing the last available data; reconnecting automatically.</span><button onClick={() => void queryClient.invalidateQueries()}>Refresh data</button></div>}
+        {children}
+      </main>
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {navigation.map((item) => {
@@ -192,14 +193,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="command-dialog" aria-describedby={undefined}>
             <Dialog.Title className="sr-only">Command menu</Dialog.Title>
-            <div className="command-input"><Search className="size-5" /><input autoFocus value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder="Search workspaces and actions…" /><kbd>ESC</kbd></div>
+            <div className="command-input"><Search className="size-5" /><input autoFocus aria-label="Search workspaces and actions" value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder="Search workspaces and actions…" /><kbd>ESC</kbd></div>
             <div className="command-results">
               <span className="command-label">Navigate</span>
               {filteredNavigation.map((item) => {
                 const Icon = item.icon
                 return <button key={item.href} type="button" onClick={() => navigate(item.href)}><span><Icon className="size-[18px]" /></span><strong>{item.name}</strong><small>Open</small></button>
               })}
-              <span className="command-label">System</span>
+              {!filteredNavigation.length && <p className="command-empty">No matching workspace. Try operations, workforce, or analytics.</p>}
+              {session.data?.can_reset_demo && <span className="command-label">System</span>}
               {session.data?.can_reset_demo && <button type="button" onClick={() => { if (window.confirm('Replace all synthetic demo records? This cannot be undone.')) resetDemo.mutate() }} disabled={resetDemo.isPending}><span><RefreshCw className={cn('size-[18px]', resetDemo.isPending && 'animate-spin')} /></span><strong>Restore demo data</strong><small>Reset</small></button>}
             </div>
             <div className="command-footer"><span><Command className="size-3.5" />Aegis command menu</span><span>Tab navigate · Enter select</span></div>

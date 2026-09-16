@@ -56,12 +56,19 @@ Then inspect the edited SQL for idempotency, schema separation, and task cadence
 | External-service coupling | Keep fallback mode explicit; verify real services independently and never label mock results as integration evidence |
 | Long-running plan loss | Use checked-in execution plans for multi-step work |
 
-## September 14 security and interface checkpoint
+## September 15 security and interface checkpoint
 
-- Sixteen Chromium/Firefox workspace checks passed after removing repeated tenant-wide and per-station database lookups.
-- Real Keycloak PKCE sign-in, operator incident creation/resolution, analyst write denial, authenticated Redis-backed WebSocket connection, and logout passed against PostgreSQL.
+- Twenty-two Chromium/Firefox workspace checks passed after removing repeated tenant-wide and per-station database lookups and adding responsive pagination, failure recovery, safe read-only controls, deep links, and handover export.
+- Three real browser journeys passed against PostgreSQL, Redis, and Keycloak: duty-officer PKCE, analyst read-only enforcement, and a complete operator workflow spanning personnel, incidents, shifts, attendance, credentials, guarded deletion, and archival.
 - Frontend `npm audit` and backend `pip-audit` reported no known vulnerabilities after dependency updates; backend dependency compatibility passed.
-- See [security model and deployment gates](./security.md). Kafka end-to-end throughput, Snowflake live connectivity, and requested resume performance numbers remain unverified.
+- See [security model and deployment gates](./security.md). Snowflake live connectivity and requested resume performance numbers remain unverified.
+
+## September 15 pipeline checkpoint
+
+- Forty-five backend checks passed, including atomic operational/outbox writes, broker-acknowledgment gating, tenant-scoped event identities, Redis failure retry, invalid-message quarantine, overnight shifts, assignment conflict handling, cancellation, attendance, and local-date shift selection.
+- Twenty-two Chromium/Firefox workspace checks and three authenticated integration journeys passed in the final audit. Direct PostgreSQL runtime-role row security passed independently.
+- Real authenticated PostgreSQL → Kafka → Redis → WebSocket runs delivered every requested event. At 100 offered events/second, priority alert p95 was 28.953 ms; at 500 offered events/second, accepted throughput saturated near 183/s and p95 was 1,094.147 ms. See [complete results and resource profile](../backend/benchmarks/README.md).
+- The user accepted stopping latency optimization at this point. This is not permission to claim 60% consumer-lag reduction or production-scale guarantees; the final product work does not alter those measured limits.
 
 ## Promotion Rule
 

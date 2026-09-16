@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { Crosshair, Layers, Minus, Plus, X, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
+import { useStationScope } from './ScopeContext'
 import type { Station, UnitReadiness } from '@/lib/schemas'
 
 type Props = { stations: Station[]; units: UnitReadiness[]; scope: string }
 const project = (lon: number, lat: number) => [(lon + 77.49) / .48 * 920, (39.035 - lat) / .4 * 600]
 
 export default function CommandMap({ stations, units, scope }: Props) {
+  const { setStationId } = useStationScope()
   const [selected, setSelected] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
   const [onlyExceptions, setOnlyExceptions] = useState(false)
@@ -68,7 +70,7 @@ export default function CommandMap({ stations, units, scope }: Props) {
     </svg>
     <div className="map-tools"><button aria-label="Zoom in" onClick={() => setZoom(Math.min(zoom + .2, 1.6))}><Plus size={16} /></button><button aria-label="Zoom out" onClick={() => setZoom(Math.max(zoom - .2, .8))}><Minus size={16} /></button><button aria-label="Reset map view" onClick={() => { setZoom(1); setSelected(null) }}><Crosshair size={16} /></button></div>
     <button className={`map-layer-button ${onlyExceptions ? 'is-active' : ''}`} onClick={() => setOnlyExceptions(!onlyExceptions)} aria-pressed={onlyExceptions}><Layers size={14} />{onlyExceptions ? 'Exceptions only' : 'All stations'}</button>
-    {detail && <div className="map-detail"><button className="map-detail-close" aria-label="Close station details" onClick={() => setSelected(null)}><X size={16} /></button><span className="command-kicker">STATION INTELLIGENCE</span><h3>{detail.name}</h3><p>{detail.address}</p><div className="map-detail-stats"><span><strong>{detail.assigned.length}</strong> units in scope</span><span><strong>{detail.score === null ? '—' : `${Math.round(detail.score)}%`}</strong> readiness</span></div><Link href="/readiness">Review operational resources <ArrowUpRight size={14} /></Link></div>}
+    {detail && <div className="map-detail"><button className="map-detail-close" aria-label="Close station details" onClick={() => setSelected(null)}><X size={16} /></button><span className="command-kicker">STATION INTELLIGENCE</span><h3>{detail.name}</h3><p>{detail.address}</p><div className="map-detail-stats"><span><strong>{detail.assigned.length}</strong> units in scope</span><span><strong>{detail.score === null ? '—' : `${Math.round(detail.score)}%`}</strong> readiness</span></div><Link href="/readiness" onClick={() => setStationId(detail.station_id)}>Review operational resources <ArrowUpRight size={14} /></Link></div>}
     <div className="map-bottomline"><span><i className="legend-ready" />Ready <i className="legend-warning" />Staffing attention</span><span>Public station coordinates · schematic context</span></div>
   </section>
 }

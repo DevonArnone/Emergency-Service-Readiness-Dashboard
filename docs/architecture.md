@@ -49,4 +49,4 @@ Local historical charts use synthetic trajectories and must not be presented as 
 
 ## Security and operations
 
-See [security model and deployment gates](security.md), [quality checks](quality.md), [target research](target-research.md), and the [active execution plan](exec-plans/active/2026-08-31-aegis-command-overhaul.md). TLS, production secret management, gateway limits, deployment-specific ACLs, immutable audit retention, recovery drills and an independent review remain prerequisites for real operational use.
+See [security model and deployment gates](security.md), [quality checks](quality.md), [target research](target-research.md), and the [completed execution plan](exec-plans/completed/2026-08-31-aegis-command-overhaul.md). TLS, production secret management, gateway limits, deployment-specific ACLs, immutable audit retention, recovery drills and an independent review remain prerequisites for real operational use.

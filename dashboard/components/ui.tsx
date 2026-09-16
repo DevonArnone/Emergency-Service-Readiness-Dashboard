@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { useAccess } from '@/hooks/useAccess'
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
 
@@ -53,6 +54,13 @@ export function IconButton({
   )
 }
 
+export function WriteButton(props: Parameters<typeof Button>[0]) {
+  const access = useAccess()
+  const permitted = access.data?.can_write === true
+  return <Button {...props} disabled={props.disabled || !permitted}
+    title={!permitted ? 'Read-only access. An authorized operator account is required.' : props.title} />
+}
+
 export function PageHeader({
   eyebrow,
   title,
@@ -64,10 +72,11 @@ export function PageHeader({
   description: string
   actions?: ReactNode
 }) {
+  const access = useAccess()
   return (
     <header className="page-header">
       <div className="min-w-0">
-        <p className="eyebrow">{eyebrow}</p>
+        <div className="workspace-heading-meta"><p className="eyebrow">{eyebrow}</p><span className="workspace-access">{access.isPending ? 'Checking access' : access.data?.can_write ? 'Operator workspace' : 'Read-only workspace'}</span></div>
         <h1>{title}</h1>
         <p className="page-description">{description}</p>
       </div>
@@ -173,4 +182,11 @@ export function LoadingState({ rows = 5 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, index) => <div key={index} className="loading-row" />)}
     </div>
   )
+}
+
+export function Pagination({ total, from, to, hasPrevious, hasNext, previous, next }: {
+  total: number; from: number; to: number; hasPrevious: boolean; hasNext: boolean
+  previous: () => void; next: () => void
+}) {
+  return <nav className="pagination" aria-label="Results pages"><span aria-live="polite">{from}–{to} of {total.toLocaleString()} records</span><div><Button type="button" onClick={previous} disabled={!hasPrevious}>Previous</Button><Button type="button" onClick={next} disabled={!hasNext}>Next</Button></div></nav>
 }

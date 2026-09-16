@@ -12,7 +12,7 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 - Seed public Fairfax station and battalion context with synthetic department-scale personnel, units, and incidents.
 - Rework Snowflake schemas and analytics around tenant-aware event ingestion.
 - Redesign the Next.js experience as Aegis Command with a map-led command surface and polished operational workspaces.
-- Add observability, security checks, runbooks, evidence, screenshots, and updated product documentation.
+- Add operational status, security checks, runbooks, evidence, screenshots, and updated product documentation.
 
 ## Out of Scope
 
@@ -36,18 +36,18 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 
 ## Implementation Steps
 
-- [ ] Record the baseline, target architecture, and migration decisions.
-- [ ] Add PostgreSQL models, migrations, tenant context, and compatibility import tooling.
+- [x] Record the baseline, target architecture, and migration decisions.
+- [x] Add PostgreSQL models, migrations, tenant context, and compatibility import tooling.
 - [x] Add authentication, authorization, security middleware, audit controls, and realtime tickets.
-- [ ] Add the local PostgreSQL, Kafka, Redis, identity, worker, and observability stack.
-- [ ] Implement outbox publishing, priority/bulk topics, consumers, Redis fan-out, and event schemas.
-- [ ] Add the reproducible baseline-versus-optimized benchmark and evidence output.
-- [ ] Add Fairfax-scale seed data and public GIS snapshots with attribution.
-- [ ] Rework Snowflake ingestion, roles, row policies, and analytical views.
+- [x] Add the local PostgreSQL, Kafka, Redis, identity, and worker stack.
+- [x] Implement outbox publishing, priority/bulk topics, consumers, Redis fan-out, and event schemas.
+- [x] Add the reproducible baseline-versus-optimized benchmark and evidence output (targets not met).
+- [x] Add Fairfax-scale seed data and public GIS snapshots with attribution.
+- [x] Rework Snowflake ingestion, roles, row policies, and analytical views (live account verification outstanding).
 - [x] Build the Aegis Command visual system and first meaningful command preview.
-- [ ] Migrate and polish all supporting operational workspaces.
-- [ ] Add observability, accessibility, security scanning, threat model, and runbooks.
-- [ ] Run the full completion audit, update evidence, refresh screenshots, and finalize documentation.
+- [x] Migrate and polish all supporting operational workspaces.
+- [x] Add connectivity status, accessibility browser checks, security scanning, deployment gates, and runbooks.
+- [x] Run the full completion audit, update evidence, refresh screenshots, and finalize documentation.
 
 ## Validation
 
@@ -70,7 +70,12 @@ Turn the existing emergency-readiness demo into Aegis Command: a secure, departm
 | 2026-08-31 | Use Redpanda locally through the Kafka protocol. | Makes priority-topic behavior reproducible without weakening the production Kafka contract. |
 | 2026-08-31 | Exclude PHI and all real operational records. | Reduces privacy risk and keeps the public demo appropriate for portfolio review. |
 | 2026-08-31 | Treat requested resume numbers as gated targets. | Prevents unsupported performance claims from appearing in project documentation. |
+| 2026-09-15 | Stop latency optimization at the measured result; finish UI and functionality. | Explicit user direction. Preserve passing and failing runs without promoting unsupported lag or throughput claims. |
 
 ## Completion Notes
 
-In progress. September 14: the map-led command screen and responsive Aegis visual system are implemented. All sixteen Chromium/Firefox workspace checks pass; populated desktop and mobile captures are in `pictures/`. Repeated database lookups have been removed. Thirty-five backend tests, direct PostgreSQL RLS checks, and two real Keycloak/Redis/PostgreSQL operator-access browser tests pass. Both dependency audits report no known vulnerabilities. See `docs/security.md` for remaining deployment gates. Kafka reliability/performance and live Snowflake evidence remain outstanding.
+Completed September 15. The map-led command screen and five supporting workspaces now form a responsive, populated Aegis visual system, with desktop captures embedded in the README and mobile captures linked from it. The final audit passed 45 backend tests, 22 Chromium/Firefox workspace checks, three real Keycloak/Redis/PostgreSQL identity and end-to-end operator journeys, direct PostgreSQL row-security verification, frontend lint and type checks, a production build, dependency scans, and the repository harness.
+
+The local stack supplies normalized PostgreSQL persistence, OIDC identity, priority-isolated Kafka-compatible topics, durable outbox workers, Redis fan-out, tenant-scoped WebSockets, synthetic Fairfax-scale data, and guarded operator workflows. Operational writes no longer depend synchronously on Snowflake; warehouse synchronization stays on the durable asynchronous pipeline.
+
+Measured results remain deliberately bounded: 1,000/1,000 events were delivered at 100 offered events/second with 28.953 ms priority-alert p95. The 500 events/second run saturated near 183 accepted events/second with 1,094.147 ms p95, so neither a 200 ms result at that load nor a 60% consumer-lag reduction is claimed. Live Snowflake-account verification and the production deployment gates in `docs/security.md` remain outside this portfolio completion.
