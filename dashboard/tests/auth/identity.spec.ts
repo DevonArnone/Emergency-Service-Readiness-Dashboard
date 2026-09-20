@@ -12,7 +12,7 @@ for (const username of ['duty.officer', 'analyst']) {
     await page.getByLabel(/Username|Email/).fill(username)
     await page.getByLabel('Password', { exact: true }).fill('aegis-local-only')
     await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Every resource. One clear picture.' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('heading', { level: 1, name: 'Fairfax County readiness board' })).toBeVisible({ timeout: 20_000 })
     await expect.poll(() => Boolean(authorization)).toBe(true)
     const profile = await request.get('http://localhost:8000/api/v1/session', { headers: { authorization } })
     expect(profile.status()).toBe(200)

@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 const workspaces = [
-  { path: '/', heading: 'Every resource. One clear picture.', dataSelector: '.resource-tile' },
+  { path: '/', heading: 'Fairfax County readiness board', dataSelector: '.resource-tile' },
   { path: '/readiness', heading: 'Operations', dataSelector: '.unit-list-row' },
   { path: '/personnel', heading: 'Workforce', dataSelector: '.person-list-row' },
   { path: '/shifts', heading: 'Scheduling', dataSelector: '.shift-list-row' },
@@ -41,18 +42,29 @@ test('command map and filters work on desktop and mobile', async ({ page, browse
   await page.getByRole('button', { name: 'All units', exact: true }).click()
   await page.evaluate(() => window.scrollTo(0, 0))
   if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-command-desktop.png', fullPage: true, animations: 'disabled' })
+  for (const width of [1920, 1600, 1440, 1280, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 })
+    await expect(page.locator('h1')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  }
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.locator('h1')).toBeVisible()
   await expect.poll(() => page.locator('.app-sidebar').evaluate((element) => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   await page.evaluate(() => window.scrollTo(0, 0))
   if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-command-mobile.png', fullPage: true, animations: 'disabled' })
+
+  await page.keyboard.press('Tab')
+  await expect(page.locator(':focus-visible')).toBeVisible()
+  expect(await page.emulateMedia({ reducedMotion: 'reduce' }).then(() => page.locator('.page-enter').evaluate((element) => getComputedStyle(element).animationName))).toBe('none')
 })
 
 for (const workspace of workspaces) {
   test(`${workspace.heading} loads live data`, async ({ page, browserName }) => {
     await page.setViewportSize({ width: 1512, height: 1000 })
     await expectHealthyWorkspace(page, workspace.path, workspace.heading, workspace.dataSelector)
+    if (browserName === 'chromium') {
+      const accessibility = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
+      expect(accessibility.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([])
+    }
     if (workspace.path !== '/') {
       if (browserName === 'chromium') await page.screenshot({ path: `../pictures/aegis-${workspace.path.split('?')[0].slice(1)}-desktop.png`, fullPage: true, animations: 'disabled' })
       await page.setViewportSize({ width: 390, height: 844 })

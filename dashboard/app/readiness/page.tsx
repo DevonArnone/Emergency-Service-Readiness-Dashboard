@@ -157,7 +157,7 @@ export default function OperationsPage() {
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="District readiness" value={operations.data ? `${Math.round(operations.data.summary.overall_readiness_pct)}%` : '—'} detail={`${operations.data?.summary.ready_units || 0} fully ready units`} icon={CircleDot} tone={readinessTone(operations.data?.summary.overall_readiness_pct || 0)} />
           <StatCard label="Critical units" value={operations.data?.summary.critical_units ?? '—'} detail="Below 60% readiness" icon={ShieldAlert} tone={(operations.data?.summary.critical_units || 0) ? 'danger' : 'success'} />
           <StatCard label="Open exceptions" value={operations.data?.summary.open_alerts ?? '—'} detail="Awaiting duty officer action" icon={AlertTriangle} tone={(operations.data?.summary.open_alerts || 0) ? 'warning' : 'success'} />

@@ -2,6 +2,8 @@
 
 A map-led emergency coordination concept built with FastAPI, Next.js, normalized PostgreSQL, OIDC identity, Kafka priority channels, Redis fan-out, and a tenant-scoped Snowflake analytics deployment.
 
+The interface is organized as a municipal systems room: indexed workspaces, a county status wall, instrument-style measures, dispatch and renewal dockets, and ruled operating worksheets. It is designed for fast exception scanning by duty officers without presenting itself as a CAD, dispatch, or patient-care system. See [product context](PRODUCT.md) and [design system](DESIGN.md).
+
 **Target:** Fairfax County Fire and Rescue Department. **Unofficial portfolio concept—not affiliated with or endorsed by Fairfax County.** Public station geography is paired with 131 synthetic units, 1,450 synthetic personnel, eight synthetic battalion assignments, and a 363-position staffing model. No real incidents, personnel records, patient data, or county-system connections are included. See [target research and provenance](docs/target-research.md).
 
 ## Product tour
@@ -10,7 +12,7 @@ A map-led emergency coordination concept built with FastAPI, Next.js, normalized
 
 ![Aegis command center with Fairfax station geography and synthetic readiness](pictures/aegis-command-desktop.png)
 
-The command screen includes a keyboard-accessible station map, staffing exceptions, incident priorities, a downloadable shift-handover brief, resource filtering, and a live command log. [View the mobile command center](pictures/aegis-command-mobile.png).
+The county status wall includes a keyboard-accessible station plot, staffing exceptions, incident priorities, a downloadable shift-handover brief, resource filtering, and a live command log. [View the mobile command center](pictures/aegis-command-mobile.png).
 
 ### Operations
 

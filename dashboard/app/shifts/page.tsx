@@ -125,14 +125,14 @@ export default function SchedulingPage() {
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {(shifts.isError || liveShifts.isError) && <ErrorState message={shifts.error?.message || liveShifts.error?.message} retry={() => { shifts.refetch(); liveShifts.refetch() }} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Roster attendance" value={required ? `${Math.round((clocked / required) * 100)}%` : '—'} detail={`${clocked} clocked in · ${required} required`} icon={Radio} tone={clocked >= required ? 'success' : 'danger'} />
           <StatCard label="Shifts in view" value={scopedLive.length} detail="Selected date and station scope" icon={CalendarDays} tone="info" />
           <StatCard label="Staffing gaps" value={scopedLive.filter((shift) => shift.clocked_in_count < shift.required_headcount).length} detail="Shifts currently below minimum" icon={AlertTriangle} tone={scopedLive.some((shift) => shift.clocked_in_count < shift.required_headcount) ? 'danger' : 'success'} />
           <StatCard label="Scheduled roster" value={scopedLive.reduce((sum, shift) => sum + shift.assigned_count, 0)} detail="Personnel linked to live shifts" icon={Users} tone="info" />
         </section>
 
-        <div className="toolbar schedule-toolbar"><label className="date-control"><CalendarDays className="size-4" /><input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shift location" /></label><div className="date-shortcuts"><button onClick={() => setSelectedDate(dateInput())}>Today</button><button onClick={() => setSelectedDate(dateInput(new Date(Date.now() + 86400000)))}>Tomorrow</button></div></div>
+        <div className="toolbar schedule-toolbar"><label className="date-control"><CalendarDays className="size-4" /><input aria-label="Roster date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shift location" /></label><div className="date-shortcuts"><button onClick={() => setSelectedDate(dateInput())}>Today</button><button onClick={() => setSelectedDate(dateInput(new Date(Date.now() + 86400000)))}>Tomorrow</button></div></div>
 
         {shifts.isLoading ? <div className="ops-panel"><LoadingState rows={8} /></div> : (
           <div className="master-detail-grid schedule-grid">

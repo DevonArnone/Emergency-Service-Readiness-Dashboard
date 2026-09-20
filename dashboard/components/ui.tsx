@@ -76,11 +76,10 @@ export function PageHeader({
   return (
     <header className="page-header">
       <div className="min-w-0">
-        <div className="workspace-heading-meta"><p className="eyebrow">{eyebrow}</p><span className="workspace-access">{access.isPending ? 'Checking access' : access.data?.can_write ? 'Operator workspace' : 'Read-only workspace'}</span></div>
-        <h1>{title}</h1>
+        <div className="page-title-row"><h1>{title}</h1><span className="workspace-code">{eyebrow}</span></div>
         <p className="page-description">{description}</p>
       </div>
-      {actions && <div className="page-actions">{actions}</div>}
+      <div className="page-header-controls"><span className="workspace-access">{access.isPending ? 'Checking access' : access.data?.can_write ? 'Operator workspace' : 'Read-only workspace'}</span>{actions && <div className="page-actions">{actions}</div>}</div>
     </header>
   )
 }

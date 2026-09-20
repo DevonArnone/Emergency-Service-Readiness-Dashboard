@@ -129,7 +129,7 @@ export default function CredentialsPage() {
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {(people.isError || certifications.isError || renewals.isError) && <ErrorState message={people.error?.message || certifications.error?.message || renewals.error?.message} retry={() => { people.refetch(); certifications.refetch(); renewals.refetch() }} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Compliance rate" value={risks.length ? `${Math.round(((scopedPeople.reduce((sum, person) => sum + person.certifications.length, 0) - risks.filter((risk) => risk.daysLeft < 0).length) / Math.max(1, scopedPeople.reduce((sum, person) => sum + person.certifications.length, 0))) * 100)}%` : '100%'} detail="Non-expired personnel credentials" icon={ShieldCheck} tone={risks.some((risk) => risk.daysLeft < 0) ? 'warning' : 'success'} />
           <StatCard label="Expired" value={risks.filter((risk) => risk.daysLeft < 0).length} detail="Immediate qualification impact" icon={AlertTriangle} tone={risks.some((risk) => risk.daysLeft < 0) ? 'danger' : 'success'} />
           <StatCard label="Due in 30 days" value={risks.filter((risk) => risk.daysLeft >= 0 && risk.daysLeft <= 30).length} detail="Renew before operational impact" icon={Clock3} tone={risks.some((risk) => risk.daysLeft >= 0 && risk.daysLeft <= 30) ? 'warning' : 'success'} />

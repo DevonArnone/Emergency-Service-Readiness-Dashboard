@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Crosshair, Layers, Minus, Plus, X, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { useStationScope } from './ScopeContext'
 import type { Station, UnitReadiness } from '@/lib/schemas'
 
-type Props = { stations: Station[]; units: UnitReadiness[]; scope: string }
+type Props = { stations: Station[]; units: UnitReadiness[]; scope: string; actions?: ReactNode }
 const project = (lon: number, lat: number) => [(lon + 77.49) / .48 * 920, (39.035 - lat) / .4 * 600]
 
-export default function CommandMap({ stations, units, scope }: Props) {
+export default function CommandMap({ stations, units, scope, actions }: Props) {
   const { setStationId } = useStationScope()
   const [selected, setSelected] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
@@ -23,7 +24,7 @@ export default function CommandMap({ stations, units, scope }: Props) {
   const detail = stationRows.find(station => station.station_id === selected)
 
   return <section className="command-map" aria-label="Fairfax station map">
-    <div className="map-topline"><div><span className="live-beacon" />COMMON OPERATING PICTURE</div><span>FAIRFAX COUNTY, VA</span></div>
+    <div className="map-topline"><h1><span className="live-beacon" />Fairfax County readiness board</h1><div className="map-board-actions">{actions}</div></div>
     <svg className="tactical-map" viewBox="0 0 920 600" role="group" aria-label="Interactive schematic with public Fairfax station coordinates">
       <defs>
         <pattern id="map-grid" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#335064" strokeWidth=".45" /></pattern>
@@ -41,6 +42,8 @@ export default function CommandMap({ stations, units, scope }: Props) {
           <path d="M55 420L314 279 530 259 747 232M532 128L541 261 604 383 645 546M176 102L395 177 532 128M88 254L339 331 604 383 836 375" stroke="#536878" strokeWidth="2" opacity=".65" />
           <path d="M210 62L233 473M354 105L379 489M436 100L405 338 524 524M136 167L440 233 657 207M105 326L350 372 629 436M219 432L411 419 753 455" stroke="#38505e" strokeWidth="1" opacity=".55" />
           <path d="M83 257L197 320 299 410 357 495M350 22L411 115 460 190M630 265L704 296 752 349" stroke="#496573" strokeWidth=".8" opacity=".45" />
+          <path d="M151 76L282 194 341 331 326 474M271 42L301 151 459 288 590 321 781 302M115 220L275 244 443 391 689 492M170 360L279 298 478 206 681 178M401 66L503 178 587 286 735 393M463 540L540 468 714 420 824 434" stroke="#3f5967" strokeWidth=".8" opacity=".5" />
+          <path d="M98 292L246 356 425 365 568 416 760 507M249 122L322 238 475 309 690 351M331 493L447 448 637 457 811 397M578 92L607 196 721 271" stroke="#55717c" strokeWidth=".65" opacity=".42" />
         </g>
         <g className="map-place-labels">
           <text x="207" y="115">HERNDON</text><text x="330" y="181">RESTON</text>
@@ -70,6 +73,7 @@ export default function CommandMap({ stations, units, scope }: Props) {
     </svg>
     <div className="map-tools"><button aria-label="Zoom in" onClick={() => setZoom(Math.min(zoom + .2, 1.6))}><Plus size={16} /></button><button aria-label="Zoom out" onClick={() => setZoom(Math.max(zoom - .2, .8))}><Minus size={16} /></button><button aria-label="Reset map view" onClick={() => { setZoom(1); setSelected(null) }}><Crosshair size={16} /></button></div>
     <button className={`map-layer-button ${onlyExceptions ? 'is-active' : ''}`} onClick={() => setOnlyExceptions(!onlyExceptions)} aria-pressed={onlyExceptions}><Layers size={14} />{onlyExceptions ? 'Exceptions only' : 'All stations'}</button>
+    <div className="map-key" aria-label="Map legend"><strong>Map key</strong><span><i className="legend-ready" />Station ready</span><span><i className="legend-warning" />Staffing attention</span><span><b className="legend-route" />Major route</span><span><b className="legend-boundary" />County schematic</span></div>
     {detail && <div className="map-detail"><button className="map-detail-close" aria-label="Close station details" onClick={() => setSelected(null)}><X size={16} /></button><span className="command-kicker">STATION INTELLIGENCE</span><h3>{detail.name}</h3><p>{detail.address}</p><div className="map-detail-stats"><span><strong>{detail.assigned.length}</strong> units in scope</span><span><strong>{detail.score === null ? '—' : `${Math.round(detail.score)}%`}</strong> readiness</span></div><Link href="/readiness" onClick={() => setStationId(detail.station_id)}>Review operational resources <ArrowUpRight size={14} /></Link></div>}
     <div className="map-bottomline"><span><i className="legend-ready" />Ready <i className="legend-warning" />Staffing attention</span><span>Public station coordinates · schematic context</span></div>
   </section>

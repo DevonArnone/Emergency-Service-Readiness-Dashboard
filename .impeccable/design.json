@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T00:00:00-04:00",
+  "title": "Design System: Aegis Municipal Systems Room",
+  "extensions": {
+    "colorMeta": {
+      "midnight-shell": {
+        "role": "neutral",
+        "displayName": "Midnight Shell",
+        "canonical": "#0b1720",
+        "tonalRamp": ["#050b0f", "#0b1720", "#142936", "#294757", "#496876", "#728e99", "#a8bdc4", "#e5edef"]
+      },
+      "midnight-soft": {
+        "role": "neutral",
+        "displayName": "Midnight Soft",
+        "canonical": "#102330",
+        "tonalRamp": ["#081117", "#102330", "#1b394a", "#315466", "#527383", "#7a98a5", "#aec2ca", "#e7eef0"]
+      },
+      "indexed-rail": {
+        "role": "neutral",
+        "displayName": "Indexed Rail",
+        "canonical": "#09141d",
+        "tonalRamp": ["#04090d", "#09141d", "#122733", "#274451", "#476573", "#708b96", "#a7bbc2", "#e5edef"]
+      },
+      "instrument-ivory": {
+        "role": "neutral",
+        "displayName": "Instrument Ivory",
+        "canonical": "#efe8d7",
+        "tonalRamp": ["#28251f", "#4b463a", "#706958", "#978e79", "#bdb5a0", "#d9d2c1", "#efe8d7", "#fbf8ef"]
+      },
+      "paper-bright": {
+        "role": "neutral",
+        "displayName": "Paper Bright",
+        "canonical": "#f7f1e3",
+        "tonalRamp": ["#29261f", "#4d483c", "#746c5b", "#9b917b", "#c1b8a3", "#ddd6c5", "#f7f1e3", "#fdfaf2"]
+      },
+      "paper-muted": {
+        "role": "neutral",
+        "displayName": "Paper Muted",
+        "canonical": "#d9d2c1",
+        "tonalRamp": ["#25231e", "#474239", "#6b6557", "#908879", "#b5ae9e", "#d9d2c1", "#ece7dc", "#faf8f2"]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#20282e",
+        "tonalRamp": ["#101417", "#20282e", "#343e45", "#505c63", "#707d83", "#97a2a7", "#c2c9cc", "#edf0f1"]
+      },
+      "graphite-secondary": {
+        "role": "neutral",
+        "displayName": "Graphite Secondary",
+        "canonical": "#46545d",
+        "tonalRamp": ["#151a1d", "#293136", "#46545d", "#63717a", "#839098", "#a5afb4", "#c9ced1", "#eff1f2"]
+      },
+      "graphite-muted": {
+        "role": "neutral",
+        "displayName": "Graphite Muted",
+        "canonical": "#68757c",
+        "tonalRamp": ["#171b1d", "#30373b", "#4b555a", "#68757c", "#879399", "#a8b1b5", "#cbd0d2", "#f0f2f2"]
+      },
+      "municipal-blue": {
+        "role": "primary",
+        "displayName": "Municipal Blue",
+        "canonical": "#244a63",
+        "tonalRamp": ["#0b171f", "#142d3c", "#244a63", "#396b88", "#598da8", "#80afc3", "#b2cfda", "#e7f0f3"]
+      },
+      "service-green": {
+        "role": "secondary",
+        "displayName": "Service Green",
+        "canonical": "#3c7b62",
+        "tonalRamp": ["#102119", "#214633", "#3c7b62", "#58a080", "#78bd9d", "#9dd4b9", "#c3e6d5", "#eaf5ef"]
+      },
+      "service-green-strong": {
+        "role": "secondary",
+        "displayName": "Service Green Strong",
+        "canonical": "#285e49",
+        "tonalRamp": ["#0b1d15", "#173c2b", "#285e49", "#438269", "#65a58a", "#8fc5ac", "#b9dfcc", "#e7f3ed"]
+      },
+      "signal-amber": {
+        "role": "secondary",
+        "displayName": "Signal Amber",
+        "canonical": "#d59a2e",
+        "tonalRamp": ["#2b1d05", "#563d0c", "#875f16", "#b77e21", "#d59a2e", "#e5b85c", "#f0d493", "#fbf0d5"]
+      },
+      "alert-vermilion": {
+        "role": "tertiary",
+        "displayName": "Alert Vermilion",
+        "canonical": "#c44732",
+        "tonalRamp": ["#2b0d08", "#561c13", "#842b1e", "#aa3a29", "#c44732", "#dc7565", "#eba79c", "#f8dcd7"]
+      },
+      "focus-amber": {
+        "role": "tertiary",
+        "displayName": "Focus Amber",
+        "canonical": "#efb649",
+        "tonalRamp": ["#302205", "#60460d", "#936c18", "#c4902b", "#efb649", "#f6cb72", "#fae0a5", "#fff3d7"]
+      },
+      "ruled-line": {
+        "role": "neutral",
+        "displayName": "Ruled Line",
+        "canonical": "#9da7a6",
+        "tonalRamp": ["#1c201f", "#373d3c", "#545d5c", "#737d7c", "#9da7a6", "#b7bfbe", "#d2d7d6", "#f0f2f2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Workspace Display", "purpose": "Uppercase workspace titles on instrument-paper headers." },
+      "headline": { "displayName": "Status Wall Headline", "purpose": "The County Status Wall and dark-shell section introductions." },
+      "title": { "displayName": "Worksheet Title", "purpose": "Panel, docket, and worksheet headings." },
+      "body": { "displayName": "Operational Body", "purpose": "Names, explanations, descriptions, and decision copy." },
+      "label": { "displayName": "Register Label", "purpose": "Codes, statuses, timestamps, table headings, and instrument metadata." },
+      "metric": { "displayName": "Tabular Metric", "purpose": "Large operational figures paired with labels and explanatory detail." }
+    },
+    "shadows": [
+      { "name": "temporary-layer", "value": "8px 12px 28px rgba(0, 0, 0, .32)", "purpose": "Dialogs, command search, and dropdowns only." },
+      { "name": "mobile-dock", "value": "0 -8px 24px rgba(0, 0, 0, .2)", "purpose": "Separates the fixed mobile navigation register from scrolling worksheets." }
+    ],
+    "motion": [
+      { "name": "register-entry", "value": "280ms cubic-bezier(.16, 1, .3, 1)", "purpose": "One left-to-right reveal when a workspace page enters." },
+      { "name": "state-feedback", "value": "140ms ease", "purpose": "Background and color feedback for rows, resources, and compact controls." },
+      { "name": "reduced-motion", "value": "0.01ms linear", "purpose": "Collapses motion to a single effectively immediate frame and disables smooth scrolling." }
+    ],
+    "breakpoints": [
+      { "name": "rail-to-drawer", "value": "1023px" },
+      { "name": "compact-workspace", "value": "760px" },
+      { "name": "stacked-register", "value": "639px" },
+      { "name": "single-column-instrument", "value": "400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Authorized constructive action on a paper worksheet.",
+      "html": "<button class=\"ds-button-primary\" type=\"button\">ADD UNIT</button>",
+      "css": ".ds-button-primary { min-height:38px; border:1px solid #1f523e; border-radius:1px; padding:0 13px; color:#fff; background:var(--brand, #3c7b62); font:600 10px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; transition:background 140ms ease, border-color 140ms ease; } .ds-button-primary:hover { border-color:#285e49; background:#285e49; } .ds-button-primary:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-button-primary:active { transform:translateY(1px); } .ds-button-primary:disabled { opacity:.5; }"
+    },
+    {
+      "name": "Secondary Action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Compact shell control for navigation, export, and non-primary actions.",
+      "html": "<button class=\"ds-button-secondary\" type=\"button\">EXPORT HANDOVER BRIEF</button>",
+      "css": ".ds-button-secondary { min-height:38px; border:1px solid #486477; border-radius:1px; padding:0 13px; color:#efe8d7; background:#173044; font:600 10px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; transition:background 140ms ease, color 140ms ease; } .ds-button-secondary:hover { color:#fff; background:#244a63; } .ds-button-secondary:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-button-secondary:active { transform:translateY(1px); }"
+    },
+    {
+      "name": "Worksheet Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Square paper field for searches, selects, and record editing.",
+      "html": "<label class=\"ds-field-label\">UNIT SEARCH<input class=\"ds-field\" type=\"search\" placeholder=\"Search units\"></label>",
+      "css": ".ds-field-label { display:grid; gap:6px; color:#46545d; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.12em; text-transform:uppercase; } .ds-field { min-height:38px; border:1px solid #627a86; border-radius:0; padding:8px 10px; color:#20282e; background:var(--paper-bright, #f7f1e3); font:400 14px 'IBM Plex Sans', Arial, sans-serif; } .ds-field::placeholder { color:#68757c; } .ds-field:hover { border-color:#244a63; } .ds-field:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Operational Status Stamp",
+      "kind": "chip",
+      "refersTo": "status-success",
+      "description": "Text-first ready state; warning and critical variants preserve the same geometry.",
+      "html": "<span class=\"ds-status ds-status-ready\"><i aria-hidden=\"true\"></i>READY</span> <span class=\"ds-status ds-status-attention\"><i aria-hidden=\"true\"></i>ATTENTION</span> <span class=\"ds-status ds-status-critical\"><i aria-hidden=\"true\"></i>CRITICAL</span>",
+      "css": ".ds-status { display:inline-flex; min-height:23px; align-items:center; gap:6px; border:1px solid; border-radius:1px; padding:4px 7px; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.06em; text-transform:uppercase; } .ds-status i { width:5px; height:5px; background:currentColor; } .ds-status-ready { border-color:#3c7b62; color:#265c48; background:#dce8dc; } .ds-status-attention { border-color:#a87316; color:#79500a; background:#f0dfb7; } .ds-status-critical { border-color:#a13928; color:#872c20; background:#efd1c9; } .ds-status:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Indexed Navigation Row",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "A ruled rail row with an ivory active reversal and amber index bar.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace\"><a class=\"ds-nav-row ds-nav-active\" href=\"#\" aria-current=\"page\"><span>01</span>COMMAND CENTER<b>→</b></a><a class=\"ds-nav-row\" href=\"#\"><span>02</span>OPERATIONS<b>→</b></a></nav>",
+      "css": ".ds-nav { width:184px; border:1px solid #44657a; background:#09141d; } .ds-nav-row { position:relative; display:grid; min-height:47px; align-items:center; grid-template-columns:24px 1fr auto; border-bottom:1px solid #223847; padding:0 17px; color:#b8c7cf; background:transparent; font:520 12px 'IBM Plex Sans', Arial, sans-serif; text-decoration:none; } .ds-nav-row span, .ds-nav-row b { color:#708a9a; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; } .ds-nav-row:hover { color:#fff; background:#122a39; } .ds-nav-row:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-nav-active { color:#20282e; background:#efe8d7; } .ds-nav-active::before { position:absolute; inset:0 auto 0 0; width:5px; background:#d59a2e; content:''; } .ds-nav-active span, .ds-nav-active b { color:#244a63; }"
+    },
+    {
+      "name": "Segmented Register",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Shared-edge tabs for mutually exclusive register views.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">ALL UNITS</button><button role=\"tab\" aria-selected=\"false\">NEEDS ATTENTION&nbsp; 12</button></div>",
+      "css": ".ds-tabs { display:inline-flex; border:1px solid #47677a; border-radius:0; background:#132a38; } .ds-tabs button { min-height:37px; border:0; border-right:1px solid #47677a; padding:0 12px; color:#b9c9cf; background:transparent; font:500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; } .ds-tabs button:last-child { border-right:0; } .ds-tabs button:hover { color:#fff; background:#173044; } .ds-tabs button[aria-selected='true'] { color:#20282e; background:#efe8d7; box-shadow:inset 0 -4px #d59a2e; } .ds-tabs button:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Instrument Metric Register",
+      "kind": "card",
+      "refersTo": "instrument-plate",
+      "description": "Continuous four-cell register for scan-first operational figures.",
+      "html": "<section class=\"ds-register\" aria-label=\"Operational readiness\"><article><span>OPERATIONAL READINESS</span><strong>97<small>%</small></strong><p>119 ready / 131 response units</p><i aria-hidden=\"true\"></i></article><article><span>OPEN EXCEPTIONS</span><strong>15</strong><p>Awaiting duty officer action</p><i class=\"ds-amber\" aria-hidden=\"true\"></i></article></section>",
+      "css": ".ds-register { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid #244a63; border-bottom:5px solid #244a63; border-radius:1px; color:#20282e; background:#efe8d7; } .ds-register article { min-height:122px; border-right:1px solid #98a4a3; padding:14px 18px 12px; } .ds-register article:last-child { border-right:0; } .ds-register span { color:#4f6570; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.12em; } .ds-register strong { display:block; margin:14px 0 10px; font:600 37px/1 'IBM Plex Mono', ui-monospace, monospace; } .ds-register strong small { font-size:14px; color:#53636a; } .ds-register p { color:#53636a; font:400 10px/1.4 'IBM Plex Sans', Arial, sans-serif; } .ds-register i { display:block; height:5px; margin-top:14px; background:#3c7b62; } .ds-register .ds-amber { background:#d59a2e; }"
+    },
+    {
+      "name": "Ruled Data Table",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Dense report table with a municipal header and paper-row inspection state.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>UNIT</th><th>STATUS</th><th>STAFFED</th></tr></thead><tbody><tr><td>E401</td><td>DEGRADED</td><td>3/4</td></tr><tr><td>E402</td><td>READY</td><td>4/4</td></tr></tbody></table>",
+      "css": ".ds-table { width:100%; border-collapse:collapse; color:#20282e; background:#efe8d7; font:400 12px 'IBM Plex Sans', Arial, sans-serif; } .ds-table th { height:38px; border:1px solid #738890; padding:0 14px; color:#f7f1e3; background:#244a63; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.06em; text-align:left; text-transform:uppercase; } .ds-table td { height:54px; border-bottom:1px solid #aeb3aa; padding:8px 14px; } .ds-table td:first-child, .ds-table td:last-child { font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; } .ds-table tr:hover td { background:#e4decf; } .ds-table tr:focus-within td { outline:2px solid #efb649; outline-offset:-2px; }"
+    },
+    {
+      "name": "Dispatch Docket Item",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Incident review row that exposes severity, identity, age, and assignment without implying dispatch authority.",
+      "html": "<a class=\"ds-docket\" href=\"#\"><span class=\"ds-severity\"><i aria-hidden=\"true\"></i>CRITICAL <small>INC / 001</small></span><strong>Hazardous materials response · industrial park</strong><p>◷ about 1 hour ago · 2 units assigned</p><b aria-hidden=\"true\">›</b></a>",
+      "css": ".ds-docket { position:relative; display:block; border-bottom:1px solid #a4aaa3; padding:13px 28px 13px 14px; color:#20282e; background:#efe8d7; text-decoration:none; } .ds-docket:hover { background:#dfdacb; } .ds-docket:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-severity { display:flex; justify-content:space-between; align-items:center; gap:6px; color:#a53324; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.08em; } .ds-severity i { width:5px; height:5px; background:currentColor; } .ds-severity small { margin-left:auto; color:#607078; } .ds-docket strong { display:block; margin:8px 0 7px; color:#25323a; font:600 12px/1.5 'IBM Plex Sans', Arial, sans-serif; } .ds-docket p { color:#65747a; font:400 9px 'IBM Plex Sans', Arial, sans-serif; } .ds-docket b { position:absolute; right:12px; top:50%; color:#244a63; font-size:20px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The County Status Wall",
+    "overview": "Aegis is a 1970s municipal systems room made interactive: public-infrastructure manuals, dispatch worksheets, wall-board plotting, and corporate control equipment translated into a calm operating surface. The midnight shell is structural and recessive; instrument-ivory plates carry the work. Strong rules, indexed labels, tabular numbers, and stamped states make every region feel accountable rather than atmospheric.\n\nThe system is intentionally dense. Its hierarchy comes from registration, contrast, and repeated document grammar—not oversized cards or empty space. Across Command Center, Operations, Workforce, Scheduling, Credentials, and Analytics, the reading sequence is exception, evidence, action, then handover. It refuses generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, oversized pills, and decorative command-center theater.",
+    "keyCharacteristics": [
+      "Midnight structural shell with instrument-ivory working papers.",
+      "Municipal-blue rules, square plates, indexed tabs, and mono register labels.",
+      "Vermilion, amber, and service green reserved for explicit operational meaning.",
+      "High information density disciplined by alignment, dividers, and tabular numbers.",
+      "Synthetic provenance, access state, and data freshness remain visible at the point of use."
+    ],
+    "rules": [
+      { "name": "The Evidence Before Action Rule", "body": "Every action follows the responsible metric, record, or exception; never separate a control from the evidence that explains its consequence.", "section": "overview" },
+      { "name": "The Signal Budget Rule", "body": "Service green means ready or successful, amber means attention, vermilion means critical or destructive, and blue means structure or information. Never swap those meanings between routes.", "section": "colors" },
+      { "name": "The Warm Paper Rule", "body": "Operational content sits on warm ivory, not white and not translucent dark glass; the contrast between shell and paper is the primary depth cue.", "section": "colors" },
+      { "name": "The Instrument Voice Rule", "body": "Use mono for codes, times, counts, statuses, and machine-like labels; use Sans for names, descriptions, and decisions. Do not set whole paragraphs in mono.", "section": "typography" },
+      { "name": "The Labeled Number Rule", "body": "A large number is never self-explanatory: pair it with a visible label, unit where relevant, and a plain-language detail line.", "section": "typography" },
+      { "name": "The Continuous Register Rule", "body": "Related metrics, tabs, and resources share edges and dividers. Avoid card gaps when the content forms one operational register.", "section": "layout" },
+      { "name": "The Board First Rule", "body": "On overview surfaces, geography and exceptions outrank decorative summaries; on task surfaces, the selected record remains adjacent to the list or filter that produced it.", "section": "layout" },
+      { "name": "The Flat Operations Rule", "body": "Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.", "section": "elevation" },
+      { "name": "The Two-Pixel Ceiling Rule", "body": "Persistent controls and plates stay between 0 and 1px radius; a 2px border is reserved for dominant plotted or framed regions, not generic cards.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
+      "Do use warm paper plates, strong rules, mono labels, tabular figures, and repeated worksheet geometry across all six workspaces.",
+      "Do pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
+      "Do preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, aria-current, live status messaging, and 44px mobile controls.",
+      "Do preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",
+      "Do keep errors recoverable, loading states legible, destructive actions confirmed, and read-only actions visibly unavailable rather than absent."
+    ],
+    "donts": [
+      "Don't turn Aegis into generic SaaS cards, cyberpunk neon, glass panels, gradient spectacle, oversized pills, or decorative command-center theater.",
+      "Don't use color, animation, iconography, or a large metric as the only explanation of state.",
+      "Don't soften the system with broad radii, floating persistent shadows, loose card spacing, or unlabeled whitespace.",
+      "Don't imply dispatch authority, county endorsement, patient care, personnel decisions, or suitability for real emergency operations.",
+      "Don't add patient identifiers, clinical narratives, ePHI, private county-system data, invented incident facts, or claims not supported by measured evidence.",
+      "Don't hide access limits, stale connections, synthetic provenance, or destructive consequences to make the interface appear more capable."
+    ]
+  }
+}

@@ -8,7 +8,7 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await page.getByLabel(/Username|Email/).fill('duty.officer')
   await page.getByLabel('Password', { exact: true }).fill('aegis-local-only')
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.locator('h1')).toContainText('Every resource.', { timeout: 20_000 })
+  await expect(page.locator('h1')).toContainText('Fairfax County readiness board', { timeout: 20_000 })
 
   // Navigation stays within the authenticated app; tokens are deliberately memory-only.
   await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Workforce' }).click()

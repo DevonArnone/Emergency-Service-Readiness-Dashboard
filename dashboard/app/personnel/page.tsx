@@ -116,7 +116,7 @@ export default function WorkforcePage() {
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {people.isError && <ErrorState message={people.error.message} retry={() => people.refetch()} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Active roster" value={scopedPeople.length} detail="Personnel in current scope" icon={Users} tone="info" />
           <StatCard label="Deployable now" value={scopedPeople.filter((person) => ['AVAILABLE', 'ON_CALL'].includes(person.availability_status)).length} detail="Available or on call" icon={UserCheck} tone="success" />
           <StatCard label="On assignment" value={scopedPeople.filter((person) => person.availability_status === 'DEPLOYED').length} detail="Currently linked to a unit" icon={Clock3} tone="info" />

@@ -94,7 +94,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="brand-block">
           <Link href="/" className="brand-mark" onClick={() => setMobileMenuOpen(false)} aria-label="Aegis command center">
             <span><ShieldCheck className="size-5" aria-hidden="true" /></span>
-            <span><strong>AEGIS</strong><small>Command Platform</small></span>
+            <span><strong>AEGIS COMMAND</strong><small>Municipal operations system</small></span>
           </Link>
           <button className="sidebar-close lg:hidden" type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation"><X className="size-5" /></button>
         </div>
@@ -135,6 +135,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="topbar-title">
           <IconButton label="Open navigation" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}><Menu className="size-5" /></IconButton>
           <div><span>FAIRFAX COUNTY / AEGIS</span><strong>{currentPage.name}</strong></div>
+          <div className="operational-period"><span>Operational period</span><strong>A Watch · Synthetic</strong></div>
         </div>
         <div className="topbar-actions">
           <label className="station-scope">
@@ -204,7 +205,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {session.data?.can_reset_demo && <span className="command-label">System</span>}
               {session.data?.can_reset_demo && <button type="button" onClick={() => { if (window.confirm('Replace all synthetic demo records? This cannot be undone.')) resetDemo.mutate() }} disabled={resetDemo.isPending}><span><RefreshCw className={cn('size-[18px]', resetDemo.isPending && 'animate-spin')} /></span><strong>Restore demo data</strong><small>Reset</small></button>}
             </div>
-            <div className="command-footer"><span><Command className="size-3.5" />Aegis command menu</span><span>Tab navigate · Enter select</span></div>
+            <div className="command-footer"><span><Command className="size-3.5" />Switchboard directory</span><span>Tab navigate · Enter select</span></div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
