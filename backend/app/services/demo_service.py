@@ -352,15 +352,17 @@ def seed_demo() -> dict:
         session.flush()
 
         incident_specs = (
-            ("inc-01", "Commercial fire · Tysons corridor", "HIGH", "fs-29", ["unit-engine-26", "unit-truck-01"]),
-            ("inc-02", "Vehicle collision · I-495 outer loop", "MEDIUM", "fs-13", ["unit-rescue-01", "unit-medic-02"]),
-            ("inc-03", "Hazardous materials response · industrial park", "CRITICAL", "fs-40", ["unit-hazmat-01", "unit-hazmat-02"]),
-            ("inc-04", "Apartment alarm · Annandale sector", "LOW", "fs-08", ["unit-engine-05"]),
-            ("inc-05", "Medical emergency · Reston transit center", "HIGH", "fs-25", ["unit-medic-22"]),
+            ("inc-01", "Medical emergency", "EMS", "12000 Fair Oaks Mall, Fairfax, VA", "HIGH", "ENROUTE", "fs-21", ["unit-engine-21", "unit-medic-21"]),
+            ("inc-02", "Structure fire", "FIRE", "4500 Stringfellow Rd, Chantilly, VA", "CRITICAL", "ON_SCENE", "fs-15", ["unit-engine-15", "unit-truck-01"]),
+            ("inc-03", "Medical emergency", "EMS", "8100 Boone Blvd, Tysons, VA", "HIGH", "ON_SCENE", "fs-29", ["unit-medic-02", "unit-engine-26"]),
+            ("inc-04", "Medical transport", "EMS", "6001 Burke Centre Pkwy, Burke, VA", "MEDIUM", "TRANSPORT", "fs-14", ["unit-medic-14"]),
+            ("inc-05", "Roadway investigation", "OTHER", "I-495 NB at Braddock Rd, Springfield, VA", "LOW", "INVESTIGATING", "fs-22", ["unit-rescue-01"]),
         )
         incidents: list[Incident] = []
         incident_links: list[IncidentUnit] = []
-        for offset, (incident_id, title, priority, station_id, unit_ids) in enumerate(incident_specs, start=1):
+        for offset, (
+            incident_id, title, incident_type, display_location, priority, status, station_id, unit_ids,
+        ) in enumerate(incident_specs, start=1):
             station = station_by_id[station_id]
             valid_unit_ids = [unit_id for unit_id in unit_ids if unit_id in unit_by_id]
             if not valid_unit_ids:
@@ -369,7 +371,8 @@ def seed_demo() -> dict:
                 incident_id=incident_id, organization_id=organization_id, station_id=station_id,
                 primary_unit_id=valid_unit_ids[0], title=title,
                 description=f"Synthetic active incident for interface demonstration. {DATASET_DISCLAIMER}",
-                priority=priority, status="ACTIVE", commander="Duty Command (synthetic)",
+                priority=priority, incident_type=incident_type, display_location=display_location,
+                status=status, commander="Duty Command (synthetic)",
                 latitude=station.latitude, longitude=station.longitude, source="SYNTHETIC_DEMO",
                 source_reference=f"DEMO-{offset:03d}", created_at=now - timedelta(minutes=offset * 11),
                 is_active=True,

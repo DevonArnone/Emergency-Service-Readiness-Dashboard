@@ -55,6 +55,16 @@ class DatabaseSchemaTests(unittest.TestCase):
             indexes = {index["name"] for index in inspector.get_indexes(table_name)}
             self.assertIn(expected_index, indexes)
 
+    def test_incident_dispatch_fields_are_durable(self) -> None:
+        columns = {column["name"]: column for column in inspect(self.engine).get_columns("incidents")}
+        for field in {
+            "incident_type", "display_location", "status", "latitude", "longitude",
+            "source", "source_reference",
+        }:
+            self.assertIn(field, columns)
+        self.assertFalse(columns["incident_type"]["nullable"])
+        self.assertFalse(columns["display_location"]["nullable"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,6 +81,11 @@ export default function OperationsPage() {
     onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Incident closed.' }) },
     onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
+  const updateIncident = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: unknown }) => api.updateIncident(id, value),
+    onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Dispatch lifecycle updated.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
   const createUnit = useMutation({
     mutationFn: api.createUnit,
     onSuccess: async (unit) => { await invalidateOperations(); setSelectedUnitId(unit.unit_id); setSearch(unit.unit_name); setStatusFilter('all'); setUnitDialog(false); setNotice({ tone: 'success', message: 'Response unit added.' }) },
@@ -93,7 +98,12 @@ export default function OperationsPage() {
   })
   const createIncident = useMutation({
     mutationFn: api.createIncident,
-    onSuccess: async () => { await invalidateOperations(); setIncidentDialog(false); router.replace('/readiness?view=incidents', { scroll: false }); setNotice({ tone: 'success', message: 'Incident opened and recorded.' }) },
+    onSuccess: () => {
+      setIncidentDialog(false)
+      router.replace('/readiness?view=incidents', { scroll: false })
+      setNotice({ tone: 'success', message: 'Incident opened and recorded.' })
+      void invalidateOperations()
+    },
     onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
   const simulation = useMutation({
@@ -144,6 +154,7 @@ export default function OperationsPage() {
     const data = new FormData(event.currentTarget)
     createIncident.mutate({
       title: data.get('title'), description: data.get('description') || null, priority: data.get('priority'),
+      incident_type: data.get('incident_type'), display_location: data.get('display_location') || null, status: data.get('status'),
       station_id: data.get('station_id') || null, unit_id: data.get('unit_id') || null,
       commander: data.get('commander') || null, assigned_unit_ids: data.get('unit_id') ? [data.get('unit_id')] : [], is_active: true,
     })
@@ -201,7 +212,7 @@ export default function OperationsPage() {
           <Tabs.Content value="incidents" className="tab-content">
             <section className="ops-panel">
               <SectionHeader title="Incident command" description="Active events and their assigned response resources" action={<Button variant="primary" onClick={() => setIncidentDialog(true)}><Plus className="size-4" />Open incident</Button>} />
-              <div className="incident-grid">{incidents.map((incident) => <article key={incident.incident_id} className="incident-card"><div><StatusBadge tone={incident.priority === 'CRITICAL' ? 'danger' : incident.priority === 'HIGH' ? 'warning' : 'info'}>{incident.priority}</StatusBadge><StatusBadge tone="danger">Active</StatusBadge></div><h3>{incident.title}</h3><p>{incident.description || 'No incident detail entered.'}</p><dl><div><dt>Commander</dt><dd>{incident.commander || 'Unassigned'}</dd></div><div><dt>Unit</dt><dd>{incident.unit_id || 'District-wide'}</dd></div></dl><Button onClick={() => resolveIncident.mutate(incident.incident_id)} busy={resolveIncident.isPending}><CheckCircle2 className="size-4" />Close incident</Button></article>)}</div>
+              <div className="incident-grid">{incidents.map((incident) => <article key={incident.incident_id} className="incident-card"><div><StatusBadge tone={incident.priority === 'CRITICAL' ? 'danger' : incident.priority === 'HIGH' ? 'warning' : 'info'}>{incident.priority}</StatusBadge><StatusBadge tone={incident.status === 'ON_SCENE' ? 'danger' : 'warning'}>{incident.status.replaceAll('_', ' ')}</StatusBadge></div><h3>{incident.title}</h3><p>{incident.display_location || 'Location pending'} · {incident.incident_type}</p><p>{incident.description || 'No incident detail entered.'}</p><dl><div><dt>Commander</dt><dd>{incident.commander || 'Unassigned'}</dd></div><div><dt>Unit</dt><dd>{incident.unit_id || 'District-wide'}</dd></div></dl><Field label="Dispatch lifecycle"><select className="form-control" value={incident.status} disabled={updateIncident.isPending} onChange={(event) => updateIncident.mutate({ id: incident.incident_id, value: { ...incident, status: event.target.value } })}><option>ACTIVE</option><option>ENROUTE</option><option>ON_SCENE</option><option>TRANSPORT</option><option>INVESTIGATING</option></select></Field><Button onClick={() => resolveIncident.mutate(incident.incident_id)} busy={resolveIncident.isPending}><CheckCircle2 className="size-4" />Close incident</Button></article>)}</div>
               {!incidents.length && <EmptyState title="No active incidents" description="Open a new incident when an event requires coordinated command." icon={Siren} />}
             </section>
           </Tabs.Content>
@@ -219,7 +230,7 @@ export default function OperationsPage() {
 
       <FormDialog open={assignmentDialog} onOpenChange={setAssignmentDialog} title={`Assign to ${selectedUnit?.unit_name || 'unit'}`} description="Conflicts and required credentials are validated before assignment." submitLabel="Assign personnel" submitting={createAssignment.isPending} error={createAssignment.error?.message} onSubmit={submitAssignment}><div className="form-grid"><Field label="Personnel"><select className="form-control" name="personnel_id" required><option value="">Select personnel</option>{personnel.data?.filter((person) => person.availability_status !== 'OFF').map((person) => <option key={person.personnel_id} value={person.personnel_id}>{person.name} · {person.role}</option>)}</select></Field><Field label="Shift start"><input className="form-control" name="shift_start" type="datetime-local" required /></Field><Field label="Shift end"><input className="form-control" name="shift_end" type="datetime-local" required /></Field><Field label="Notes"><input className="form-control" name="notes" /></Field></div></FormDialog>
 
-      <FormDialog open={incidentDialog} onOpenChange={setIncidentDialog} title="Open incident" description="Create a command record and assign an initial station or unit." submitLabel="Open incident" submitting={createIncident.isPending} error={createIncident.error?.message} onSubmit={submitIncident}><div className="form-grid"><Field label="Incident title"><input className="form-control" name="title" required /></Field><Field label="Priority"><select className="form-control" name="priority" defaultValue="HIGH"><option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></select></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId}><option value="">District-wide</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Initial unit"><select className="form-control" name="unit_id"><option value="">Not assigned</option>{units.map((unit) => <option key={unit.unit_id} value={unit.unit_id}>{unit.unit_name}</option>)}</select></Field><Field label="Incident commander"><input className="form-control" name="commander" placeholder="Duty officer" /></Field><Field label="Description"><textarea className="form-control min-h-24" name="description" /></Field></div></FormDialog>
+      <FormDialog open={incidentDialog} onOpenChange={setIncidentDialog} title="Open incident" description="Create a complete dispatch record and assign an initial station or unit." submitLabel="Open incident" submitting={createIncident.isPending} error={createIncident.error?.message} onSubmit={submitIncident}><div className="form-grid"><Field label="Incident title"><input className="form-control" name="title" required /></Field><Field label="Display location"><input className="form-control" name="display_location" placeholder="12000 Fair Oaks Mall, Fairfax, VA" required /></Field><Field label="Incident type"><select className="form-control" name="incident_type" defaultValue="EMS"><option>FIRE</option><option>EMS</option><option>HAZMAT</option><option>OTHER</option></select></Field><Field label="Dispatch lifecycle"><select className="form-control" name="status" defaultValue="ACTIVE"><option>ACTIVE</option><option>ENROUTE</option><option>ON_SCENE</option><option>TRANSPORT</option><option>INVESTIGATING</option></select></Field><Field label="Priority"><select className="form-control" name="priority" defaultValue="HIGH"><option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></select></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId}><option value="">District-wide</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Initial unit"><select className="form-control" name="unit_id"><option value="">Not assigned</option>{units.map((unit) => <option key={unit.unit_id} value={unit.unit_id}>{unit.unit_name}</option>)}</select></Field><Field label="Incident commander"><input className="form-control" name="commander" placeholder="Duty officer" /></Field><Field label="Description"><textarea className="form-control min-h-24" name="description" /></Field></div></FormDialog>
     </div>
   )
 }

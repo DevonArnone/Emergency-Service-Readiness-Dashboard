@@ -258,8 +258,15 @@ def _incident_from_row(row: IncidentRow, assigned_unit_ids: list[str]) -> Operat
         title=row.title,
         description=row.description,
         priority=row.priority,
+        incident_type=row.incident_type,
+        display_location=row.display_location,
+        status=row.status,
         station_id=row.station_id,
         unit_id=row.primary_unit_id,
+        latitude=row.latitude,
+        longitude=row.longitude,
+        source=row.source,
+        source_reference=row.source_reference,
         is_active=row.is_active,
         created_at=_aware(row.created_at),
         resolved_at=_aware(row.resolved_at),
@@ -373,7 +380,8 @@ def _enqueue_change(session, organization_id: str, kind: str, key: str, value: B
     from app.models import EventEnvelope, EventPriority
     from app.services.outbox_service import enqueue_event
     # Send identifiers and operational state, not names, free text, or credential details.
-    fields = {"station_id", "unit_id", "personnel_id", "shift_id", "priority", "state",
+    fields = {"station_id", "unit_id", "personnel_id", "shift_id", "priority", "state", "status",
+              "incident_type",
               "is_active", "operational_status", "assignment_status", "availability_status", "minimum_staff"}
     payload = value.model_dump(mode="json", include=fields) if value else {"deleted": True}
     urgent = kind == "alerts" or (kind == "incidents" and payload.get("priority") in {"HIGH", "CRITICAL"})
@@ -495,8 +503,10 @@ def _save(kind: str, session, organization_id: str, value: BaseModel) -> None:
         session.merge(IncidentRow(
             incident_id=value.incident_id, organization_id=organization_id, station_id=value.station_id,
             primary_unit_id=value.unit_id, title=value.title, description=value.description,
-            priority=_value(value.priority), status="ACTIVE" if value.is_active else "RESOLVED",
-            commander=value.commander, source="SYNTHETIC_DEMO",
+            priority=_value(value.priority), incident_type=_value(value.incident_type),
+            display_location=value.display_location or "Location pending", status=_value(value.status),
+            commander=value.commander, latitude=value.latitude, longitude=value.longitude,
+            source=value.source, source_reference=value.source_reference,
             created_at=value.created_at or datetime.now(timezone.utc), resolved_at=value.resolved_at,
             is_active=value.is_active,
         ))

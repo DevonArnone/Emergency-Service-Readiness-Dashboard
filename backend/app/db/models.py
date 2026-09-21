@@ -244,6 +244,8 @@ class Incident(Base):
     title: Mapped[str] = mapped_column(String(220), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[str] = mapped_column(String(30), nullable=False)
+    incident_type: Mapped[str] = mapped_column(String(30), nullable=False, default="OTHER")
+    display_location: Mapped[str] = mapped_column(String(240), nullable=False, default="Location pending")
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="ACTIVE")
     commander: Mapped[str | None] = mapped_column(String(180))
     latitude: Mapped[float | None] = mapped_column(Float)

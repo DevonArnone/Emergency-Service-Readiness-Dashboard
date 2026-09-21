@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-19T00:00:00-04:00",
+  "generatedAt": "2026-09-21T00:00:00-04:00",
   "title": "Design System: Aegis Municipal Systems Room",
   "extensions": {
     "colorMeta": {
@@ -9,6 +9,24 @@
         "displayName": "Midnight Shell",
         "canonical": "#0b1720",
         "tonalRamp": ["#050b0f", "#0b1720", "#142936", "#294757", "#496876", "#728e99", "#a8bdc4", "#e5edef"]
+      },
+      "status-shell": {
+        "role": "neutral",
+        "displayName": "Status Shell",
+        "canonical": "#081923",
+        "tonalRamp": ["#040b0f", "#081923", "#15303d", "#2b4d5b", "#4c6c78", "#74909b", "#aabfc6", "#e8eff1"]
+      },
+      "workspace-shell": {
+        "role": "neutral",
+        "displayName": "Workspace Shell",
+        "canonical": "#0b202a",
+        "tonalRamp": ["#050d11", "#0b202a", "#173743", "#2e5361", "#507380", "#7895a0", "#aec4cb", "#e8f0f2"]
+      },
+      "plotted-board": {
+        "role": "neutral",
+        "displayName": "Plotted Board",
+        "canonical": "#0b1d28",
+        "tonalRamp": ["#050c10", "#0b1d28", "#17343f", "#2e505e", "#50717e", "#78939e", "#adc2ca", "#e8eff2"]
       },
       "midnight-soft": {
         "role": "neutral",
@@ -102,12 +120,12 @@
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Workspace Display", "purpose": "Uppercase workspace titles on instrument-paper headers." },
-      "headline": { "displayName": "Status Wall Headline", "purpose": "The County Status Wall and dark-shell section introductions." },
-      "title": { "displayName": "Worksheet Title", "purpose": "Panel, docket, and worksheet headings." },
+      "display": { "displayName": "Instrument Display", "purpose": "Large status-wall figures in Plex Sans." },
+      "headline": { "displayName": "GIS Board Headline", "purpose": "The outlined county board title in Plex Mono." },
+      "title": { "displayName": "Worksheet Title", "purpose": "Compact instrument, docket, and worksheet headings." },
       "body": { "displayName": "Operational Body", "purpose": "Names, explanations, descriptions, and decision copy." },
       "label": { "displayName": "Register Label", "purpose": "Codes, statuses, timestamps, table headings, and instrument metadata." },
-      "metric": { "displayName": "Tabular Metric", "purpose": "Large operational figures paired with labels and explanatory detail." }
+      "metric": { "displayName": "Tabular Metric", "purpose": "Large Plex Sans operational figures paired with labels and supporting register detail." }
     },
     "shadows": [
       { "name": "temporary-layer", "value": "8px 12px 28px rgba(0, 0, 0, .32)", "purpose": "Dialogs, command search, and dropdowns only." },
@@ -115,14 +133,17 @@
     ],
     "motion": [
       { "name": "register-entry", "value": "280ms cubic-bezier(.16, 1, .3, 1)", "purpose": "One left-to-right reveal when a workspace page enters." },
+      { "name": "map-zoom", "value": "180ms steps(3,end)", "purpose": "Stepped transform for the GIS zoom layer." },
+      { "name": "rail-slide", "value": "170ms steps(3,end)", "purpose": "Off-canvas indexed rail transition." },
       { "name": "state-feedback", "value": "140ms ease", "purpose": "Background and color feedback for rows, resources, and compact controls." },
       { "name": "reduced-motion", "value": "0.01ms linear", "purpose": "Collapses motion to a single effectively immediate frame and disables smooth scrolling." }
     ],
     "breakpoints": [
       { "name": "rail-to-drawer", "value": "1023px" },
+      { "name": "single-column-status-wall", "value": "767px" },
       { "name": "compact-workspace", "value": "760px" },
       { "name": "stacked-register", "value": "639px" },
-      { "name": "single-column-instrument", "value": "400px" }
+      { "name": "narrow-board-labels", "value": "390px" }
     ]
   },
   "components": [
@@ -162,9 +183,9 @@
       "name": "Indexed Navigation Row",
       "kind": "nav",
       "refersTo": null,
-      "description": "A ruled rail row with an ivory active reversal and amber index bar.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace\"><a class=\"ds-nav-row ds-nav-active\" href=\"#\" aria-current=\"page\"><span>01</span>COMMAND CENTER<b>→</b></a><a class=\"ds-nav-row\" href=\"#\"><span>02</span>OPERATIONS<b>→</b></a></nav>",
-      "css": ".ds-nav { width:184px; border:1px solid #44657a; background:#09141d; } .ds-nav-row { position:relative; display:grid; min-height:47px; align-items:center; grid-template-columns:24px 1fr auto; border-bottom:1px solid #223847; padding:0 17px; color:#b8c7cf; background:transparent; font:520 12px 'IBM Plex Sans', Arial, sans-serif; text-decoration:none; } .ds-nav-row span, .ds-nav-row b { color:#708a9a; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; } .ds-nav-row:hover { color:#fff; background:#122a39; } .ds-nav-row:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-nav-active { color:#20282e; background:#efe8d7; } .ds-nav-active::before { position:absolute; inset:0 auto 0 0; width:5px; background:#d59a2e; content:''; } .ds-nav-active span, .ds-nav-active b { color:#244a63; }"
+      "description": "One of ten indexed 47px rail destinations; active state fills blue with an ivory side rule.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-row ds-nav-active\" href=\"#\" aria-current=\"page\"><span>01</span><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M4 14a8 8 0 1 1 16 0M12 14l4-5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><b>COUNTY STATUS WALL</b></a><a class=\"ds-nav-row\" href=\"#\"><span>02</span><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M5 18h14M7 18V9h10v9M10 5h4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><b>INCIDENTS</b></a></nav>",
+      "css": ".ds-nav { width:184px; border:1px solid #365669; background:#0a202b; } .ds-nav-row { display:grid; min-height:47px; align-items:center; grid-template-columns:17px 24px minmax(0,1fr); gap:6px; border-bottom:1px solid #3e5867; padding:0 10px; color:#a8bac2; background:transparent; font:500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.02em; text-decoration:none; } .ds-nav-row span { color:#617c8a; font-size:7px; } .ds-nav-row svg { color:#95aebb; } .ds-nav-row b { overflow:hidden; font-weight:500; white-space:nowrap; } .ds-nav-row:hover { color:#efe8d7; background:#163444; } .ds-nav-row:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-nav-active { color:#efe8d7; background:#244a63; box-shadow:inset 4px 0 #efe8d7; } .ds-nav-active span, .ds-nav-active svg { color:#efe8d7; }"
     },
     {
       "name": "Segmented Register",
@@ -175,12 +196,12 @@
       "css": ".ds-tabs { display:inline-flex; border:1px solid #47677a; border-radius:0; background:#132a38; } .ds-tabs button { min-height:37px; border:0; border-right:1px solid #47677a; padding:0 12px; color:#b9c9cf; background:transparent; font:500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; } .ds-tabs button:last-child { border-right:0; } .ds-tabs button:hover { color:#fff; background:#173044; } .ds-tabs button[aria-selected='true'] { color:#20282e; background:#efe8d7; box-shadow:inset 0 -4px #d59a2e; } .ds-tabs button:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
     },
     {
-      "name": "Instrument Metric Register",
+      "name": "Status-Wall Instruments",
       "kind": "card",
       "refersTo": "instrument-plate",
-      "description": "Continuous four-cell register for scan-first operational figures.",
-      "html": "<section class=\"ds-register\" aria-label=\"Operational readiness\"><article><span>OPERATIONAL READINESS</span><strong>97<small>%</small></strong><p>119 ready / 131 response units</p><i aria-hidden=\"true\"></i></article><article><span>OPEN EXCEPTIONS</span><strong>15</strong><p>Awaiting duty officer action</p><i class=\"ds-amber\" aria-hidden=\"true\"></i></article></section>",
-      "css": ".ds-register { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid #244a63; border-bottom:5px solid #244a63; border-radius:1px; color:#20282e; background:#efe8d7; } .ds-register article { min-height:122px; border-right:1px solid #98a4a3; padding:14px 18px 12px; } .ds-register article:last-child { border-right:0; } .ds-register span { color:#4f6570; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.12em; } .ds-register strong { display:block; margin:14px 0 10px; font:600 37px/1 'IBM Plex Mono', ui-monospace, monospace; } .ds-register strong small { font-size:14px; color:#53636a; } .ds-register p { color:#53636a; font:400 10px/1.4 'IBM Plex Sans', Arial, sans-serif; } .ds-register i { display:block; height:5px; margin-top:14px; background:#3c7b62; } .ds-register .ds-amber { background:#d59a2e; }"
+      "description": "Separate 124px paper-textured instruments aligned on one row with six-pixel gutters.",
+      "html": "<section class=\"ds-instruments\" aria-label=\"Operational summary\"><article class=\"ds-instrument\"><header><i aria-hidden=\"true\"></i>OPERATIONAL READINESS</header><div><strong>97%</strong><dl><dt>TARGET</dt><dd>100%</dd><dt>AS OF</dt><dd>19:12</dd></dl></div><footer>READY UNITS <b>119 / 131</b></footer></article><article class=\"ds-instrument\"><header><i aria-hidden=\"true\"></i>ACTIVE INCIDENTS</header><div><strong>05</strong><dl><dt>FIRE</dt><dd>1</dd><dt>OTHER</dt><dd>1</dd></dl></div><footer>REQUIRING REVIEW <b>1</b></footer></article></section>",
+      "css": ".ds-instruments { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .ds-instrument { height:124px; border:1px solid #c4c1b5; padding:10px 11px 8px; color:#0b1a27; background:#efe8d7; } .ds-instrument header { display:flex; align-items:center; gap:9px; height:20px; border-bottom:1px solid #c3c0b5; font:600 13px/1 'IBM Plex Sans', Arial, sans-serif; letter-spacing:.015em; } .ds-instrument header i { width:4px; height:16px; background:#0e3348; } .ds-instrument>div { display:flex; height:70px; align-items:center; justify-content:space-between; gap:11px; } .ds-instrument strong { font:650 42px/1 'IBM Plex Sans', Arial, sans-serif; letter-spacing:-.045em; font-variant-numeric:tabular-nums; } .ds-instrument dl { display:grid; grid-template-columns:1fr auto; gap:3px 8px; font:8px 'IBM Plex Mono', ui-monospace, monospace; } .ds-instrument dt, .ds-instrument dd { margin:0; } .ds-instrument dd { font-weight:600; } .ds-instrument footer { height:20px; border-top:1px solid #cac6b8; padding-top:5px; text-align:center; font:8px 'IBM Plex Mono', ui-monospace, monospace; }"
     },
     {
       "name": "Ruled Data Table",
@@ -191,19 +212,27 @@
       "css": ".ds-table { width:100%; border-collapse:collapse; color:#20282e; background:#efe8d7; font:400 12px 'IBM Plex Sans', Arial, sans-serif; } .ds-table th { height:38px; border:1px solid #738890; padding:0 14px; color:#f7f1e3; background:#244a63; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.06em; text-align:left; text-transform:uppercase; } .ds-table td { height:54px; border-bottom:1px solid #aeb3aa; padding:8px 14px; } .ds-table td:first-child, .ds-table td:last-child { font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; } .ds-table tr:hover td { background:#e4decf; } .ds-table tr:focus-within td { outline:2px solid #efb649; outline-offset:-2px; }"
     },
     {
-      "name": "Dispatch Docket Item",
+      "name": "Incident Dispatch Register",
       "kind": "custom",
       "refersTo": null,
-      "description": "Incident review row that exposes severity, identity, age, and assignment without implying dispatch authority.",
-      "html": "<a class=\"ds-docket\" href=\"#\"><span class=\"ds-severity\"><i aria-hidden=\"true\"></i>CRITICAL <small>INC / 001</small></span><strong>Hazardous materials response · industrial park</strong><p>◷ about 1 hour ago · 2 units assigned</p><b aria-hidden=\"true\">›</b></a>",
-      "css": ".ds-docket { position:relative; display:block; border-bottom:1px solid #a4aaa3; padding:13px 28px 13px 14px; color:#20282e; background:#efe8d7; text-decoration:none; } .ds-docket:hover { background:#dfdacb; } .ds-docket:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-severity { display:flex; justify-content:space-between; align-items:center; gap:6px; color:#a53324; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.08em; } .ds-severity i { width:5px; height:5px; background:currentColor; } .ds-severity small { margin-left:auto; color:#607078; } .ds-docket strong { display:block; margin:8px 0 7px; color:#25323a; font:600 12px/1.5 'IBM Plex Sans', Arial, sans-serif; } .ds-docket p { color:#65747a; font:400 9px 'IBM Plex Sans', Arial, sans-serif; } .ds-docket b { position:absolute; right:12px; top:50%; color:#244a63; font-size:20px; }"
+      "description": "Ruled read-only incident rows with time, type, location, assigned units, and text status; not a dispatch control.",
+      "html": "<section class=\"ds-dispatch\" aria-label=\"Incident review\"><h2>INCIDENT DISPATCH <span>LIVE</span></h2><table><thead><tr><th>#</th><th>TIME</th><th>TYPE</th><th>LOCATION</th><th>STATUS</th></tr></thead><tbody><tr><td>1</td><td>19:03</td><td>EMS</td><td>Reported location</td><td><b>ENROUTE</b></td></tr></tbody></table><footer>REVIEW IN OPERATIONS →</footer></section>",
+      "css": ".ds-dispatch { border:1px solid #e4dfd0; color:#0d1b28; background:#efe8d7; font-family:'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch h2 { display:flex; min-height:35px; align-items:center; justify-content:space-between; margin:0; border-bottom:1px solid #a7aaa2; padding-left:9px; font:650 13px 'IBM Plex Sans', Arial, sans-serif; } .ds-dispatch h2 span { display:grid; min-width:64px; height:26px; place-items:center; color:#fff; background:#c44732; font:9px 'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch table { width:100%; border-collapse:collapse; table-layout:fixed; font:10px/1.35 'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch th, .ds-dispatch td { border-right:1px solid #c4c2b7; border-bottom:1px solid #c4c2b7; padding:6px 7px; text-align:left; } .ds-dispatch th:last-child, .ds-dispatch td:last-child { border-right:0; } .ds-dispatch tbody tr:hover td { background:#e4decf; } .ds-dispatch b { display:block; padding:4px 3px; background:#e0a42a; text-align:center; } .ds-dispatch footer { padding:8px 9px; color:#3e5058; font-size:7px; } .ds-dispatch:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "GIS Board Legend",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Compact explicit key for station state and plotted geography; source labels remain visible on the board.",
+      "html": "<aside class=\"ds-map-key\" aria-label=\"Map legend\"><span><i class=\"ds-normal\"></i>Station Normal</span><span><i class=\"ds-attention\"></i>Staffing Attention</span><span><i class=\"ds-offline\"></i>Station Out of Service</span><hr><span><b></b>County Boundary</span></aside>",
+      "css": ".ds-map-key { display:grid; width:160px; border:1px solid #c8cabf; padding:7px 8px; color:#d9dfdb; background:rgba(8,25,35,.94); font:9px/1 'IBM Plex Mono', ui-monospace, monospace; } .ds-map-key span { display:flex; min-height:20px; align-items:center; gap:9px; white-space:nowrap; } .ds-map-key i { width:11px; height:11px; border:2px solid currentColor; border-radius:50%; } .ds-map-key .ds-normal { color:#4bd49c; } .ds-map-key .ds-attention { color:#edae19; } .ds-map-key .ds-offline { color:#ee4b36; background:#ee4b36; } .ds-map-key hr { width:100%; height:1px; margin:4px 0; border:0; background:#7a8789; } .ds-map-key b { width:28px; border-top:2px dashed #b1bcbc; } .ds-map-key:hover { border-color:#efe8d7; } .ds-map-key:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
     }
   ],
   "narrative": {
     "northStar": "The County Status Wall",
-    "overview": "Aegis is a 1970s municipal systems room made interactive: public-infrastructure manuals, dispatch worksheets, wall-board plotting, and corporate control equipment translated into a calm operating surface. The midnight shell is structural and recessive; instrument-ivory plates carry the work. Strong rules, indexed labels, tabular numbers, and stamped states make every region feel accountable rather than atmospheric.\n\nThe system is intentionally dense. Its hierarchy comes from registration, contrast, and repeated document grammar—not oversized cards or empty space. Across Command Center, Operations, Workforce, Scheduling, Credentials, and Analytics, the reading sequence is exception, evidence, action, then handover. It refuses generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, oversized pills, and decorative command-center theater.",
+    "overview": "Aegis is a 1970s municipal systems room made interactive: public-infrastructure manuals, dispatch worksheets, wall-board plotting, and corporate control equipment translated into a calm operating surface. The dark shell is structural and recessive; lightly textured instrument-ivory plates carry the work. Strong rules, indexed labels, tabular numbers, and stamped states make every region feel accountable rather than atmospheric.\n\nThe system is intentionally dense. Its hierarchy comes from registration, contrast, and repeated document grammar—not oversized cards or empty space. Across the eight route workspaces—County Status Wall, Operations, Workforce, Scheduling, Credentials, Analytics, Weather, and Admin—the reading sequence is exception, evidence, action, then handover. It refuses generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, oversized pills, and decorative command-center theater.",
     "keyCharacteristics": [
-      "Midnight structural shell with instrument-ivory working papers.",
+      "Midnight structural shell with lightly textured instrument-ivory working papers.",
       "Municipal-blue rules, square plates, indexed tabs, and mono register labels.",
       "Vermilion, amber, and service green reserved for explicit operational meaning.",
       "High information density disciplined by alignment, dividers, and tabular numbers.",
@@ -213,16 +242,17 @@
       { "name": "The Evidence Before Action Rule", "body": "Every action follows the responsible metric, record, or exception; never separate a control from the evidence that explains its consequence.", "section": "overview" },
       { "name": "The Signal Budget Rule", "body": "Service green means ready or successful, amber means attention, vermilion means critical or destructive, and blue means structure or information. Never swap those meanings between routes.", "section": "colors" },
       { "name": "The Warm Paper Rule", "body": "Operational content sits on warm ivory, not white and not translucent dark glass; the contrast between shell and paper is the primary depth cue.", "section": "colors" },
-      { "name": "The Instrument Voice Rule", "body": "Use mono for codes, times, counts, statuses, and machine-like labels; use Sans for names, descriptions, and decisions. Do not set whole paragraphs in mono.", "section": "typography" },
+      { "name": "The Instrument Voice Rule", "body": "Use mono for indices, codes, time, statuses, register cells, and machine-like labels; use Sans for readable names, large instrument figures, descriptions, and decisions. Do not set whole paragraphs in mono.", "section": "typography" },
       { "name": "The Labeled Number Rule", "body": "A large number is never self-explanatory: pair it with a visible label, unit where relevant, and a plain-language detail line.", "section": "typography" },
-      { "name": "The Continuous Register Rule", "body": "Related metrics, tabs, and resources share edges and dividers. Avoid card gaps when the content forms one operational register.", "section": "layout" },
+      { "name": "The Instrument Alignment Rule", "body": "Keep separate overview instruments on one exact baseline with the established narrow gutter; use shared edges and internal dividers within dockets and worksheets. Do not substitute floating metric cards.", "section": "layout" },
       { "name": "The Board First Rule", "body": "On overview surfaces, geography and exceptions outrank decorative summaries; on task surfaces, the selected record remains adjacent to the list or filter that produced it.", "section": "layout" },
       { "name": "The Flat Operations Rule", "body": "Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.", "section": "elevation" },
-      { "name": "The Two-Pixel Ceiling Rule", "body": "Persistent controls and plates stay between 0 and 1px radius; a 2px border is reserved for dominant plotted or framed regions, not generic cards.", "section": "shapes" }
+      { "name": "The Board Frame Rule", "body": "The two-pixel light border belongs to the plotted county board; ordinary instruments and paper registers use one-pixel rules and square corners.", "section": "shapes" }
     ],
     "dos": [
       "Do lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
-      "Do use warm paper plates, strong rules, mono labels, tabular figures, and repeated worksheet geometry across all six workspaces.",
+      "Do use warm paper plates, strong rules, compact mono labels, tabular figures, and repeated worksheet geometry across all eight route workspaces.",
+      "Do preserve the 50px top register, 184px indexed rail, four aligned overview instruments, and dominant GIS board at the approved desktop composition; adapt rather than crop them on smaller screens.",
       "Do pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
       "Do preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, aria-current, live status messaging, and 44px mobile controls.",
       "Do preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",

@@ -130,8 +130,15 @@ export const incidentSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  incident_type: z.enum(['FIRE', 'EMS', 'HAZMAT', 'OTHER']).default('OTHER'),
+  display_location: z.string().nullable().optional(),
+  status: z.enum(['ACTIVE', 'ENROUTE', 'ON_SCENE', 'TRANSPORT', 'INVESTIGATING', 'RESOLVED']).default('ACTIVE'),
   station_id: z.string().nullable().optional(),
   unit_id: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  source: z.string().default('SYNTHETIC_DEMO'),
+  source_reference: z.string().nullable().optional(),
   is_active: z.boolean(),
   created_at: nullableDate,
   resolved_at: nullableDate,
@@ -256,6 +263,21 @@ export const staffingGapSchema = z.object({
 
 export const operationsSnapshotSchema = z.object({
   summary: dashboardSummarySchema,
+  command_board: z.object({
+    personnel: z.object({
+      authorized: z.number(), on_duty: z.number(), available: z.number(), deployed: z.number(),
+      off: z.number(), in_training: z.number(), on_call: z.number(),
+    }),
+    incident_types: z.record(z.string(), z.number()),
+    station_network: z.object({ total: z.number(), online: z.number(), staffing_attention: z.number(), offline: z.number() }),
+    apparatus: z.array(z.object({
+      key: z.string(), label: z.string(), total: z.number(), in_service: z.number(), out_of_service: z.number(), availability_pct: z.number(),
+    })),
+    duty_brief: z.object({
+      active_incidents: z.number(), open_alerts: z.number(), staffing_attention_stations: z.number(), critical_units: z.number(),
+      high_priority_incidents: z.array(z.string()), alert_messages: z.array(z.string()), recommendations: z.array(z.string()),
+    }),
+  }),
   units: z.array(unitReadinessSchema),
   alerts: z.array(alertSchema),
   incidents: z.array(incidentSchema),
@@ -263,6 +285,25 @@ export const operationsSnapshotSchema = z.object({
   renewals: z.array(renewalTaskSchema),
   activity: z.array(auditEventSchema),
   timestamp: z.string(),
+})
+
+export const weatherForecastPeriodSchema = z.object({
+  number: z.number().nullable().optional(), name: z.string().nullable().optional(), start_time: nullableDate, end_time: nullableDate,
+  is_daytime: z.boolean().nullable().optional(), temperature: z.number().nullable().optional(), temperature_unit: z.string().nullable().optional(),
+  probability_of_precipitation: z.number().nullable().optional(), wind_speed: z.string().nullable().optional(), wind_direction: z.string().nullable().optional(),
+  short_forecast: z.string().nullable().optional(), detailed_forecast: z.string().nullable().optional(),
+})
+
+export const fairfaxWeatherSchema = z.object({
+  status: z.enum(['live', 'stale', 'unavailable']), available: z.boolean(), stale: z.boolean(), message: z.string().nullable().optional(), location: z.string(),
+  forecast_periods: z.array(weatherForecastPeriodSchema),
+  active_alerts: z.array(z.object({
+    id: z.string().nullable().optional(), event: z.string().nullable().optional(), severity: z.string().nullable().optional(), urgency: z.string().nullable().optional(),
+    certainty: z.string().nullable().optional(), headline: z.string().nullable().optional(), description: z.string().nullable().optional(), instruction: z.string().nullable().optional(),
+    onset: nullableDate, ends: nullableDate, sender_name: z.string().nullable().optional(),
+  })),
+  wind: z.object({ speed: z.string().nullable().optional(), direction: z.string().nullable().optional() }),
+  source: z.object({ name: z.string(), url: z.string(), retrieved_at: nullableDate, source_updated_at: nullableDate }),
 })
 
 export type Personnel = z.infer<typeof personnelSchema>
@@ -285,3 +326,4 @@ export type SimulationResult = z.infer<typeof simulationResultSchema>
 export type ReadinessTrend = z.infer<typeof readinessTrendSchema>
 export type CertificationRisk = z.infer<typeof certificationRiskSchema>
 export type StaffingGap = z.infer<typeof staffingGapSchema>
+export type FairfaxWeather = z.infer<typeof fairfaxWeatherSchema>

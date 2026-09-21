@@ -8,10 +8,10 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await page.getByLabel(/Username|Email/).fill('duty.officer')
   await page.getByLabel('Password', { exact: true }).fill('aegis-local-only')
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.locator('h1')).toContainText('Fairfax County readiness board', { timeout: 20_000 })
+  await expect(page.getByRole('heading', { level: 1, name: /Fairfax County readiness board/i })).toBeVisible({ timeout: 20_000 })
 
   // Navigation stays within the authenticated app; tokens are deliberately memory-only.
-  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Workforce' }).click()
+  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: /Personnel/ }).click()
   await page.getByRole('button', { name: 'Add personnel', exact: true }).click()
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Full name', { exact: true }).fill(name)
@@ -23,10 +23,11 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
 
-  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Operations' }).click()
+  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: /Incidents/ }).click()
   await page.getByRole('button', { name: 'Open incident', exact: true }).first().click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Incident title').fill(name)
+  await dialog.getByLabel('Display location').fill('12000 Fair Oaks Mall, Fairfax, VA')
   await dialog.getByRole('button', { name: 'Open incident', exact: true }).click()
   await expect(dialog).toBeHidden()
   const incident = page.locator('.incident-card').filter({ has: page.getByRole('heading', { name, exact: true }) })
@@ -34,7 +35,9 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await incident.getByRole('button', { name: 'Close incident' }).click()
   await expect(incident).toHaveCount(0)
 
-  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Scheduling' }).click()
+  await page.getByRole('button', { name: /Search unit, station, incident, location/ }).click()
+  await page.getByLabel('Search workspaces and actions').fill('Scheduling')
+  await page.getByRole('button', { name: /Scheduling/ }).click()
   await page.getByRole('button', { name: 'Create shift', exact: true }).first().click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Station', { exact: true }).selectOption('fs-01')
@@ -69,7 +72,9 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect(page.getByRole('button', { name: 'Add to roster', exact: true })).toBeDisabled()
 
-  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Credentials' }).click()
+  await page.getByRole('button', { name: /Search unit, station, incident, location/ }).click()
+  await page.getByLabel('Search workspaces and actions').fill('Credentials')
+  await page.getByRole('button', { name: /Credentials/ }).click()
   await page.getByRole('button', { name: 'Add credential', exact: true }).click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Credential name').fill(name)
@@ -83,7 +88,7 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect(page.locator('.credential-list-row').filter({ hasText: name })).toHaveCount(0)
 
-  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: 'Workforce' }).click()
+  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: /Personnel/ }).click()
   await page.getByPlaceholder('Search name, role, or rank').fill(name)
   await page.getByRole('button', { name: 'Archive record' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm action' }).click()

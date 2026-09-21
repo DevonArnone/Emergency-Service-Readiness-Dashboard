@@ -66,9 +66,17 @@ Then inspect the edited SQL for idempotency, schema separation, and task cadence
 ## September 15 pipeline checkpoint
 
 - Forty-five backend checks passed, including atomic operational/outbox writes, broker-acknowledgment gating, tenant-scoped event identities, Redis failure retry, invalid-message quarantine, overnight shifts, assignment conflict handling, cancellation, attendance, and local-date shift selection.
-- Twenty-two Chromium/Firefox workspace checks and three authenticated integration journeys passed in the final audit. Direct PostgreSQL runtime-role row security passed independently.
+- Twenty-six Chromium/Firefox workspace checks and three authenticated integration journeys passed in the final audit. Direct PostgreSQL runtime-role row security passed independently.
 - Real authenticated PostgreSQL → Kafka → Redis → WebSocket runs delivered every requested event. At 100 offered events/second, priority alert p95 was 28.953 ms; at 500 offered events/second, accepted throughput saturated near 183/s and p95 was 1,094.147 ms. See [complete results and resource profile](../backend/benchmarks/README.md).
 - The user accepted stopping latency optimization at this point. This is not permission to claim 60% consumer-lag reduction or production-scale guarantees; the final product work does not alter those measured limits.
+
+## September 21 command-wall checkpoint
+
+- The eight-workspace release passes 28 Chromium/Firefox browser checks, including all 10 indexed destinations, responsive widths from 320px to 1920px, keyboard focus, reduced motion, map layers, and a non-overlapping five-row dispatch register at 1536px and 1440px.
+- Three authenticated browser journeys and 53 backend regression checks pass. The repository harness, frontend lint, and production build pass.
+- A fresh dependency scan identified two AnyIO advisories in the old transitive installation. Both backend requirement profiles now require AnyIO 4.14.2 or newer; the upgraded test environment passes `pip-audit` with no known vulnerabilities and `pip check` with no broken requirements. Frontend `npm audit` also reports zero vulnerabilities.
+- The supplied 1536×1024 visual reference measures 77% overall similarity in the Impeccable comparison, above the user-selected 72% target. Its stricter hero gate remains open on map legend/control regions; no pass is claimed for that gate.
+- Screenshots for all eight workspaces are refreshed at desktop and mobile sizes in `pictures/`.
 
 ## Promotion Rule
 

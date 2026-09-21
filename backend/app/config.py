@@ -1,6 +1,7 @@
 """Configuration management using environment variables."""
 from pydantic_settings import BaseSettings
 from typing import List
+from urllib.parse import urlparse
 
 
 class Settings(BaseSettings):
@@ -49,6 +50,12 @@ class Settings(BaseSettings):
     seed_demo_on_empty: bool = True
     auto_create_schema: bool = True
     public_demo_write_enabled: bool = False
+
+    # National Weather Service integration (read-only public data)
+    nws_api_base_url: str = "https://api.weather.gov"
+    nws_timeout_seconds: float = 5.0
+    weather_cache_seconds: int = 900
+    weather_user_agent: str = "AegisCommandConcept/1.0 (github.com/DevonArnone/Emergency-Service-Readiness-Dashboard)"
 
     # Identity Configuration
     auth_required: bool = False
@@ -99,6 +106,9 @@ class Settings(BaseSettings):
             problems.append("CORS_ORIGINS must not contain a wildcard")
         if self.public_demo_write_enabled:
             problems.append("PUBLIC_DEMO_WRITE_ENABLED must be disabled")
+        nws_url = urlparse(self.nws_api_base_url)
+        if nws_url.scheme != "https" or nws_url.hostname != "api.weather.gov":
+            problems.append("NWS_API_BASE_URL must use the official HTTPS API")
         if problems:
             raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
     

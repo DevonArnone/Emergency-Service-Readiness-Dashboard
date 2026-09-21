@@ -17,7 +17,7 @@ for (const username of ['duty.officer', 'analyst']) {
     const profile = await request.get('http://localhost:8000/api/v1/session', { headers: { authorization } })
     expect(profile.status()).toBe(200)
     expect((await profile.json()).can_write).toBe(username === 'duty.officer')
-    await expect(page.getByText('Operations connected', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Operations connected/i)).toBeVisible()
     expect(await page.evaluate(() => Object.keys(localStorage).some((key) => key.startsWith('oidc.')))).toBe(false)
     const anonymous = await request.get('http://localhost:8000/api/stations')
     expect(anonymous.status()).toBe(401)
@@ -32,7 +32,8 @@ for (const username of ['duty.officer', 'analyst']) {
       const resolved = await request.post(`http://localhost:8000/api/incidents/${incident.incident_id}/resolve`, { headers: { authorization } })
       expect(resolved.status()).toBe(200)
     }
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await page.getByRole('button', { name: /Search unit, station, incident, location/ }).click()
+    await page.getByRole('button', { name: 'SIGN OUT', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Sign in to command' })).toBeVisible()
   })
 }

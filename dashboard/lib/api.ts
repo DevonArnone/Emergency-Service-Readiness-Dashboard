@@ -21,6 +21,7 @@ import {
   certificationRiskSchema,
   unitReadinessSchema,
   unitSchema,
+  fairfaxWeatherSchema,
 } from './schemas'
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
@@ -193,6 +194,7 @@ export const api = {
     z.array(staffingGapSchema),
   ),
   resetDemo: () => apiRequest('/api/demo/reset', z.object({ status: z.string(), seeded: z.record(z.string(), z.number()) }), { method: 'POST' }),
+  weatherFairfax: () => apiRequest('/api/weather/fairfax', fairfaxWeatherSchema, { timeoutMs: 10000, retries: 0 }),
 }
 
 export const queryKeys = {
@@ -207,6 +209,7 @@ export const queryKeys = {
   liveShifts: ['shifts', 'live'] as const,
   alerts: ['alerts'] as const,
   incidents: ['incidents'] as const,
+  weather: ['weather', 'fairfax'] as const,
   certifications: ['certifications'] as const,
   renewals: ['renewals'] as const,
   audit: ['audit'] as const,

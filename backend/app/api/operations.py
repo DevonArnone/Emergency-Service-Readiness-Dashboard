@@ -1,14 +1,18 @@
 """Operations API — alerts, stations, incidents, dashboard summary, simulation, demo reset."""
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from app.models import (
     ReadinessAlert, AlertState, AcknowledgeAlertRequest,
-    Station, OperationalIncident, DashboardSummary,
+    Station, OperationalIncident, IncidentStatus, DashboardSummary,
     SimulationRequest, SimulationResult,
     Personnel, UnitAssignment, AssignmentStatus,
     AuditEvent, RenewalTask,
+    CommandBoard, CommandBoardPersonnel, CommandBoardStationNetwork,
+    CommandBoardApparatusGroup, CommandBoardDutyBrief,
+    OperationsSnapshot, FairfaxWeatherResponse,
 )
 from app.stores import (
     alerts_store, stations_store, incidents_store,
@@ -20,9 +24,129 @@ from app.services.readiness_service import ReadinessService
 from app.services.recommendation_service import RecommendationService
 from app.services.demo_service import seed_demo
 from app.services.audit_service import record_audit
+from app.services.weather_service import weather_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+APPARATUS_GROUPS = (
+    ("engines", "Engines", {"ENGINE"}),
+    ("trucks", "Trucks", {"TRUCK", "LADDER"}),
+    ("rescues", "Rescues", {"RESCUE"}),
+    ("als", "ALS Units", {"MEDIC", "AMBULANCE"}),
+    ("command", "BC / Command", {"COMMAND"}),
+    ("hazmat", "HazMat", {"HAZMAT"}),
+    ("special_operations", "Special Operations", {"SAFETY", "SAR_TEAM", "TANKER"}),
+)
+
+
+def _enum_value(value) -> str:
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def _build_command_board(
+    *, station_id: str | None, readiness: list[dict], alerts: list,
+    incidents: list, recommendations: list,
+) -> CommandBoard:
+    scoped_units = [
+        unit for unit in units_store.values()
+        if not station_id or unit.station_id == station_id
+    ]
+    scoped_people = [
+        person for person in personnel_store.values()
+        if not person.is_archived and (not station_id or person.station_id == station_id)
+    ]
+    availability = {
+        key: sum(_enum_value(person.availability_status) == key for person in scoped_people)
+        for key in ("AVAILABLE", "DEPLOYED", "OFF", "IN_TRAINING", "ON_CALL")
+    }
+
+    readiness_by_unit = {item["unit_id"]: item for item in readiness}
+    station_network = {"online": 0, "staffing_attention": 0, "offline": 0}
+    scoped_stations = [
+        station for station in stations_store.values()
+        if not station_id or station.station_id == station_id
+    ]
+    for station in scoped_stations:
+        station_units = [unit for unit in scoped_units if unit.station_id == station.station_id]
+        if not station_units or all(
+            _enum_value(unit.operational_status) in {"OUT_OF_SERVICE", "MAINTENANCE"}
+            for unit in station_units
+        ):
+            station_network["offline"] += 1
+        elif any(
+            readiness_by_unit.get(unit.unit_id, {}).get("readiness_score", 0) < 85
+            for unit in station_units
+        ):
+            station_network["staffing_attention"] += 1
+        else:
+            station_network["online"] += 1
+
+    apparatus = []
+    for key, label, unit_types in APPARATUS_GROUPS:
+        group = [unit for unit in scoped_units if _enum_value(unit.type) in unit_types]
+        in_service = sum(
+            _enum_value(unit.operational_status) not in {"OUT_OF_SERVICE", "MAINTENANCE"}
+            for unit in group
+        )
+        apparatus.append(CommandBoardApparatusGroup(
+            key=key,
+            label=label,
+            total=len(group),
+            in_service=in_service,
+            out_of_service=len(group) - in_service,
+            availability_pct=round((in_service / len(group) * 100) if group else 0.0, 1),
+        ))
+
+    incident_types = {
+        incident_type: sum(
+            _enum_value(incident.incident_type) == incident_type for incident in incidents
+        )
+        for incident_type in ("FIRE", "EMS", "HAZMAT", "OTHER")
+    }
+    high_priority = sorted(
+        (incident for incident in incidents if _enum_value(incident.priority) in {"HIGH", "CRITICAL"}),
+        key=lambda incident: incident.created_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    recent_alerts = sorted(
+        alerts,
+        key=lambda alert: alert.created_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+
+    return CommandBoard(
+        personnel=CommandBoardPersonnel(
+            authorized=sum(item["staff_required"] for item in readiness),
+            on_duty=sum(item["staff_present"] for item in readiness),
+            available=availability["AVAILABLE"],
+            deployed=availability["DEPLOYED"],
+            off=availability["OFF"],
+            in_training=availability["IN_TRAINING"],
+            on_call=availability["ON_CALL"],
+        ),
+        incident_types=incident_types,
+        station_network=CommandBoardStationNetwork(
+            total=len(scoped_stations),
+            online=station_network["online"],
+            staffing_attention=station_network["staffing_attention"],
+            offline=station_network["offline"],
+        ),
+        apparatus=apparatus,
+        duty_brief=CommandBoardDutyBrief(
+            active_incidents=len(incidents),
+            open_alerts=sum(alert.state == AlertState.OPEN for alert in alerts),
+            staffing_attention_stations=station_network["staffing_attention"],
+            critical_units=sum(item["readiness_score"] < 60 for item in readiness),
+            high_priority_incidents=[
+                f"{incident.title} — {incident.display_location or 'Location pending'}"
+                for incident in high_priority[:3]
+            ],
+            alert_messages=[alert.message for alert in recent_alerts[:3]],
+            recommendations=[item.message for item in recommendations[:3]],
+        ),
+    )
 
 
 # ── Dashboard summary ─────────────────────────────────────────────────────────
@@ -69,7 +193,7 @@ async def get_dashboard_summary():
     )
 
 
-@router.get("/api/operations/snapshot")
+@router.get("/api/operations/snapshot", response_model=OperationsSnapshot)
 async def operations_snapshot(station_id: str | None = Query(None)):
     readiness = ReadinessService.check_all_units()
     if station_id:
@@ -114,8 +238,16 @@ async def operations_snapshot(station_id: str | None = Query(None)):
         key=lambda event: event.created_at or datetime.min.replace(tzinfo=timezone.utc),
         reverse=True,
     )[:12]
+    command_board = _build_command_board(
+        station_id=station_id,
+        readiness=readiness,
+        alerts=alerts,
+        incidents=incidents,
+        recommendations=recommendations,
+    )
     return {
         "summary": summary,
+        "command_board": command_board,
         "units": readiness,
         "alerts": alerts,
         "incidents": incidents,
@@ -139,6 +271,12 @@ async def get_station(station_id: str):
     if not s:
         raise HTTPException(404, "Station not found")
     return s
+
+
+@router.get("/api/weather/fairfax", response_model=FairfaxWeatherResponse)
+async def fairfax_weather():
+    """Return a cached NWS forecast with explicit stale/unavailable state."""
+    return await asyncio.to_thread(weather_service.get_weather)
 
 
 # ── Alerts ────────────────────────────────────────────────────────────────────
@@ -202,6 +340,8 @@ async def create_incident(incident: OperationalIncident):
     incident.incident_id = f"inc-{uuid.uuid4().hex[:12]}"
     incident.created_at = datetime.now(timezone.utc)
     incident.is_active = True
+    if incident.status == IncidentStatus.RESOLVED:
+        incident.status = IncidentStatus.ACTIVE
     incidents_store[incident.incident_id] = incident
     record_audit("CREATED", "incident", incident.incident_id, f"Opened incident: {incident.title}")
     return incident
@@ -214,6 +354,18 @@ async def update_incident(incident_id: str, incident: OperationalIncident):
         raise HTTPException(404, "Incident not found")
     incident.incident_id = incident_id
     incident.created_at = incident.created_at or existing.created_at
+    additive_fields = {
+        "incident_type", "display_location", "status", "latitude", "longitude",
+        "source", "source_reference",
+    }
+    incident = incident.model_copy(update={
+        field: getattr(existing, field)
+        for field in additive_fields
+        if field not in incident.model_fields_set
+    })
+    if _enum_value(incident.status) == "RESOLVED":
+        incident.is_active = False
+        incident.resolved_at = incident.resolved_at or datetime.now(timezone.utc)
     incidents_store[incident_id] = incident
     record_audit("UPDATED", "incident", incident_id, f"Updated incident: {incident.title}")
     return incident
@@ -225,6 +377,7 @@ async def resolve_incident(incident_id: str):
     if not inc:
         raise HTTPException(404, "Incident not found")
     inc.is_active = False
+    inc.status = IncidentStatus.RESOLVED
     inc.resolved_at = datetime.now(timezone.utc)
     incidents_store[incident_id] = inc
     record_audit("RESOLVED", "incident", incident_id, f"Resolved incident: {inc.title}")

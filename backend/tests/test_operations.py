@@ -23,15 +23,20 @@ settings.database_url = os.environ["DATABASE_URL"]
 
 from app.api.operations import (  # noqa: E402
     certification_risk,
+    create_incident,
     operations_snapshot,
     readiness_trends,
+    resolve_incident,
     staffing_gaps,
+    update_incident,
 )
 from app.api.readiness import _validate_assignment  # noqa: E402
-from app.models import Personnel  # noqa: E402
+from app.models import (  # noqa: E402
+    IncidentStatus, IncidentType, OperationalIncident, OperationsSnapshot, Personnel,
+)
 from app.persistence import PersistentStore  # noqa: E402
 from app.services.demo_service import seed_demo  # noqa: E402
-from app.stores import unit_assignments_store, units_store  # noqa: E402
+from app.stores import incidents_store, unit_assignments_store, units_store  # noqa: E402
 
 
 def tearDownModule() -> None:
@@ -74,6 +79,63 @@ class OperationsApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(alert.station_id == self.station_id for alert in snapshot["alerts"]))
         self.assertEqual(snapshot['summary'].total_units, len(snapshot['units']))
         self.assertTrue(all(item.unit_id in {row['unit_id'] for row in snapshot['units']} for item in snapshot['recommendations']))
+        self.assertEqual(snapshot["command_board"].station_network.total, 1)
+        self.assertEqual(
+            sum(group.total for group in snapshot["command_board"].apparatus),
+            len(snapshot["units"]),
+        )
+
+    async def test_snapshot_includes_truthful_command_board_aggregates(self) -> None:
+        snapshot = await operations_snapshot(None)
+        OperationsSnapshot.model_validate(snapshot)
+        board = snapshot["command_board"]
+
+        self.assertEqual(board.personnel.authorized, 363)
+        self.assertEqual(board.personnel.on_duty, 351)
+        self.assertEqual(board.incident_types, {"FIRE": 1, "EMS": 3, "HAZMAT": 0, "OTHER": 1})
+        self.assertEqual(board.station_network.total, 39)
+        self.assertEqual(
+            board.station_network.online
+            + board.station_network.staffing_attention
+            + board.station_network.offline,
+            39,
+        )
+        self.assertEqual(sum(group.total for group in board.apparatus), 131)
+        self.assertEqual(board.duty_brief.active_incidents, 5)
+        self.assertTrue(board.duty_brief.high_priority_incidents)
+
+    async def test_incident_dispatch_fields_round_trip_and_old_updates_preserve_them(self) -> None:
+        created = await create_incident(OperationalIncident(
+            title="Synthetic hazmat investigation",
+            incident_type=IncidentType.HAZMAT,
+            display_location="100 Test Plaza, Fairfax, VA",
+            station_id="fs-01",
+            unit_id="unit-engine-01",
+            assigned_unit_ids=["unit-engine-01"],
+            latitude=38.85,
+            longitude=-77.31,
+            source="SYNTHETIC_TEST",
+            source_reference="QA-001",
+            status=IncidentStatus.INVESTIGATING,
+        ))
+        stored = incidents_store[created.incident_id]
+        self.assertEqual(stored.incident_type, IncidentType.HAZMAT)
+        self.assertEqual(stored.display_location, "100 Test Plaza, Fairfax, VA")
+        self.assertEqual(stored.latitude, 38.85)
+        self.assertEqual(stored.source_reference, "QA-001")
+        self.assertEqual(stored.status, IncidentStatus.INVESTIGATING)
+
+        legacy_update = OperationalIncident(title="Synthetic hazmat investigation updated")
+        updated = await update_incident(created.incident_id, legacy_update)
+        self.assertEqual(updated.incident_type, IncidentType.HAZMAT)
+        self.assertEqual(updated.display_location, "100 Test Plaza, Fairfax, VA")
+        self.assertEqual(updated.status, IncidentStatus.INVESTIGATING)
+        self.assertEqual(updated.source, "SYNTHETIC_TEST")
+
+        resolved = await resolve_incident(created.incident_id)
+        self.assertEqual(resolved.status, IncidentStatus.RESOLVED)
+        self.assertFalse(resolved.is_active)
+        self.assertIsNotNone(resolved.resolved_at)
 
     async def test_analytics_filters_apply_at_source(self) -> None:
         trends = await readiness_trends(days=30, station_id=self.station_id)

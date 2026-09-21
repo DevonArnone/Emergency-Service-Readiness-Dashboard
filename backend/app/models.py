@@ -301,13 +301,36 @@ class IncidentPriority(str, Enum):
     CRITICAL = "CRITICAL"
 
 
+class IncidentType(str, Enum):
+    FIRE = "FIRE"
+    EMS = "EMS"
+    HAZMAT = "HAZMAT"
+    OTHER = "OTHER"
+
+
+class IncidentStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    ENROUTE = "ENROUTE"
+    ON_SCENE = "ON_SCENE"
+    TRANSPORT = "TRANSPORT"
+    INVESTIGATING = "INVESTIGATING"
+    RESOLVED = "RESOLVED"
+
+
 class OperationalIncident(BaseModel):
     incident_id: Optional[str] = None
     title: str
     description: Optional[str] = None
     priority: IncidentPriority = IncidentPriority.MEDIUM
+    incident_type: IncidentType = IncidentType.OTHER
+    display_location: Optional[str] = None
+    status: IncidentStatus = IncidentStatus.ACTIVE
     station_id: Optional[str] = None
     unit_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    source: str = "SYNTHETIC_DEMO"
+    source_reference: Optional[str] = None
     is_active: bool = True
     created_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
@@ -345,6 +368,50 @@ class DashboardSummary(BaseModel):
     overall_readiness_pct: float
     station_summaries: List[Dict] = Field(default_factory=list)
     timestamp: str
+
+
+class CommandBoardPersonnel(BaseModel):
+    authorized: int
+    on_duty: int
+    available: int
+    deployed: int
+    off: int
+    in_training: int
+    on_call: int
+
+
+class CommandBoardStationNetwork(BaseModel):
+    total: int
+    online: int
+    staffing_attention: int
+    offline: int
+
+
+class CommandBoardApparatusGroup(BaseModel):
+    key: str
+    label: str
+    total: int
+    in_service: int
+    out_of_service: int
+    availability_pct: float
+
+
+class CommandBoardDutyBrief(BaseModel):
+    active_incidents: int
+    open_alerts: int
+    staffing_attention_stations: int
+    critical_units: int
+    high_priority_incidents: List[str] = Field(default_factory=list)
+    alert_messages: List[str] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+
+
+class CommandBoard(BaseModel):
+    personnel: CommandBoardPersonnel
+    incident_types: Dict[str, int]
+    station_network: CommandBoardStationNetwork
+    apparatus: List[CommandBoardApparatusGroup]
+    duty_brief: CommandBoardDutyBrief
 
 
 # ── Simulation ────────────────────────────────────────────────────────────────
@@ -396,6 +463,66 @@ class AuditEvent(BaseModel):
     previous_hash: Optional[str] = None
     event_hash: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+class OperationsSnapshot(BaseModel):
+    summary: DashboardSummary
+    command_board: CommandBoard
+    units: List[Dict[str, Any]] = Field(default_factory=list)
+    alerts: List[ReadinessAlert] = Field(default_factory=list)
+    incidents: List[OperationalIncident] = Field(default_factory=list)
+    recommendations: List[ReadinessRecommendation] = Field(default_factory=list)
+    renewals: List[RenewalTask] = Field(default_factory=list)
+    activity: List[AuditEvent] = Field(default_factory=list)
+    timestamp: str
+
+
+class WeatherForecastPeriod(BaseModel):
+    number: Optional[int] = None
+    name: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_daytime: Optional[bool] = None
+    temperature: Optional[float] = None
+    temperature_unit: Optional[str] = None
+    probability_of_precipitation: Optional[float] = None
+    wind_speed: Optional[str] = None
+    wind_direction: Optional[str] = None
+    short_forecast: Optional[str] = None
+    detailed_forecast: Optional[str] = None
+
+
+class WeatherAlert(BaseModel):
+    id: Optional[str] = None
+    event: Optional[str] = None
+    severity: Optional[str] = None
+    urgency: Optional[str] = None
+    certainty: Optional[str] = None
+    headline: Optional[str] = None
+    description: Optional[str] = None
+    instruction: Optional[str] = None
+    onset: Optional[str] = None
+    ends: Optional[str] = None
+    sender_name: Optional[str] = None
+
+
+class WeatherSource(BaseModel):
+    name: str
+    url: str
+    retrieved_at: Optional[str] = None
+    source_updated_at: Optional[str] = None
+
+
+class FairfaxWeatherResponse(BaseModel):
+    status: Literal["live", "stale", "unavailable"]
+    available: bool
+    stale: bool
+    message: Optional[str] = None
+    location: str
+    forecast_periods: List[WeatherForecastPeriod] = Field(default_factory=list)
+    active_alerts: List[WeatherAlert] = Field(default_factory=list)
+    wind: Dict[str, Optional[str]] = Field(default_factory=dict)
+    source: WeatherSource
 
 
 class ApiError(BaseModel):

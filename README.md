@@ -12,7 +12,7 @@ The interface is organized as a municipal systems room: indexed workspaces, a co
 
 ![Aegis command center with Fairfax station geography and synthetic readiness](pictures/aegis-command-desktop.png)
 
-The county status wall includes a keyboard-accessible station plot, staffing exceptions, incident priorities, a downloadable shift-handover brief, resource filtering, and a live command log. [View the mobile command center](pictures/aegis-command-mobile.png).
+The county status wall fits its complete operating picture at 1536×1024: 39 keyboard-accessible station markers on locally committed [Fairfax County iCare GIS](https://www.fairfaxcounty.gov/gisint2/rest/services/DTA/iCare/MapServer) geometry, live dispatch and notice registers, resource posture, and a downloadable duty-officer brief. Station, incident, and risk layers remain interactive. [View the mobile command center](pictures/aegis-command-mobile.png).
 
 ### Operations
 
@@ -44,6 +44,18 @@ Credential work includes renewal ownership, scheduling, completion tracking, wor
 
 The analytics workspace exposes readiness, staffing, qualification risk, and coverage trends with shareable URL state and station scope. [View Analytics on mobile](pictures/aegis-analytics-mobile.png).
 
+### Weather
+
+![Aegis Fairfax weather register with forecast, wind, hazards, and source freshness](pictures/aegis-weather-desktop.png)
+
+The weather register presents the [National Weather Service API](https://www.weather.gov/documentation/services-web-api) forecast and active alerts for planning, with source time, cached/stale state, and a clear unavailable state. It does not replace official warning or dispatch channels. [View Weather on mobile](pictures/aegis-weather-mobile.png).
+
+### Admin
+
+![Aegis access and service register showing identity, rights, and system provenance](pictures/aegis-admin-desktop.png)
+
+The access register makes the current identity, effective permissions, service checks, and data provenance visible. The existing synthetic demo reset remains permission-gated and requires confirmation. [View Admin on mobile](pictures/aegis-admin-mobile.png).
+
 ---
 
 ## Tech Stack
@@ -56,6 +68,7 @@ The analytics workspace exposes readiness, staffing, qualification risk, and cov
 | Warehouse | Snowflake · Streams & Tasks · SQL aggregation pipeline |
 | Data store | Normalized PostgreSQL with migrations and row security · relational SQLite fallback |
 | Identity | OIDC authorization code + PKCE · Keycloak local fixture · role-based API policy |
+| Public context | Locally committed Fairfax County iCare GIS geometry · cached National Weather Service forecast and alerts |
 
 ---
 
@@ -96,7 +109,7 @@ make check-harness
 - Master-detail unit workspace with search and readiness-state filters
 - Readiness scoring: staffing ratio − cert penalties − expired cert penalties
 - Alert queue: OPEN → ACKNOWLEDGED → RESOLVED lifecycle with actor metadata
-- Incident command workflow with creation and resolution
+- Incident command workflow with maintained type, display location, lifecycle status, creation, and resolution
 - Non-destructive callout and unit-offline contingency simulation
 - Conflict- and credential-aware personnel assignment
 
@@ -124,6 +137,11 @@ make check-harness
 - Dependency-aware certification editing and guarded deletion
 - Per-unit qualification requirement matrix
 
+### Weather and Administration (`/weather`, `/admin`)
+- NWS forecast, wind, active alerts, source freshness, and offline/stale fallback
+- Current identity, effective access rights, service health, and synthetic-data provenance
+- Permission-gated, confirmed local demo reset; no new administrative privileges
+
 ### Alert Lifecycle
 ```
 OPEN → ACKNOWLEDGED (actor + note) → RESOLVED
@@ -141,9 +159,9 @@ The rules-based recommendation endpoint evaluates current readiness:
 
 ---
 
-## API Reference (64 method/path operations)
+## API Reference (67 method/path operations)
 
-The current OpenAPI document exposes 64 operations under `/api/`, exceeding the 30+ endpoint requirement. The count includes compatibility and administrative operations, not 64 independent product features.
+The current OpenAPI document exposes 67 method/path operations, exceeding the 30+ endpoint requirement. The count includes compatibility and administrative operations, not 67 independent product features.
 
 ```
 GET  /api/dashboard/summary          — overall readiness, alerts, incidents, station summaries
@@ -152,6 +170,8 @@ POST /api/alerts/{id}/acknowledge    — acknowledge with actor and note
 POST /api/alerts/{id}/resolve        — resolve alert
 GET  /api/stations                   — station list
 GET  /api/incidents                  — active operational incidents
+GET  /api/operations/snapshot        — live readiness and typed command-board aggregates
+GET  /api/weather/fairfax            — cached NWS forecast, wind, alerts, and freshness
 GET  /api/recommendations            — rules-based recommendations (optional ?unit_id=)
 GET  /api/analytics/readiness-trends — readiness by ?days= and optional ?station_id=
 GET  /api/analytics/certification-risk — risk by ?days_ahead= and optional ?station_id=

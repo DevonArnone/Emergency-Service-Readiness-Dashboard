@@ -12,11 +12,11 @@ The primary user is a duty officer maintaining a countywide common operating pic
 
 ## Product Purpose
 
-Aegis Command is an emergency-readiness coordination companion that brings staffing, unit readiness, incidents, credentials, shifts, and live operational changes into one reviewable picture. Success means an authorized operator can identify where attention is needed, understand the reason, and move into the correct workflow without reconstructing context across separate systems.
+Aegis Command is an emergency-readiness coordination companion that brings staffing, unit readiness, incidents, credentials, shifts, weather context, and live operational changes into one reviewable picture. Success means an authorized operator can identify where attention is needed, understand the reason, and move into the correct workflow without reconstructing context across separate systems.
 
 ## Positioning
 
-Aegis connects personnel qualifications, current assignments, apparatus posture, and incident demand in one tenant-scoped operating model. It complements rather than replaces CAD, dispatch, ePCR, payroll, or clinical systems.
+Aegis connects personnel qualifications, current assignments, apparatus posture, incident demand, public geography, and public weather context in one tenant-scoped operating model. It complements rather than replaces CAD, dispatch, official warning channels, ePCR, payroll, or clinical systems.
 
 ## Operating Context
 
@@ -24,9 +24,11 @@ The interface is desktop-first for a continuously monitored command environment 
 
 ## Capabilities and Constraints
 
-- Preserve the six current workspaces, routes, URL state, API contracts, realtime behavior, OIDC roles, read-only public mode, and guarded destructive actions.
+- Preserve the eight route workspaces—County Status Wall, Operations, Workforce, Scheduling, Credentials, Analytics, Weather, and Admin—and the ten indexed status-wall destinations, including deep links into incidents, units, stations, resource posture, and plans. Preserve URL state, API contracts, realtime behavior, OIDC roles, read-only public mode, and guarded destructive actions.
 - PostgreSQL is the operational source of truth. Kafka-compatible priority channels, Redis fan-out, and Snowflake-ready analytics remain distinct system concerns.
-- The default concept uses 39 public Fairfax station locations with synthetic units, personnel, incidents, staffing, credentials, and activity.
+- The default concept uses 39 public Fairfax station locations and locally committed county iCare GIS geometry; units, personnel, incidents, staffing, credentials, and activity are synthetic. The plotted context is not for navigation or dispatch.
+- Weather is read-only public National Weather Service forecast and active-alert data with source time, cached/stale state, and an explicit unavailable state. Operators must confirm severe weather through official warning and command channels.
+- Admin exposes current identity, effective rights, service availability, and data provenance. It does not grant new privileges; synthetic demo reset remains permission-gated and confirmed.
 - The product is not authorized for dispatch, patient care, personnel decisions, or real emergency operations.
 - No patient identifiers, clinical narratives, ePHI, private county-system data, or implied county endorsement may be added.
 - Factual claims and measured performance limitations must remain explicit.
@@ -41,10 +43,10 @@ The interface is desktop-first for a continuously monitored command environment 
 
 ## Evidence on Hand
 
-- Public target research and data provenance are documented in `docs/target-research.md`.
+- Public target research and data provenance are documented in `docs/target-research.md`; the checked-in map derives from Fairfax County iCare GIS, and weather is sourced from the National Weather Service API.
 - Current product behavior and architecture are documented in `README.md`, `docs/architecture.md`, and `docs/security.md`.
-- Desktop and mobile captures for all six workspaces are stored in `pictures/`.
-- Pipeline measurements are stored in `backend/benchmarks/`; they do not substantiate a 60% consumer-lag reduction.
+- Desktop and mobile captures for all eight route workspaces are stored in `pictures/`.
+- Pipeline measurements are stored in `backend/benchmarks/`; the measured local run delivered 1,000/1,000 events at 100 offered events/second with 28.953 ms p95 alert latency, but saturated around 183 accepted events/second at 500 offered events/second and missed the 200 ms target. They do not substantiate a 60% consumer-lag reduction or a verified live Snowflake deployment.
 
 ## Product Principles
 
@@ -56,4 +58,4 @@ The interface is desktop-first for a continuously monitored command environment 
 
 ## Accessibility & Inclusion
 
-Maintain keyboard-complete workflows, visible focus, semantic landmarks and dialogs, readable text at 320px and above, 44px mobile controls, sufficient contrast, reduced-motion support, descriptive status language, and error recovery that does not depend on color or animation.
+Maintain keyboard-complete workflows, visible focus, semantic landmarks and dialogs, readable text at 320px and above, 44px mobile controls, sufficient contrast, reduced-motion support, descriptive status language, and error recovery that does not depend on color or animation. County station markers must remain keyboard accessible, and map layers, legend, source, and freshness must stay understandable without relying on color alone.
