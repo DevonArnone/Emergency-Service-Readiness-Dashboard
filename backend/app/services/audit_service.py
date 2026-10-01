@@ -53,3 +53,35 @@ def record_audit(
     )
     audit_events_store[event.audit_id] = event
     return event
+
+
+def _status(value) -> str | None:
+    if value is None:
+        return None
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def incident_lifecycle_details(before, after, *, recorded_at: datetime | None = None) -> dict:
+    """Additive, timestamped incident lifecycle facts used to reconstruct recorded timelines."""
+    before_units = list(getattr(before, "assigned_unit_ids", None) or []) if before is not None else []
+    after_units = list(getattr(after, "assigned_unit_ids", None) or [])
+    return {
+        "lifecycle": True,
+        "recorded_at": (recorded_at or datetime.now(timezone.utc)).isoformat(),
+        "before_status": _status(getattr(before, "status", None)) if before is not None else None,
+        "after_status": _status(getattr(after, "status", None)),
+        "assigned_unit_ids_before": before_units,
+        "assigned_unit_ids": after_units,
+        "units_added": [unit_id for unit_id in after_units if unit_id not in before_units],
+        "units_released": [unit_id for unit_id in before_units if unit_id not in after_units],
+    }
+
+
+def unit_service_details(before, after, *, recorded_at: datetime | None = None) -> dict:
+    """Additive, timestamped unit service-state facts; absent history is never inferred."""
+    return {
+        "service_state": True,
+        "recorded_at": (recorded_at or datetime.now(timezone.utc)).isoformat(),
+        "before_status": _status(getattr(before, "operational_status", None)) if before is not None else None,
+        "after_status": _status(getattr(after, "operational_status", None)),
+    }

@@ -178,7 +178,10 @@ export const api = {
   renewalTasks: () => apiRequest('/api/renewal-tasks', z.array(renewalTaskSchema)),
   createRenewalTask: (value: unknown) => apiRequest('/api/renewal-tasks', renewalTaskSchema, { method: 'POST', body: jsonBody(value) }),
   updateRenewalTask: (id: string, value: unknown) => apiRequest(`/api/renewal-tasks/${id}`, renewalTaskSchema, { method: 'PUT', body: jsonBody(value) }),
-  auditEvents: (limit = 50) => apiRequest(`/api/audit-events?limit=${limit}`, z.array(auditEventSchema)),
+  auditEvents: (limit = 50, entityType?: string) => apiRequest(
+    `/api/audit-events?limit=${limit}${entityType ? `&entity_type=${encodeURIComponent(entityType)}` : ''}`,
+    z.array(auditEventSchema),
+  ),
   simulateStaffing: (value: unknown) => apiRequest('/api/simulations/staffing-gap', simulationResultSchema, { method: 'POST', body: jsonBody(value) }),
   readinessTrends: (days: number, stationId?: string) => apiRequest(
     `/api/analytics/readiness-trends?${analyticsQuery(days, stationId)}`,
@@ -213,6 +216,7 @@ export const queryKeys = {
   certifications: ['certifications'] as const,
   renewals: ['renewals'] as const,
   audit: ['audit'] as const,
+  history: (entityType: string) => ['audit', 'history', entityType] as const,
   analytics: {
     trends: (days: number, stationId?: string) => ['analytics', 'trends', days, stationId || 'all'] as const,
     credentialRisk: (days: number, stationId?: string) => ['analytics', 'credential-risk', days, stationId || 'all'] as const,

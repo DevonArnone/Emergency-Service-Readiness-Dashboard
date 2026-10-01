@@ -25,10 +25,13 @@ From `dashboard/`:
 ```bash
 python3 scripts/build_fairfax_map.py
 python3 scripts/build_fairfax_map.py --verify-only
+python3 scripts/build_fairfax_map.py --reproject   # convert a legacy per-axis asset offline
 ```
 
 The standard-library builder pages through the public service in stable object
-ID order, requests Web Mercator geometry, fits it to the SVG view box, applies
+ID order, requests Web Mercator geometry, fits it to the SVG view box at one
+scale for both axes (`projection.transform` records it so overlays use the same
+projection), applies
 display-resolution Ramer–Douglas–Peucker simplification, and emits deterministic
 minified JSON. Streets are limited to freeway, expressway, arterial, parkway,
 and collector classes. Water is limited to visible rivers, lakes, ponds, and

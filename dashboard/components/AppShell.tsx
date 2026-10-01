@@ -25,12 +25,13 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, queryKeys } from '@/lib/api'
 import { OIDC_ENABLED, signOut } from '@/lib/auth'
 import { useAccess } from '@/hooks/useAccess'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import { useOperationsStream } from '@/hooks/useOperationsStream'
+import { useOperationalPeriod } from '@/hooks/useOperationalPeriod'
 import { useStationScope } from './ScopeContext'
 import { StatusBadge } from './ui'
 
@@ -47,7 +48,6 @@ const navigation = [
   { index: '10', name: 'Admin', shortName: 'Admin', href: '/admin', icon: Settings },
 ] as const
 
-const mobileNavigation = [navigation[0], navigation[1], navigation[2], navigation[4], navigation[7]]
 const auxiliaryNavigation = [
   { index: 'A1', name: 'Scheduling', href: '/shifts', icon: Command },
   { index: 'A2', name: 'Credentials', href: '/certifications-management', icon: CheckCircle2 },
@@ -68,6 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { stationId, setStationId } = useStationScope()
   const [commandOpen, setCommandOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
   const [commandQuery, setCommandQuery] = useState('')
   const streamState = useOperationsStream()
   const session = useAccess()
@@ -107,6 +108,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       : navigation.find((item) => pathname === item.href.split('?')[0])?.index
   const currentPage = navigation.find((item) => item.index === activeIndex) || navigation[0]
   const now = new Date()
+  const period = useOperationalPeriod(now.getTime())
   const periodDate = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase()
 
   const navigate = (href: string) => {
@@ -120,8 +122,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="app-topbar">
         <div className="topbar-brand"><Link href="/" aria-label="Aegis Command county status wall">AEGIS COMMAND</Link></div>
         <div className="topbar-period" aria-label="Operational period">
-          <strong>FAIRFAX COUNTY / OPERATIONAL PERIOD</strong>
-          <span>{periodDate}<b>1900 – 0700</b><b>(BRAVO SHIFT)</b></span>
+          <strong>{pathname === '/readiness' && params.get('view') === 'incidents' ? 'FAIRFAX COUNTY / INCIDENTS' : 'FAIRFAX COUNTY / OPERATIONAL PERIOD'}</strong>
+          <span>{periodDate}<b>{period.window}</b><b>({period.name})</b></span>
         </div>
         <nav className="topbar-micro-links" aria-label="Workspace groups">
           <Link href="/readiness">SERVICE</Link><i />
@@ -146,13 +148,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
-        <button className="mobile-menu-trigger" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation"><Menu size={20} /></button>
+        <button ref={mobileMenuTriggerRef} className="mobile-menu-trigger" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation directory" aria-haspopup="dialog"><Menu size={20} /></button>
       </header>
 
-      <aside className={cn('app-sidebar', mobileMenuOpen && 'app-sidebar-open')}>
-        <button className="sidebar-close" type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation"><X size={20} /></button>
+      <aside className="app-sidebar">
         <div className="sidebar-agency">
-          <Image src="/brand/aegis-command-crest.png" alt="Aegis Fairfax County Fire and Rescue concept crest" width={48} height={68} priority />
+          <Image src="/brand/aegis-command-seal-v2.png" alt="Unofficial Aegis Fairfax County Fire and Rescue concept seal" width={46} height={68} priority />
           <div><strong>FAIRFAX COUNTY<br />FIRE AND RESCUE<br />DEPARTMENT</strong><span>PROTECTING<br />OUR COMMUNITY<br />TOGETHER</span></div>
         </div>
         <nav className="primary-nav" aria-label="Primary navigation">
@@ -165,16 +166,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-provenance"><span>UNOFFICIAL CONCEPT</span><span>SYNTHETIC OPERATIONS</span><hr /><strong>A STRONGER<br />SAFER FAIRFAX</strong></div>
       </aside>
 
-      {mobileMenuOpen && <button className="sidebar-backdrop" type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation" />}
+      <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="mobile-directory-overlay" />
+          <Dialog.Content className="mobile-directory" aria-describedby={undefined} onCloseAutoFocus={(event) => { event.preventDefault(); mobileMenuTriggerRef.current?.focus() }}>
+            <div className="mobile-directory-heading">
+              <div><span>AEGIS COMMAND</span><Dialog.Title>SWITCHBOARD DIRECTORY</Dialog.Title></div>
+              <Dialog.Close className="mobile-directory-close" aria-label="Close navigation directory"><X size={21} /></Dialog.Close>
+            </div>
+            <div className="mobile-directory-period"><span>FAIRFAX COUNTY / OPERATIONAL PERIOD</span><strong>{periodDate} · {period.name}</strong></div>
+            <nav className="mobile-directory-nav" aria-label="All workspaces">
+              {switchboardNavigation.map((item) => {
+                const Icon = item.icon
+                const active = item.index === activeIndex
+                return <Link key={`${item.index}-${item.name}`} href={item.href} onClick={() => setMobileMenuOpen(false)} className={cn('mobile-directory-link', active && 'mobile-directory-link-active')} aria-current={active ? 'page' : undefined}><span>{item.index}</span><Icon aria-hidden="true" /><strong>{item.name}</strong><span>OPEN</span></Link>
+              })}
+            </nav>
+            <p className="mobile-directory-provenance">UNOFFICIAL CONCEPT · SYNTHETIC OPERATIONS</p>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <main className="app-main" id="main-content">
         {(snapshot.isError || streamState === 'offline' || streamState === 'reconnecting') && <div className="connection-notice" role="status"><RefreshCw size={15} /><span>Live updates interrupted. Showing the last available data; reconnecting automatically.</span><button onClick={() => void queryClient.invalidateQueries()}>Refresh data</button></div>}
         {children}
       </main>
-
-      <nav className="mobile-nav" aria-label="Mobile function keys">
-        {mobileNavigation.map((item, index) => { const Icon = item.icon; const active = item.index === activeIndex; return <Link key={item.index} href={item.href} className={cn(active && 'mobile-nav-active')} aria-current={active ? 'page' : undefined}><kbd>F{index + 1}</kbd><Icon /><span>{item.shortName}</span></Link> })}
-      </nav>
 
       <Dialog.Root open={commandOpen} onOpenChange={setCommandOpen}>
         <Dialog.Portal>

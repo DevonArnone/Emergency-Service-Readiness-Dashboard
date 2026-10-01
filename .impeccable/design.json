@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-21T00:00:00-04:00",
+  "generatedAt": "2026-10-01T00:00:00-04:00",
   "title": "Design System: Aegis Municipal Systems Room",
   "extensions": {
     "colorMeta": {
@@ -8,142 +8,558 @@
         "role": "neutral",
         "displayName": "Midnight Shell",
         "canonical": "#0b1720",
-        "tonalRamp": ["#050b0f", "#0b1720", "#142936", "#294757", "#496876", "#728e99", "#a8bdc4", "#e5edef"]
+        "tonalRamp": [
+          "#050b0f",
+          "#0b1720",
+          "#142936",
+          "#294757",
+          "#496876",
+          "#728e99",
+          "#a8bdc4",
+          "#e5edef"
+        ]
       },
       "status-shell": {
         "role": "neutral",
         "displayName": "Status Shell",
         "canonical": "#081923",
-        "tonalRamp": ["#040b0f", "#081923", "#15303d", "#2b4d5b", "#4c6c78", "#74909b", "#aabfc6", "#e8eff1"]
+        "tonalRamp": [
+          "#040b0f",
+          "#081923",
+          "#15303d",
+          "#2b4d5b",
+          "#4c6c78",
+          "#74909b",
+          "#aabfc6",
+          "#e8eff1"
+        ]
       },
       "workspace-shell": {
         "role": "neutral",
         "displayName": "Workspace Shell",
         "canonical": "#0b202a",
-        "tonalRamp": ["#050d11", "#0b202a", "#173743", "#2e5361", "#507380", "#7895a0", "#aec4cb", "#e8f0f2"]
+        "tonalRamp": [
+          "#050d11",
+          "#0b202a",
+          "#173743",
+          "#2e5361",
+          "#507380",
+          "#7895a0",
+          "#aec4cb",
+          "#e8f0f2"
+        ]
       },
       "plotted-board": {
         "role": "neutral",
         "displayName": "Plotted Board",
         "canonical": "#0b1d28",
-        "tonalRamp": ["#050c10", "#0b1d28", "#17343f", "#2e505e", "#50717e", "#78939e", "#adc2ca", "#e8eff2"]
+        "tonalRamp": [
+          "#050c10",
+          "#0b1d28",
+          "#17343f",
+          "#2e505e",
+          "#50717e",
+          "#78939e",
+          "#adc2ca",
+          "#e8eff2"
+        ]
       },
       "midnight-soft": {
         "role": "neutral",
         "displayName": "Midnight Soft",
         "canonical": "#102330",
-        "tonalRamp": ["#081117", "#102330", "#1b394a", "#315466", "#527383", "#7a98a5", "#aec2ca", "#e7eef0"]
+        "tonalRamp": [
+          "#081117",
+          "#102330",
+          "#1b394a",
+          "#315466",
+          "#527383",
+          "#7a98a5",
+          "#aec2ca",
+          "#e7eef0"
+        ]
       },
       "indexed-rail": {
         "role": "neutral",
         "displayName": "Indexed Rail",
         "canonical": "#09141d",
-        "tonalRamp": ["#04090d", "#09141d", "#122733", "#274451", "#476573", "#708b96", "#a7bbc2", "#e5edef"]
+        "tonalRamp": [
+          "#04090d",
+          "#09141d",
+          "#122733",
+          "#274451",
+          "#476573",
+          "#708b96",
+          "#a7bbc2",
+          "#e5edef"
+        ]
       },
       "instrument-ivory": {
         "role": "neutral",
         "displayName": "Instrument Ivory",
         "canonical": "#efe8d7",
-        "tonalRamp": ["#28251f", "#4b463a", "#706958", "#978e79", "#bdb5a0", "#d9d2c1", "#efe8d7", "#fbf8ef"]
+        "tonalRamp": [
+          "#28251f",
+          "#4b463a",
+          "#706958",
+          "#978e79",
+          "#bdb5a0",
+          "#d9d2c1",
+          "#efe8d7",
+          "#fbf8ef"
+        ]
       },
       "paper-bright": {
         "role": "neutral",
         "displayName": "Paper Bright",
         "canonical": "#f7f1e3",
-        "tonalRamp": ["#29261f", "#4d483c", "#746c5b", "#9b917b", "#c1b8a3", "#ddd6c5", "#f7f1e3", "#fdfaf2"]
+        "tonalRamp": [
+          "#29261f",
+          "#4d483c",
+          "#746c5b",
+          "#9b917b",
+          "#c1b8a3",
+          "#ddd6c5",
+          "#f7f1e3",
+          "#fdfaf2"
+        ]
       },
       "paper-muted": {
         "role": "neutral",
         "displayName": "Paper Muted",
         "canonical": "#d9d2c1",
-        "tonalRamp": ["#25231e", "#474239", "#6b6557", "#908879", "#b5ae9e", "#d9d2c1", "#ece7dc", "#faf8f2"]
+        "tonalRamp": [
+          "#25231e",
+          "#474239",
+          "#6b6557",
+          "#908879",
+          "#b5ae9e",
+          "#d9d2c1",
+          "#ece7dc",
+          "#faf8f2"
+        ]
       },
       "graphite": {
         "role": "neutral",
         "displayName": "Graphite",
         "canonical": "#20282e",
-        "tonalRamp": ["#101417", "#20282e", "#343e45", "#505c63", "#707d83", "#97a2a7", "#c2c9cc", "#edf0f1"]
+        "tonalRamp": [
+          "#101417",
+          "#20282e",
+          "#343e45",
+          "#505c63",
+          "#707d83",
+          "#97a2a7",
+          "#c2c9cc",
+          "#edf0f1"
+        ]
       },
       "graphite-secondary": {
         "role": "neutral",
         "displayName": "Graphite Secondary",
         "canonical": "#46545d",
-        "tonalRamp": ["#151a1d", "#293136", "#46545d", "#63717a", "#839098", "#a5afb4", "#c9ced1", "#eff1f2"]
+        "tonalRamp": [
+          "#151a1d",
+          "#293136",
+          "#46545d",
+          "#63717a",
+          "#839098",
+          "#a5afb4",
+          "#c9ced1",
+          "#eff1f2"
+        ]
       },
       "graphite-muted": {
         "role": "neutral",
         "displayName": "Graphite Muted",
         "canonical": "#68757c",
-        "tonalRamp": ["#171b1d", "#30373b", "#4b555a", "#68757c", "#879399", "#a8b1b5", "#cbd0d2", "#f0f2f2"]
+        "tonalRamp": [
+          "#171b1d",
+          "#30373b",
+          "#4b555a",
+          "#68757c",
+          "#879399",
+          "#a8b1b5",
+          "#cbd0d2",
+          "#f0f2f2"
+        ]
       },
       "municipal-blue": {
         "role": "primary",
         "displayName": "Municipal Blue",
         "canonical": "#244a63",
-        "tonalRamp": ["#0b171f", "#142d3c", "#244a63", "#396b88", "#598da8", "#80afc3", "#b2cfda", "#e7f0f3"]
+        "tonalRamp": [
+          "#0b171f",
+          "#142d3c",
+          "#244a63",
+          "#396b88",
+          "#598da8",
+          "#80afc3",
+          "#b2cfda",
+          "#e7f0f3"
+        ]
       },
       "service-green": {
         "role": "secondary",
         "displayName": "Service Green",
         "canonical": "#3c7b62",
-        "tonalRamp": ["#102119", "#214633", "#3c7b62", "#58a080", "#78bd9d", "#9dd4b9", "#c3e6d5", "#eaf5ef"]
+        "tonalRamp": [
+          "#102119",
+          "#214633",
+          "#3c7b62",
+          "#58a080",
+          "#78bd9d",
+          "#9dd4b9",
+          "#c3e6d5",
+          "#eaf5ef"
+        ]
       },
       "service-green-strong": {
         "role": "secondary",
         "displayName": "Service Green Strong",
         "canonical": "#285e49",
-        "tonalRamp": ["#0b1d15", "#173c2b", "#285e49", "#438269", "#65a58a", "#8fc5ac", "#b9dfcc", "#e7f3ed"]
+        "tonalRamp": [
+          "#0b1d15",
+          "#173c2b",
+          "#285e49",
+          "#438269",
+          "#65a58a",
+          "#8fc5ac",
+          "#b9dfcc",
+          "#e7f3ed"
+        ]
       },
       "signal-amber": {
         "role": "secondary",
         "displayName": "Signal Amber",
         "canonical": "#d59a2e",
-        "tonalRamp": ["#2b1d05", "#563d0c", "#875f16", "#b77e21", "#d59a2e", "#e5b85c", "#f0d493", "#fbf0d5"]
+        "tonalRamp": [
+          "#2b1d05",
+          "#563d0c",
+          "#875f16",
+          "#b77e21",
+          "#d59a2e",
+          "#e5b85c",
+          "#f0d493",
+          "#fbf0d5"
+        ]
       },
       "alert-vermilion": {
         "role": "tertiary",
         "displayName": "Alert Vermilion",
         "canonical": "#c44732",
-        "tonalRamp": ["#2b0d08", "#561c13", "#842b1e", "#aa3a29", "#c44732", "#dc7565", "#eba79c", "#f8dcd7"]
+        "tonalRamp": [
+          "#2b0d08",
+          "#561c13",
+          "#842b1e",
+          "#aa3a29",
+          "#c44732",
+          "#dc7565",
+          "#eba79c",
+          "#f8dcd7"
+        ]
       },
       "focus-amber": {
         "role": "tertiary",
         "displayName": "Focus Amber",
         "canonical": "#efb649",
-        "tonalRamp": ["#302205", "#60460d", "#936c18", "#c4902b", "#efb649", "#f6cb72", "#fae0a5", "#fff3d7"]
+        "tonalRamp": [
+          "#302205",
+          "#60460d",
+          "#936c18",
+          "#c4902b",
+          "#efb649",
+          "#f6cb72",
+          "#fae0a5",
+          "#fff3d7"
+        ]
       },
       "ruled-line": {
         "role": "neutral",
         "displayName": "Ruled Line",
         "canonical": "#9da7a6",
-        "tonalRamp": ["#1c201f", "#373d3c", "#545d5c", "#737d7c", "#9da7a6", "#b7bfbe", "#d2d7d6", "#f0f2f2"]
+        "tonalRamp": [
+          "#1c201f",
+          "#373d3c",
+          "#545d5c",
+          "#737d7c",
+          "#9da7a6",
+          "#b7bfbe",
+          "#d2d7d6",
+          "#f0f2f2"
+        ]
+      },
+      "board-title-accent": {
+        "role": "neutral",
+        "displayName": "Board Title Brass",
+        "canonical": "#d8c38f",
+        "tonalRamp": [
+          "#2d2510",
+          "#53441d",
+          "#7d652b",
+          "#aa8a3b",
+          "#c6a85c",
+          "#d6c08a",
+          "#e6d8b7",
+          "#f6f1e5"
+        ]
+      },
+      "pictogram-vermilion": {
+        "role": "tertiary",
+        "displayName": "Pictogram Vermilion",
+        "canonical": "#c9402e",
+        "tonalRamp": [
+          "#32100b",
+          "#5b1d15",
+          "#892c1f",
+          "#bb3b2b",
+          "#d65d4d",
+          "#e28a7e",
+          "#edb7b0",
+          "#f8e5e2"
+        ]
+      },
+      "pictogram-mark": {
+        "role": "neutral",
+        "displayName": "Pictogram Mark Ivory",
+        "canonical": "#f6efdf",
+        "tonalRamp": [
+          "#30250d",
+          "#584419",
+          "#836725",
+          "#b38c32",
+          "#cfa954",
+          "#dcc184",
+          "#ead9b3",
+          "#f7f1e3"
+        ]
+      },
+      "timeline-available": {
+        "role": "secondary",
+        "displayName": "Timeline Available Green",
+        "canonical": "#79c899",
+        "tonalRamp": [
+          "#122b1c",
+          "#215034",
+          "#31774d",
+          "#43a36a",
+          "#64bf89",
+          "#8fd1aa",
+          "#bae3cb",
+          "#e6f5ec"
+        ]
+      },
+      "timeline-assigned": {
+        "role": "primary",
+        "displayName": "Timeline Assigned Blue",
+        "canonical": "#2a6aad",
+        "tonalRamp": [
+          "#0c1e31",
+          "#16375a",
+          "#215387",
+          "#2d71b9",
+          "#4f90d4",
+          "#80afe0",
+          "#b1ceec",
+          "#e2edf8"
+        ]
+      },
+      "timeline-on-scene": {
+        "role": "secondary",
+        "displayName": "Timeline On-Scene Amber",
+        "canonical": "#f8ca55",
+        "tonalRamp": [
+          "#392a05",
+          "#684d08",
+          "#9c730d",
+          "#d49d11",
+          "#efba34",
+          "#f3cd6d",
+          "#f8e0a5",
+          "#fcf4de"
+        ]
+      },
+      "timeline-transport": {
+        "role": "secondary",
+        "displayName": "Timeline Transport Orange",
+        "canonical": "#f0a24b",
+        "tonalRamp": [
+          "#382005",
+          "#683b09",
+          "#9b580d",
+          "#d47812",
+          "#ee9635",
+          "#f3b46d",
+          "#f8d1a6",
+          "#fceede"
+        ]
+      },
+      "timeline-investigating": {
+        "role": "primary",
+        "displayName": "Timeline Investigating Slate",
+        "canonical": "#5e78a8",
+        "tonalRamp": [
+          "#151c28",
+          "#273349",
+          "#3b4d6d",
+          "#516995",
+          "#7188b2",
+          "#98a9c8",
+          "#c0cadd",
+          "#e8ecf2"
+        ]
+      },
+      "timeline-out-of-service": {
+        "role": "tertiary",
+        "displayName": "Out-of-Service Hatch Red",
+        "canonical": "#b8342a",
+        "tonalRamp": [
+          "#320e0b",
+          "#5b1a15",
+          "#89271f",
+          "#bb352b",
+          "#d6564c",
+          "#e2857e",
+          "#edb4b0",
+          "#f8e4e2"
+        ]
+      },
+      "timeline-maintenance": {
+        "role": "tertiary",
+        "displayName": "Maintenance Hatch Brick",
+        "canonical": "#8e3b30",
+        "tonalRamp": [
+          "#2e130f",
+          "#54231c",
+          "#7e342b",
+          "#ac473a",
+          "#c8685b",
+          "#d79289",
+          "#e7bcb7",
+          "#f6e6e4"
+        ]
+      },
+      "timeline-no-record": {
+        "role": "neutral",
+        "displayName": "No Record Hatch",
+        "canonical": "#1b3644",
+        "tonalRamp": [
+          "#11232c",
+          "#204050",
+          "#306078",
+          "#4182a4",
+          "#62a0c1",
+          "#8ebbd2",
+          "#bad5e3",
+          "#e5f0f5"
+        ]
+      },
+      "timeline-crew": {
+        "role": "neutral",
+        "displayName": "Crew Window Rule",
+        "canonical": "#a9c6d3",
+        "tonalRamp": [
+          "#152228",
+          "#263f4a",
+          "#395f6f",
+          "#4e8198",
+          "#6e9fb5",
+          "#96bac9",
+          "#bfd5de",
+          "#e7eff3"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Instrument Display", "purpose": "Large status-wall figures in Plex Sans." },
-      "headline": { "displayName": "GIS Board Headline", "purpose": "The outlined county board title in Plex Mono." },
-      "title": { "displayName": "Worksheet Title", "purpose": "Compact instrument, docket, and worksheet headings." },
-      "body": { "displayName": "Operational Body", "purpose": "Names, explanations, descriptions, and decision copy." },
-      "label": { "displayName": "Register Label", "purpose": "Codes, statuses, timestamps, table headings, and instrument metadata." },
-      "metric": { "displayName": "Tabular Metric", "purpose": "Large Plex Sans operational figures paired with labels and supporting register detail." }
+      "display": {
+        "displayName": "Instrument Display",
+        "purpose": "Large status-wall figures in Plex Sans."
+      },
+      "headline": {
+        "displayName": "GIS Board Headline",
+        "purpose": "The outlined, two-tone county board title in Plex Mono."
+      },
+      "title": {
+        "displayName": "Indexed Heading",
+        "purpose": "Plex Mono 600 spaced-caps instrument, register, and worksheet headings led by a 3-4px ink index bar."
+      },
+      "body": {
+        "displayName": "Operational Body",
+        "purpose": "Names, explanations, descriptions, and decision copy."
+      },
+      "label": {
+        "displayName": "Register Label",
+        "purpose": "Codes, statuses, timestamps, table headings, and instrument metadata."
+      },
+      "metric": {
+        "displayName": "Tabular Metric",
+        "purpose": "Large Plex Sans operational figures paired with labels and supporting register detail."
+      },
+      "figure-condensed": {
+        "displayName": "Condensed Figure",
+        "purpose": "Plex Sans Variable at 80-82% width for multi-count instruments on Units and Incidents."
+      }
     },
     "shadows": [
-      { "name": "temporary-layer", "value": "8px 12px 28px rgba(0, 0, 0, .32)", "purpose": "Dialogs, command search, and dropdowns only." },
-      { "name": "mobile-dock", "value": "0 -8px 24px rgba(0, 0, 0, .2)", "purpose": "Separates the fixed mobile navigation register from scrolling worksheets." }
+      {
+        "name": "temporary-layer",
+        "value": "8px 12px 28px rgba(0, 0, 0, .32)",
+        "purpose": "Dialogs, command search, and dropdowns only."
+      },
+      {
+        "name": "mobile-dock",
+        "value": "0 -8px 24px rgba(0, 0, 0, .2)",
+        "purpose": "Separates the fixed mobile navigation register from scrolling worksheets."
+      }
     ],
     "motion": [
-      { "name": "register-entry", "value": "280ms cubic-bezier(.16, 1, .3, 1)", "purpose": "One left-to-right reveal when a workspace page enters." },
-      { "name": "map-zoom", "value": "180ms steps(3,end)", "purpose": "Stepped transform for the GIS zoom layer." },
-      { "name": "rail-slide", "value": "170ms steps(3,end)", "purpose": "Off-canvas indexed rail transition." },
-      { "name": "state-feedback", "value": "140ms ease", "purpose": "Background and color feedback for rows, resources, and compact controls." },
-      { "name": "reduced-motion", "value": "0.01ms linear", "purpose": "Collapses motion to a single effectively immediate frame and disables smooth scrolling." }
+      {
+        "name": "register-entry",
+        "value": "280ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "One left-to-right reveal when a workspace page enters."
+      },
+      {
+        "name": "map-zoom",
+        "value": "180ms steps(3,end)",
+        "purpose": "Stepped transform for the GIS zoom layer."
+      },
+      {
+        "name": "rail-slide",
+        "value": "170ms steps(3,end)",
+        "purpose": "Off-canvas indexed rail transition."
+      },
+      {
+        "name": "state-feedback",
+        "value": "140ms ease",
+        "purpose": "Background and color feedback for rows, resources, and compact controls."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms linear",
+        "purpose": "Collapses motion to a single effectively immediate frame and disables smooth scrolling."
+      }
     ],
     "breakpoints": [
-      { "name": "rail-to-drawer", "value": "1023px" },
-      { "name": "single-column-status-wall", "value": "767px" },
-      { "name": "compact-workspace", "value": "760px" },
-      { "name": "stacked-register", "value": "639px" },
-      { "name": "narrow-board-labels", "value": "390px" }
+      {
+        "name": "rail-to-drawer",
+        "value": "1023px"
+      },
+      {
+        "name": "single-column-status-wall",
+        "value": "767px"
+      },
+      {
+        "name": "compact-workspace",
+        "value": "760px"
+      },
+      {
+        "name": "stacked-register",
+        "value": "639px"
+      },
+      {
+        "name": "narrow-board-labels",
+        "value": "390px"
+      }
     ]
   },
   "components": [
@@ -226,6 +642,22 @@
       "description": "Compact explicit key for station state and plotted geography; source labels remain visible on the board.",
       "html": "<aside class=\"ds-map-key\" aria-label=\"Map legend\"><span><i class=\"ds-normal\"></i>Station Normal</span><span><i class=\"ds-attention\"></i>Staffing Attention</span><span><i class=\"ds-offline\"></i>Station Out of Service</span><hr><span><b></b>County Boundary</span></aside>",
       "css": ".ds-map-key { display:grid; width:160px; border:1px solid #c8cabf; padding:7px 8px; color:#d9dfdb; background:rgba(8,25,35,.94); font:9px/1 'IBM Plex Mono', ui-monospace, monospace; } .ds-map-key span { display:flex; min-height:20px; align-items:center; gap:9px; white-space:nowrap; } .ds-map-key i { width:11px; height:11px; border:2px solid currentColor; border-radius:50%; } .ds-map-key .ds-normal { color:#4bd49c; } .ds-map-key .ds-attention { color:#edae19; } .ds-map-key .ds-offline { color:#ee4b36; background:#ee4b36; } .ds-map-key hr { width:100%; height:1px; margin:4px 0; border:0; background:#7a8789; } .ds-map-key b { width:28px; border-top:2px dashed #b1bcbc; } .ds-map-key:hover { border-color:#efe8d7; } .ds-map-key:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Filled Pictograms",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Shared solid instrument pictograms; the warning triangle re-inks through --pictogram-fill and --pictogram-mark.",
+      "html": "<div class=\"ds-pictos\"><svg viewBox=\"0 0 48 44\" width=\"44\" height=\"40\" aria-hidden=\"true\"><path d=\"M24 2.5c1.3 0 2.5.7 3.2 1.9l19.6 34.2c1.4 2.5-.4 5.4-3.2 5.4H4.4c-2.8 0-4.6-2.9-3.2-5.4L20.8 4.4c.7-1.2 1.9-1.9 3.2-1.9Z\" fill=\"var(--pictogram-fill, #c9402e)\"/><rect x=\"21.4\" y=\"14\" width=\"5.2\" height=\"15.5\" rx=\"1.6\" fill=\"var(--pictogram-mark, #f6efdf)\"/><circle cx=\"24\" cy=\"35.4\" r=\"3\" fill=\"var(--pictogram-mark, #f6efdf)\"/></svg><svg viewBox=\"0 0 48 42\" width=\"44\" height=\"40\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M24 1 1 17.5l2.6 3.6L6 19.4V41h36V19.4l2.4 1.7 2.6-3.6L24 1Zm-3 13h6v6h-6v-6ZM10 26h11v15H10V26Zm17 0h11v15H27V26Z\"/><path fill=\"var(--pictogram-mark, #ece8d5)\" d=\"M12 29h7v1.6h-7zm0 4h7v1.6h-7zm17-4h7v1.6h-7zm0 4h7v1.6h-7z\"/></svg><strong>05</strong><span>ACTIVE</span></div>",
+      "css": ".ds-pictos { display:inline-flex; align-items:center; gap:12px; border:1px solid #c2c0b0; padding:10px 12px; color:#14212b; background:#efe8d7; } .ds-pictos strong { font:700 40px/.9 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; font-stretch:80%; font-variant-numeric:tabular-nums; } .ds-pictos span { font:500 10.5px 'IBM Plex Mono',monospace; } .ds-pictos:hover { border-color:#14212b; } .ds-pictos:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Recorded Timeline",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Unit service history reconstructed from audit facts only; unrecorded time is a dark hatch, never available green.",
+      "html": "<div class=\"ds-tl\" role=\"group\" aria-label=\"Recorded unit activity\"><span class=\"ds-tl-label\">E401</span><div class=\"ds-tl-track\"><button class=\"ds-tl-seg ds-unrec\" style=\"left:0;width:22%\">NO RECORD</button><button class=\"ds-tl-seg ds-avail\" style=\"left:22%;width:30%\">AVAILABLE</button><button class=\"ds-tl-seg ds-assigned\" style=\"left:52%;width:8%\">ENR</button><button class=\"ds-tl-seg ds-scene\" style=\"left:60%;width:16%\">ONS</button><button class=\"ds-tl-seg ds-oos\" style=\"left:76%;width:18%\">OUT OF SERVICE</button><i class=\"ds-tl-crew\" style=\"left:22%;width:72%\"></i><i class=\"ds-tl-now\" style=\"left:94%\"></i></div></div>",
+      "css": ".ds-tl { display:grid; grid-template-columns:56px 1fr; align-items:center; width:520px; background:#0a2131; color:#f2efe2; font:500 10px 'IBM Plex Mono',monospace; } .ds-tl-label { padding-left:10px; font-weight:700; } .ds-tl-track { position:relative; height:28px; border-bottom:1px solid #4c6672; } .ds-tl-seg { position:absolute; top:5px; height:18px; overflow:hidden; border:0; padding:0 6px; color:#0b1d28; font:500 10px/18px 'IBM Plex Mono',monospace; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; } .ds-avail { background:#79c899; } .ds-assigned { color:#f6f8ff; background:#2a6aad; } .ds-scene { background:#f8ca55; } .ds-oos { color:#fff4ef; background:repeating-linear-gradient(135deg,#b8342a 0 6px,#cf4a3d 6px 11px); } .ds-unrec { color:#b8c6c6; background:repeating-linear-gradient(135deg,#1b3644 0 5px,#24414f 5px 9px); box-shadow:inset 0 0 0 1px #35535f; } .ds-tl-crew { position:absolute; bottom:1px; height:3px; background:#a9c6d3; } .ds-tl-now { position:absolute; top:-1px; bottom:-1px; width:2px; background:#efb649; } .ds-tl-seg:hover { filter:brightness(1.08); } .ds-tl-seg:focus-visible { z-index:4; outline:2px solid #efb649; outline-offset:1px; }"
     }
   ],
   "narrative": {
@@ -239,21 +671,68 @@
       "Synthetic provenance, access state, and data freshness remain visible at the point of use."
     ],
     "rules": [
-      { "name": "The Evidence Before Action Rule", "body": "Every action follows the responsible metric, record, or exception; never separate a control from the evidence that explains its consequence.", "section": "overview" },
-      { "name": "The Signal Budget Rule", "body": "Service green means ready or successful, amber means attention, vermilion means critical or destructive, and blue means structure or information. Never swap those meanings between routes.", "section": "colors" },
-      { "name": "The Warm Paper Rule", "body": "Operational content sits on warm ivory, not white and not translucent dark glass; the contrast between shell and paper is the primary depth cue.", "section": "colors" },
-      { "name": "The Instrument Voice Rule", "body": "Use mono for indices, codes, time, statuses, register cells, and machine-like labels; use Sans for readable names, large instrument figures, descriptions, and decisions. Do not set whole paragraphs in mono.", "section": "typography" },
-      { "name": "The Labeled Number Rule", "body": "A large number is never self-explanatory: pair it with a visible label, unit where relevant, and a plain-language detail line.", "section": "typography" },
-      { "name": "The Instrument Alignment Rule", "body": "Keep separate overview instruments on one exact baseline with the established narrow gutter; use shared edges and internal dividers within dockets and worksheets. Do not substitute floating metric cards.", "section": "layout" },
-      { "name": "The Board First Rule", "body": "On overview surfaces, geography and exceptions outrank decorative summaries; on task surfaces, the selected record remains adjacent to the list or filter that produced it.", "section": "layout" },
-      { "name": "The Flat Operations Rule", "body": "Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.", "section": "elevation" },
-      { "name": "The Board Frame Rule", "body": "The two-pixel light border belongs to the plotted county board; ordinary instruments and paper registers use one-pixel rules and square corners.", "section": "shapes" }
+      {
+        "name": "The Evidence Before Action Rule",
+        "body": "Every action follows the responsible metric, record, or exception; never separate a control from the evidence that explains its consequence.",
+        "section": "overview"
+      },
+      {
+        "name": "The Signal Budget Rule",
+        "body": "Service green means ready or successful, amber means attention, vermilion means critical or destructive, and blue means structure or information. Never swap those meanings between routes.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Assumed Availability Rule",
+        "body": "A timeline segment exists only where an audit fact records it. Time before the first recorded fact renders as the NO RECORD hatch, never as available green; untimed lifecycle stages carry a hatch overlay or dashed edge so inferred spans never read as measured ones.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm Paper Rule",
+        "body": "Operational content sits on warm ivory, not white and not translucent dark glass; the contrast between shell and paper is the primary depth cue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Instrument Voice Rule",
+        "body": "Use mono for indices, codes, time, statuses, register cells, and machine-like labels; use Sans for readable names, large instrument figures, descriptions, and decisions. Do not set whole paragraphs in mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Index Bar Rule",
+        "body": "A section heading is mono spaced caps with a short solid ink bar at its left edge and a rule beneath. The bar marks a heading, as in an indexed manual; it is never a colored stripe on a card or plate edge.",
+        "section": "typography"
+      },
+      {
+        "name": "The Labeled Number Rule",
+        "body": "A large number is never self-explanatory: pair it with a visible label, unit where relevant, and a plain-language detail line.",
+        "section": "typography"
+      },
+      {
+        "name": "The Instrument Alignment Rule",
+        "body": "Keep separate overview instruments on one exact baseline with the established narrow gutter; use shared edges and internal dividers within dockets and worksheets. Do not substitute floating metric cards.",
+        "section": "layout"
+      },
+      {
+        "name": "The Board First Rule",
+        "body": "On overview surfaces, geography and exceptions outrank decorative summaries; on task surfaces, the selected record remains adjacent to the list or filter that produced it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Operations Rule",
+        "body": "Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Board Frame Rule",
+        "body": "The two-pixel light border belongs to the plotted county board; ordinary instruments and paper registers use one-pixel rules and square corners.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
       "Do use warm paper plates, strong rules, compact mono labels, tabular figures, and repeated worksheet geometry across all eight route workspaces.",
       "Do preserve the 50px top register, 184px indexed rail, four aligned overview instruments, and dominant GIS board at the approved desktop composition; adapt rather than crop them on smaller screens.",
       "Do pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
+      "Do build history from recorded facts only: unrecorded time is a NO RECORD hatch, and untimed or inferred spans stay visibly marked.",
       "Do preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, aria-current, live status messaging, and 44px mobile controls.",
       "Do preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",
       "Do keep errors recoverable, loading states legible, destructive actions confirmed, and read-only actions visibly unavailable rather than absent."

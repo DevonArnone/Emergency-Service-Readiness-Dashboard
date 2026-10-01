@@ -28,7 +28,7 @@ from app.services.readiness_service import ReadinessService
 from app.services.certification_service import CertificationService
 from app.services.snowflake_service import get_snowflake_service
 from app.websocket.unit_readiness_manager import unit_readiness_manager
-from app.services.audit_service import record_audit
+from app.services.audit_service import record_audit, unit_service_details
 
 
 def _validate_assignment(assignment: UnitAssignment, ignore_id: str | None = None) -> tuple[Unit, Personnel]:
@@ -158,7 +158,7 @@ async def create_unit(unit: Unit) -> Unit:
     units_store[unit_id] = unit
     
     # The relational adapter commits the corresponding durable outbox event.
-    record_audit("CREATED", "unit", unit_id, f"Created {unit.unit_name}")
+    record_audit("CREATED", "unit", unit_id, f"Created {unit.unit_name}", details=unit_service_details(None, unit))
     return unit
 
 
@@ -183,14 +183,18 @@ async def get_unit(unit_id: str) -> Unit:
 @router.put("/units/{unit_id}", response_model=Unit)
 async def update_unit(unit_id: str, unit: Unit) -> Unit:
     """Update an existing unit definition."""
-    if unit_id not in units_store:
+    existing = units_store.get(unit_id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="Unit not found")
-    
+
     unit.unit_id = unit_id
     units_store[unit_id] = unit
-    
+
     # The relational adapter commits the corresponding durable outbox event.
-    record_audit("UPDATED", "unit", unit_id, f"Updated {unit.unit_name}")
+    record_audit(
+        "UPDATED", "unit", unit_id, f"Updated {unit.unit_name}",
+        details=unit_service_details(existing, unit),
+    )
     return unit
 
 
@@ -206,10 +210,11 @@ async def archive_unit(unit_id: str) -> Unit:
     ]
     if active_assignments:
         raise HTTPException(status_code=409, detail="Cancel active assignments before archiving unit")
+    before = unit.model_copy()
     unit.is_archived = True
     unit.operational_status = "OUT_OF_SERVICE"
     units_store[unit_id] = unit
-    record_audit("ARCHIVED", "unit", unit_id, f"Archived {unit.unit_name}")
+    record_audit("ARCHIVED", "unit", unit_id, f"Archived {unit.unit_name}", details=unit_service_details(before, unit))
     return unit
 
 

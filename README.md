@@ -12,13 +12,19 @@ The interface is organized as a municipal systems room: indexed workspaces, a co
 
 ![Aegis command center with Fairfax station geography and synthetic readiness](pictures/aegis-command-desktop.png)
 
-The county status wall fits its complete operating picture at 1536×1024: 39 keyboard-accessible station markers on locally committed [Fairfax County iCare GIS](https://www.fairfaxcounty.gov/gisint2/rest/services/DTA/iCare/MapServer) geometry, live dispatch and notice registers, resource posture, and a downloadable duty-officer brief. Station, incident, and risk layers remain interactive. [View the mobile command center](pictures/aegis-command-mobile.png).
+The county status wall fits its complete operating picture at 1536×1024: 39 keyboard-accessible station markers on locally committed [Fairfax County iCare GIS](https://www.fairfaxcounty.gov/gisint2/rest/services/DTA/iCare/MapServer) geometry drawn at a single Web Mercator scale, so roads, water, stations, and incidents share one projection, live dispatch and notice registers, resource posture, and a downloadable duty-officer brief. Station, incident, and risk layers remain interactive. [View the mobile command center](pictures/aegis-command-mobile.png).
 
-### Operations
+### Incidents
 
-![Aegis operations workspace with readiness, alerts, incidents, and contingency tools](pictures/aegis-readiness-desktop.png)
+![Aegis plotted incident theater with interactive Fairfax map, register, selected incident, timeline, and unit posture](pictures/aegis-incidents-desktop.png)
 
-Unit readiness, exception resolution, incident command, qualified assignments, and non-destructive staffing scenarios share one operational workspace. [View Operations on mobile](pictures/aegis-readiness-mobile.png).
+The plotted incident theater keeps the county map, an active-and-recent incident register, the editable worksheet (type, priority, status, location, timestamped notes, unit assignment, and resolution), a lifecycle timeline, and the selected incident's unit posture in sync. Timeline stages come from timestamped audit records of each status change and unit assignment; the timeline does not claim response or travel times. [View Incidents on mobile](pictures/aegis-incidents-mobile.png).
+
+### Units
+
+![Aegis unit switchboard with station deployment matrix, crew dossier, and assignment timeline](pictures/aegis-units-desktop.png)
+
+The unit switchboard connects 39 station rows to every synthetic apparatus record. Cells holding several units open an accessible chooser, and the selected unit stays in sync across the matrix, dossier, timeline, and URL. The deployment timeline rebuilds recorded service states, incident lifecycle stages, and crew assignment windows from the audit history; intervals with no record are shown as such rather than assumed available. The engine image is illustrative concept imagery, not a photograph of a Fairfax unit. Authorized users can assign crew, test a non-destructive offline scenario, and record out-of-service, maintenance, or return-to-service changes after confirmation. [View Units on mobile](pictures/aegis-units-mobile.png).
 
 ### Workforce
 
