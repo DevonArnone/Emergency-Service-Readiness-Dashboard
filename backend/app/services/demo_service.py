@@ -51,6 +51,74 @@ CERTIFICATIONS = (
 )
 
 
+# Synthetic incident histories. Minutes are measured back from the seed time; each stage is a
+# recorded lifecycle transition. Unit call signs resolve to the seeded unit records.
+INCIDENT_HISTORY = (
+    {"incident_id": "inc-01", "title": "Medical emergency", "type": "EMS", "priority": "HIGH",
+     "location": "12000 Fair Oaks Mall, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-001",
+     "units": ["E421", "M421"], "opened": 9, "stages": [(8, "ENROUTE")],
+     "note": "Synthetic medical response at a commercial centre."},
+    {"incident_id": "inc-02", "title": "Structure fire", "type": "FIRE", "priority": "CRITICAL",
+     "location": "4500 Stringfellow Rd, Chantilly, VA", "station_id": "fs-15", "reference": "DEMO-002",
+     "units": ["E415", "T415", "R415", "BC-3"], "added": {"BC-3": 38}, "opened": 48,
+     "stages": [(47, "ENROUTE"), (41, "ON_SCENE")], "commander": "BC-3 (synthetic)",
+     "note": "Synthetic commercial structure fire; command established.", "offset": (-0.008, 0.005)},
+    {"incident_id": "inc-03", "title": "Medical emergency", "type": "EMS", "priority": "HIGH",
+     "location": "8100 Boone Blvd, Tysons, VA", "station_id": "fs-29", "reference": "DEMO-003",
+     "units": ["A429", "E429"], "opened": 24, "stages": [(23, "ENROUTE"), (17, "ON_SCENE")],
+     "note": "Synthetic medical response in an office tower."},
+    {"incident_id": "inc-04", "title": "Medical transport", "type": "EMS", "priority": "MEDIUM",
+     "location": "6001 Burke Centre Pkwy, Burke, VA", "station_id": "fs-14", "reference": "DEMO-004",
+     "units": ["M414"], "opened": 71, "stages": [(70, "ENROUTE"), (62, "ON_SCENE"), (38, "TRANSPORT")],
+     "note": "Synthetic transport to a receiving facility.", "offset": (0.004, -0.006)},
+    {"incident_id": "inc-05", "title": "Roadway investigation", "type": "OTHER", "priority": "LOW",
+     "location": "I-495 NB at Braddock Rd, Springfield, VA", "station_id": "fs-22", "reference": "DEMO-005",
+     "units": ["E422"], "opened": 96, "stages": [(95, "ENROUTE"), (86, "ON_SCENE"), (80, "INVESTIGATING")],
+     "note": "Synthetic roadway hazard investigation.", "offset": (0.009, 0.007)},
+    {"incident_id": "inc-06", "title": "Fall with injury", "type": "EMS", "priority": "MEDIUM",
+     "location": "11900 Lee Jackson Memorial Hwy, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-006",
+     "units": ["M421"], "opened": 300,
+     "stages": [(299, "ENROUTE"), (291, "ON_SCENE"), (262, "TRANSPORT"), (205, "RESOLVED")],
+     "note": "Synthetic resolved medical response.", "offset": (-0.006, -0.003)},
+    {"incident_id": "inc-07", "title": "Vehicle fire", "type": "FIRE", "priority": "HIGH",
+     "location": "I-66 EB at Route 28, Centreville, VA", "station_id": "fs-17", "reference": "DEMO-007",
+     "units": ["E417"], "opened": 310, "stages": [(309, "ENROUTE"), (302, "ON_SCENE"), (270, "RESOLVED")],
+     "note": "Synthetic resolved vehicle fire.", "offset": (-0.006, -0.004)},
+    {"incident_id": "inc-08", "title": "Fire alarm activation", "type": "OTHER", "priority": "MEDIUM",
+     "location": "1750 Tysons Blvd, Tysons, VA", "station_id": "fs-29", "reference": "DEMO-008",
+     "units": ["E429"], "opened": 360,
+     "stages": [(359, "ENROUTE"), (353, "ON_SCENE"), (348, "INVESTIGATING"), (325, "RESOLVED")],
+     "note": "Synthetic resolved alarm investigation.", "offset": (-0.005, 0.006)},
+    {"incident_id": "inc-09", "title": "Natural gas odor", "type": "HAZMAT", "priority": "HIGH",
+     "location": "4100 Monument Corner Dr, Fairfax, VA", "station_id": "fs-40", "reference": "DEMO-009",
+     "units": ["E440", "HazMat-440"], "added": {"HazMat-440": 436}, "opened": 450,
+     "stages": [(449, "ENROUTE"), (441, "ON_SCENE"), (430, "INVESTIGATING"), (370, "RESOLVED")],
+     "note": "Synthetic resolved hazardous-materials investigation."},
+    {"incident_id": "inc-10", "title": "Cardiac arrest", "type": "EMS", "priority": "CRITICAL",
+     "location": "2700 Gallows Rd, Dunn Loring, VA", "station_id": "fs-13", "reference": "DEMO-010",
+     "units": ["M413", "E413"], "opened": 160,
+     "stages": [(159, "ENROUTE"), (152, "ON_SCENE"), (130, "TRANSPORT"), (105, "RESOLVED")],
+     "note": "Synthetic resolved cardiac response.", "offset": (0.005, 0.005)},
+    {"incident_id": "inc-11", "title": "Lift assist", "type": "OTHER", "priority": "LOW",
+     "location": "4100 Legato Rd, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-011",
+     "units": ["E421"], "opened": 250, "stages": [(249, "ENROUTE"), (241, "ON_SCENE"), (178, "RESOLVED")],
+     "note": "Synthetic resolved public assist.", "offset": (0.007, 0.004)},
+    {"incident_id": "inc-12", "title": "Brush fire", "type": "FIRE", "priority": "MEDIUM",
+     "location": "12700 Popes Head Rd, Clifton, VA", "station_id": "fs-16", "reference": "DEMO-012",
+     "units": ["E416", "TN416"], "opened": 540,
+     "stages": [(538, "ENROUTE"), (528, "ON_SCENE"), (460, "RESOLVED")],
+     "note": "Synthetic resolved brush fire.", "offset": (-0.007, -0.006)},
+)
+
+# Recorded service-state exceptions, kept away from active incident assignments.
+SERVICE_EXCEPTIONS = (
+    ("E425", "MAINTENANCE", 205, "Scheduled preventive maintenance (synthetic)"),
+    ("A436", "MAINTENANCE", 140, "Equipment inspection (synthetic)"),
+    ("T409", "OUT_OF_SERVICE", 320, "Mechanical defect reported (synthetic)"),
+    ("R430", "OUT_OF_SERVICE", 65, "Apparatus fault reported (synthetic)"),
+)
+
+
 FIRST_NAMES = (
     "Alex", "Avery", "Blake", "Cameron", "Casey", "Dakota", "Drew", "Elliot", "Emerson", "Finley",
     "Harper", "Hayden", "Jordan", "Kai", "Kendall", "Lane", "Logan", "Morgan", "Parker", "Quinn",
@@ -140,8 +208,9 @@ def _unit_plan(stations: list[dict]) -> list[dict]:
 
 
 def _person_name(index: int) -> str:
+    # Stride the surname so consecutive crew members on one unit do not share a family name.
     first = FIRST_NAMES[(index - 1) % len(FIRST_NAMES)]
-    last = LAST_NAMES[((index - 1) // len(FIRST_NAMES)) % len(LAST_NAMES)]
+    last = LAST_NAMES[((index - 1) * 17 + (index - 1) // len(FIRST_NAMES)) % len(LAST_NAMES)]
     return f"{first} {last}"
 
 
@@ -351,38 +420,95 @@ def seed_demo() -> dict:
         session.add_all(alerts)
         session.flush()
 
-        incident_specs = (
-            ("inc-01", "Medical emergency", "EMS", "12000 Fair Oaks Mall, Fairfax, VA", "HIGH", "ENROUTE", "fs-21", ["unit-engine-21", "unit-medic-21"]),
-            ("inc-02", "Structure fire", "FIRE", "4500 Stringfellow Rd, Chantilly, VA", "CRITICAL", "ON_SCENE", "fs-15", ["unit-engine-15", "unit-truck-01"]),
-            ("inc-03", "Medical emergency", "EMS", "8100 Boone Blvd, Tysons, VA", "HIGH", "ON_SCENE", "fs-29", ["unit-medic-02", "unit-engine-26"]),
-            ("inc-04", "Medical transport", "EMS", "6001 Burke Centre Pkwy, Burke, VA", "MEDIUM", "TRANSPORT", "fs-14", ["unit-medic-14"]),
-            ("inc-05", "Roadway investigation", "OTHER", "I-495 NB at Braddock Rd, Springfield, VA", "LOW", "INVESTIGATING", "fs-22", ["unit-rescue-01"]),
-        )
+        call_sign_ids = {unit.call_sign: unit.unit_id for unit in units}
         incidents: list[Incident] = []
         incident_links: list[IncidentUnit] = []
-        for offset, (
-            incident_id, title, incident_type, display_location, priority, status, station_id, unit_ids,
-        ) in enumerate(incident_specs, start=1):
-            station = station_by_id[station_id]
-            valid_unit_ids = [unit_id for unit_id in unit_ids if unit_id in unit_by_id]
-            if not valid_unit_ids:
-                valid_unit_ids = [next(unit.unit_id for unit in units if unit.station_id == station_id)]
+        lifecycle_events: list[tuple[datetime, str, str, str, str, dict]] = []
+        for spec in INCIDENT_HISTORY:
+            station = station_by_id[spec["station_id"]]
+            created_at = now - timedelta(minutes=spec["opened"])
+            stages = [(created_at, "ACTIVE")] + [
+                (now - timedelta(minutes=minutes), status) for minutes, status in spec["stages"]
+            ]
+            final_status = stages[-1][1]
+            resolved = final_status == "RESOLVED"
+            unit_ids = [call_sign_ids[call_sign] for call_sign in spec["units"]]
+            late = {call_sign_ids[call_sign]: minutes for call_sign, minutes in spec.get("added", {}).items()}
+            initial_units = [unit_id for unit_id in unit_ids if unit_id not in late]
+            # Plot incidents clear of their station marker; positions remain synthetic and approximate.
+            longitude_offset, latitude_offset = (value * 2.2 for value in spec.get("offset", (0.006, 0.004)))
             incidents.append(Incident(
-                incident_id=incident_id, organization_id=organization_id, station_id=station_id,
-                primary_unit_id=valid_unit_ids[0], title=title,
-                description=f"Synthetic active incident for interface demonstration. {DATASET_DISCLAIMER}",
-                priority=priority, incident_type=incident_type, display_location=display_location,
-                status=status, commander="Duty Command (synthetic)",
-                latitude=station.latitude, longitude=station.longitude, source="SYNTHETIC_DEMO",
-                source_reference=f"DEMO-{offset:03d}", created_at=now - timedelta(minutes=offset * 11),
-                is_active=True,
+                incident_id=spec["incident_id"], organization_id=organization_id, station_id=station.station_id,
+                primary_unit_id=unit_ids[0], title=spec["title"],
+                description=f"{spec['note']} {DATASET_DISCLAIMER}",
+                priority=spec["priority"], incident_type=spec["type"], display_location=spec["location"],
+                status=final_status, commander=spec.get("commander", "Duty Command (synthetic)"),
+                latitude=(station.latitude or 0) + latitude_offset, longitude=(station.longitude or 0) + longitude_offset,
+                source="SYNTHETIC_DEMO", source_reference=spec["reference"], created_at=created_at,
+                resolved_at=stages[-1][0] if resolved else None, is_active=not resolved,
             ))
-            for unit_id in valid_unit_ids:
-                incident_links.append(IncidentUnit(
-                    incident_unit_id=f"iu-{incident_id}-{unit_id}"[:64], organization_id=organization_id,
-                    incident_id=incident_id, unit_id=unit_id, status="ASSIGNED",
-                    assigned_at=now - timedelta(minutes=offset * 9),
-                ))
+            if not resolved:
+                for unit_id in unit_ids:
+                    incident_links.append(IncidentUnit(
+                        incident_unit_id=f"iu-{spec['incident_id']}-{unit_id}"[:64], organization_id=organization_id,
+                        incident_id=spec["incident_id"], unit_id=unit_id, status="ASSIGNED",
+                        assigned_at=now - timedelta(minutes=late.get(unit_id, spec["opened"])),
+                    ))
+
+            def lifecycle(at: datetime, before: str | None, after: str, before_units: list[str], after_units: list[str]) -> dict:
+                return {
+                    "dataset": "synthetic", "lifecycle": True, "recorded_at": at.isoformat(),
+                    "before_status": before, "after_status": after,
+                    "assigned_unit_ids_before": before_units, "assigned_unit_ids": after_units,
+                    "units_added": [unit_id for unit_id in after_units if unit_id not in before_units],
+                    "units_released": [unit_id for unit_id in before_units if unit_id not in after_units],
+                }
+
+            lifecycle_events.append((created_at, "CREATED", "incident", spec["incident_id"],
+                                     f"Opened incident: {spec['title']}",
+                                     lifecycle(created_at, None, "ACTIVE", [], initial_units)))
+            current_units = list(initial_units)
+            timeline = [(at, "STATUS", status) for at, status in stages[1:]]
+            timeline += [(now - timedelta(minutes=minutes), "UNIT", unit_id) for unit_id, minutes in late.items()]
+            previous = "ACTIVE"
+            for at, kind, value in sorted(timeline, key=lambda item: item[0]):
+                if kind == "UNIT":
+                    after_units = current_units + [value]
+                    lifecycle_events.append((at, "UPDATED", "incident", spec["incident_id"],
+                                             f"Assigned additional unit to incident: {spec['title']}",
+                                             lifecycle(at, previous, previous, current_units, after_units)))
+                    current_units = after_units
+                    continue
+                released = value == "RESOLVED"
+                lifecycle_events.append((at, "RESOLVED" if released else "UPDATED", "incident", spec["incident_id"],
+                                         f"{'Resolved' if released else 'Updated'} incident: {spec['title']}",
+                                         lifecycle(at, previous, value, current_units, [] if released else current_units)))
+                previous = value
+            for unit_id in unit_ids:
+                unit = unit_by_id[unit_id]
+                dispatched_at = now - timedelta(minutes=late.get(unit_id, spec["opened"]))
+                lifecycle_events.append((dispatched_at, "UPDATED", "unit", unit_id, f"Updated {unit.call_sign}", {
+                    "dataset": "synthetic", "service_state": True, "recorded_at": dispatched_at.isoformat(),
+                    "before_status": "AVAILABLE", "after_status": "DEPLOYED", "incident_id": spec["incident_id"],
+                }))
+                if resolved:
+                    cleared_at = stages[-1][0]
+                    lifecycle_events.append((cleared_at, "UPDATED", "unit", unit_id, f"Updated {unit.call_sign}", {
+                        "dataset": "synthetic", "service_state": True, "recorded_at": cleared_at.isoformat(),
+                        "before_status": "DEPLOYED", "after_status": "AVAILABLE", "incident_id": spec["incident_id"],
+                    }))
+                else:
+                    unit.operational_status = "DEPLOYED"
+
+        for call_sign, status, minutes, reason in SERVICE_EXCEPTIONS:
+            unit = unit_by_id[call_sign_ids[call_sign]]
+            unit.operational_status = status
+            at = now - timedelta(minutes=minutes)
+            lifecycle_events.append((at, "UPDATED", "unit", unit.unit_id, f"Updated {unit.call_sign}", {
+                "dataset": "synthetic", "service_state": True, "recorded_at": at.isoformat(),
+                "before_status": "AVAILABLE", "after_status": status, "reason": reason,
+            }))
+        session.flush()
         session.add_all(incidents)
         session.flush()
         session.add_all(incident_links)
@@ -400,26 +526,48 @@ def seed_demo() -> dict:
         ])
         session.flush()
 
+        watch_baseline = {
+            "dataset": "synthetic", "recorded_at": watch_start.isoformat(),
+            "unit_service_states": {item["unit_id"]: "AVAILABLE" for item in unit_plan},
+        }
+        for created_at, _action, entity_type, entity_id, _summary, details in sorted(lifecycle_events, key=lambda item: item[0]):
+            if entity_type == "unit" and created_at <= watch_start:
+                watch_baseline["unit_service_states"][entity_id] = details["after_status"]
+        audit_specs = (
+            ("DATASET_LOADED", "organization", organization_id, "Loaded Fairfax-scale synthetic concept data",
+             now - timedelta(minutes=24), {"dataset": "synthetic"}),
+            ("WATCH_OPENED", "shift", "shift-a", "Opened synthetic A Watch operational period",
+             watch_start, watch_baseline),
+            ("READINESS_EVALUATED", "unit", gap_units[0].unit_id, "Detected synthetic minimum-staffing gap",
+             now - timedelta(minutes=16), {"dataset": "synthetic"}),
+            ("INCIDENT_CREATED", "incident", "inc-01", "Opened synthetic medical emergency incident",
+             now - timedelta(minutes=9), {"dataset": "synthetic"}),
+            ("UNIT_ASSIGNED", "incident", "inc-02", "Assigned synthetic battalion command to structure fire",
+             now - timedelta(minutes=38), {"dataset": "synthetic"}),
+            ("ALERT_CREATED", "alert", "alert-cert-01", "Created synthetic credential renewal alert",
+             now - timedelta(minutes=4), {"dataset": "synthetic"}),
+        )
+        records = [
+            (f"audit-{offset:02d}", created_at, action, entity_type, entity_id, summary, details)
+            for offset, (action, entity_type, entity_id, summary, created_at, details) in enumerate(audit_specs, start=1)
+        ]
+        records += [
+            (f"audit-h{offset:03d}", created_at, action, entity_type, entity_id, summary, details)
+            for offset, (created_at, action, entity_type, entity_id, summary, details) in enumerate(
+                sorted(lifecycle_events, key=lambda item: item[0]), start=1,
+            )
+        ]
         previous_hash = None
         audit_events: list[AuditEvent] = []
-        audit_specs = (
-            ("DATASET_LOADED", "organization", organization_id, "Loaded Fairfax-scale synthetic concept data"),
-            ("WATCH_OPENED", "shift", "shift-a", "Opened synthetic A Watch operational period"),
-            ("READINESS_EVALUATED", "unit", gap_units[0].unit_id, "Detected synthetic minimum-staffing gap"),
-            ("INCIDENT_CREATED", "incident", "inc-01", "Opened synthetic commercial fire incident"),
-            ("UNIT_ASSIGNED", "incident", "inc-02", "Assigned synthetic technical rescue resources"),
-            ("ALERT_CREATED", "alert", "alert-cert-01", "Created synthetic credential renewal alert"),
-        )
-        for offset, (action, entity_type, entity_id, summary) in enumerate(audit_specs, start=1):
-            created_at = now - timedelta(minutes=(len(audit_specs) - offset + 1) * 4)
+        for audit_id, created_at, action, entity_type, entity_id, summary, details in sorted(records, key=lambda item: item[1]):
             event_hash = hashlib.sha256(
                 f"{previous_hash}:{action}:{entity_id}:{created_at.isoformat()}".encode("utf-8")
             ).hexdigest()
             audit_events.append(AuditEvent(
-                audit_id=f"audit-{offset:02d}", organization_id=organization_id,
+                audit_id=audit_id, organization_id=organization_id,
                 action=action, entity_type=entity_type, entity_id=entity_id,
                 actor_subject="synthetic-demo-seeder", actor_display="Aegis Demo Controller",
-                summary=summary, details={"dataset": "synthetic"}, previous_hash=previous_hash,
+                summary=summary, details=details, previous_hash=previous_hash,
                 event_hash=event_hash, created_at=created_at,
             ))
             previous_hash = event_hash
@@ -428,5 +576,6 @@ def seed_demo() -> dict:
     return {
         "organization": ORGANIZATION_NAME, "stations": 39, "battalions": 8, "units": 131,
         "minimum_staffing": 363, "personnel": 1450, "assignments": 363,
-        "readiness_gaps": 12, "alerts": 15, "incidents": 5, "synthetic": True,
+        "readiness_gaps": 12, "alerts": 15, "incidents": len(INCIDENT_HISTORY),
+        "active_incidents": sum(spec["stages"][-1][1] != "RESOLVED" for spec in INCIDENT_HISTORY), "synthetic": True,
     }

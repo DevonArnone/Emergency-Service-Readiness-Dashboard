@@ -23,7 +23,7 @@ from app.stores import (
 from app.services.readiness_service import ReadinessService
 from app.services.recommendation_service import RecommendationService
 from app.services.demo_service import seed_demo
-from app.services.audit_service import record_audit
+from app.services.audit_service import incident_lifecycle_details, record_audit
 from app.services.weather_service import weather_service
 
 logger = logging.getLogger(__name__)
@@ -343,7 +343,10 @@ async def create_incident(incident: OperationalIncident):
     if incident.status == IncidentStatus.RESOLVED:
         incident.status = IncidentStatus.ACTIVE
     incidents_store[incident.incident_id] = incident
-    record_audit("CREATED", "incident", incident.incident_id, f"Opened incident: {incident.title}")
+    record_audit(
+        "CREATED", "incident", incident.incident_id, f"Opened incident: {incident.title}",
+        details=incident_lifecycle_details(None, incident, recorded_at=incident.created_at),
+    )
     return incident
 
 
@@ -367,7 +370,10 @@ async def update_incident(incident_id: str, incident: OperationalIncident):
         incident.is_active = False
         incident.resolved_at = incident.resolved_at or datetime.now(timezone.utc)
     incidents_store[incident_id] = incident
-    record_audit("UPDATED", "incident", incident_id, f"Updated incident: {incident.title}")
+    record_audit(
+        "UPDATED", "incident", incident_id, f"Updated incident: {incident.title}",
+        details=incident_lifecycle_details(existing, incident),
+    )
     return incident
 
 
@@ -376,11 +382,15 @@ async def resolve_incident(incident_id: str):
     inc = incidents_store.get(incident_id)
     if not inc:
         raise HTTPException(404, "Incident not found")
+    before = inc.model_copy()
     inc.is_active = False
     inc.status = IncidentStatus.RESOLVED
     inc.resolved_at = datetime.now(timezone.utc)
     incidents_store[incident_id] = inc
-    record_audit("RESOLVED", "incident", incident_id, f"Resolved incident: {inc.title}")
+    record_audit(
+        "RESOLVED", "incident", incident_id, f"Resolved incident: {inc.title}",
+        details=incident_lifecycle_details(before, inc, recorded_at=inc.resolved_at),
+    )
     return inc
 
 
@@ -388,7 +398,7 @@ async def resolve_incident(incident_id: str):
 async def list_audit_events(
     entity_type: str | None = Query(None),
     entity_id: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
 ):
     events = list(audit_events_store.values())
     if entity_type:

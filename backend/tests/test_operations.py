@@ -215,3 +215,54 @@ class OperationsApiTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LifecycleHistoryTests(unittest.IsolatedAsyncioTestCase):
+    """Audit details carry enough recorded facts to rebuild unit and incident timelines."""
+
+    def setUp(self) -> None:
+        seed_demo()
+
+    async def test_seed_records_coherent_incident_and_service_histories(self) -> None:
+        from app.stores import audit_events_store
+
+        incidents = list(incidents_store.values())
+        self.assertEqual(sum(incident.is_active for incident in incidents), 5)
+        self.assertEqual(sum(not incident.is_active for incident in incidents), 7)
+        events = [event for event in audit_events_store.values() if event.details.get("lifecycle")]
+        for incident in incidents:
+            stages = sorted((event for event in events if event.entity_id == incident.incident_id), key=lambda event: event.created_at)
+            self.assertGreaterEqual(len(stages), 2, incident.incident_id)
+            self.assertIsNone(stages[0].details["before_status"])
+            final = stages[-1].details["after_status"]
+            self.assertEqual(final, "RESOLVED" if not incident.is_active else incident.status.value)
+        service = [event for event in audit_events_store.values() if event.details.get("service_state")]
+        down = {unit.unit_id for unit in units_store.values() if unit.operational_status.value in {"OUT_OF_SERVICE", "MAINTENANCE"}}
+        self.assertEqual(len(down), 4)
+        committed = {unit_id for incident in incidents if incident.is_active for unit_id in incident.assigned_unit_ids}
+        self.assertFalse(down & committed, "service exceptions must stay away from active incident assignments")
+        self.assertTrue(all(any(event.entity_id == unit_id for event in service) for unit_id in down))
+        baseline = next(event for event in audit_events_store.values() if event.action == "WATCH_OPENED")
+        self.assertEqual(len(baseline.details["unit_service_states"]), 131)
+
+    async def test_incident_and_unit_mutations_record_before_after_details(self) -> None:
+        from app.api.readiness import update_unit
+        from app.stores import audit_events_store
+
+        incident = incidents_store["inc-01"]
+        update = incident.model_copy(update={"status": IncidentStatus.ON_SCENE, "assigned_unit_ids": [*incident.assigned_unit_ids, "unit-truck-01"]})
+        await update_incident("inc-01", update)
+        event = max((item for item in audit_events_store.values() if item.entity_id == "inc-01"), key=lambda item: item.created_at)
+        self.assertEqual((event.details["before_status"], event.details["after_status"]), ("ENROUTE", "ON_SCENE"))
+        self.assertEqual(event.details["units_added"], ["unit-truck-01"])
+        self.assertIn("recorded_at", event.details)
+
+        unit = units_store["unit-engine-01"]
+        await update_unit(unit.unit_id, unit.model_copy(update={"operational_status": "MAINTENANCE"}))
+        event = max((item for item in audit_events_store.values() if item.entity_id == "unit-engine-01"), key=lambda item: item.created_at)
+        self.assertEqual((event.details["before_status"], event.details["after_status"]), ("AVAILABLE", "MAINTENANCE"))
+        self.assertTrue(event.details["service_state"])
+
+        await resolve_incident("inc-01")
+        event = max((item for item in audit_events_store.values() if item.entity_id == "inc-01"), key=lambda item: item.created_at)
+        self.assertEqual(event.details["after_status"], "RESOLVED")

@@ -64,6 +64,7 @@ LAYER_SPECS = (
         ("FFX_CLASS", "FULLNAME", "ROUTE_ALIAS"),
         1.1,
     ),
+    LayerSpec("local_streets", 2, "FFX_CLASS='LOC'", ("FFX_CLASS",), 1.8),
     LayerSpec(
         "water_bodies",
         10,
@@ -168,15 +169,24 @@ def bounds_for(features: Sequence[dict[str, Any]]) -> tuple[float, float, float,
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def projector(source_bounds: tuple[float, float, float, float]):
+def uniform_transform(source_bounds: tuple[float, float, float, float]) -> tuple[float, float, float]:
+    """One geographic scale for both axes, centred in DRAW_BOUNDS: x = tx + mx*s, y = ty - my*s."""
     source_left, source_bottom, source_right, source_top = source_bounds
     draw_left, draw_top, draw_right, draw_bottom = DRAW_BOUNDS
-    scale_x = (draw_right - draw_left) / (source_right - source_left)
-    scale_y = (draw_bottom - draw_top) / (source_top - source_bottom)
+    scale = min((draw_right - draw_left) / (source_right - source_left), (draw_bottom - draw_top) / (source_top - source_bottom))
+    centre_x = (draw_left + draw_right) / 2
+    centre_y = (draw_top + draw_bottom) / 2
+    translate_x = centre_x - (source_left + source_right) / 2 * scale
+    translate_y = centre_y + (source_bottom + source_top) / 2 * scale
+    return scale, translate_x, translate_y
+
+
+def projector(source_bounds: tuple[float, float, float, float]):
+    scale, translate_x, translate_y = uniform_transform(source_bounds)
 
     def project(point: Sequence[float]) -> tuple[float, float]:
         x, y = point
-        return draw_left + (x - source_left) * scale_x, draw_top + (source_top - y) * scale_y
+        return translate_x + x * scale, translate_y - y * scale
 
     return project
 
@@ -419,7 +429,7 @@ def road_group(attributes: dict[str, Any]) -> str:
 
 
 def route_labels(features: Sequence[dict[str, Any]], project) -> list[dict[str, Any]]:
-    supported_routes = {"1", "7", "28", "29", "50", "66", "123", "236", "244", "267", "395", "495", "7100"}
+    supported_routes = {"1", "7", "28", "29", "50", "66", "95", "123", "236", "244", "267", "395", "495", "7100"}
     by_route: dict[str, list[tuple[float, float]]] = {}
     for feature in features:
         route = str(feature.get("attributes", {}).get("ROUTE") or "").strip()
@@ -487,10 +497,29 @@ def build_asset() -> dict[str, Any]:
             "outputVertices": sum(map(len, parts)),
         }
 
+    # A stable one-in-two register of local roads restores the fine-grained
+    # street texture at wall-board scale without turning the offline asset
+    # into a full street database. The geometry remains sourced from iCare.
+    local_oid = oid_fields["local_streets"]
+    local_sample = [
+        feature for feature in fetched["local_streets"]
+        if int(feature.get("attributes", {}).get(local_oid, 0)) % 2 == 0
+    ]
+    local_parts, local_vertices = projected_parts(
+        local_sample, project, LAYER_SPECS[3].tolerance, polygon=False
+    )
+    street_paths["local"] = svg_path(local_parts)
+    layer_stats["streets.local"] = {
+        "features": len(local_sample),
+        "paths": len(local_parts),
+        "sourceVertices": local_vertices,
+        "outputVertices": sum(map(len, local_parts)),
+    }
+
     water_parts, water_vertices = projected_parts(
         fetched["water_bodies"],
         project,
-        LAYER_SPECS[3].tolerance,
+        LAYER_SPECS[4].tolerance,
         polygon=True,
         minimum_area=3.0,
     )
@@ -502,7 +531,7 @@ def build_asset() -> dict[str, Any]:
     }
 
     stream_parts, stream_vertices = projected_parts(
-        fetched["streams"], project, LAYER_SPECS[4].tolerance, polygon=False
+        fetched["streams"], project, LAYER_SPECS[5].tolerance, polygon=False
     )
     layer_stats["streams"] = {
         "features": len(fetched["streams"]),
@@ -518,9 +547,10 @@ def build_asset() -> dict[str, Any]:
         "name": "Fairfax County command map",
         "viewBox": list(VIEWBOX),
         "projection": {
-            "type": "affine-fit-web-mercator",
+            "type": "uniform-fit-web-mercator",
             "sourceSpatialReference": "EPSG:3857",
-            "preserveAspectRatio": False,
+            "preserveAspectRatio": True,
+            "transform": dict(zip(("scale", "translateX", "translateY"), (round(value, 9) for value in uniform_transform(source_bounds)))),
             "drawBounds": list(DRAW_BOUNDS),
             "sourceBounds": [round(value, 3) for value in source_bounds],
             "geographicBounds": [
@@ -554,11 +584,58 @@ def build_asset() -> dict[str, Any]:
     }
 
 
+def reproject_legacy_asset(asset: dict[str, Any]) -> dict[str, Any]:
+    """Convert an asset written with independent x/y fitting to the single-scale projection.
+
+    The legacy fit was an exact per-axis affine of Web Mercator, so its coordinates invert
+    without refetching. Simplification and clipping already applied are preserved.
+    """
+    projection = asset["projection"]
+    if projection.get("preserveAspectRatio"):
+        return asset
+    source_left, source_bottom, source_right, source_top = projection["sourceBounds"]
+    draw_left, draw_top, draw_right, draw_bottom = projection["drawBounds"]
+    scale_x = (draw_right - draw_left) / (source_right - source_left)
+    scale_y = (draw_bottom - draw_top) / (source_top - source_bottom)
+    project = projector((source_left, source_bottom, source_right, source_top))
+
+    def convert(x: float, y: float) -> tuple[float, float]:
+        return project((source_left + (x - draw_left) / scale_x, source_top - (y - draw_top) / scale_y))
+
+    def convert_path(path: str) -> str:
+        parts: list[list[tuple[float, float]]] = []
+        closed = "Z" in path
+        for chunk in path.replace("Z", "").split("M")[1:]:
+            points = []
+            for pair in chunk.split("L"):
+                x, y = (float(value) for value in pair.split())
+                points.append(convert(x, y))
+            parts.append(points)
+        return svg_path(parts, close=closed)
+
+    layers = asset["layers"]
+    for key in ("county", "waterBodies", "streams", "majorRoads"):
+        layers[key]["path"] = convert_path(layers[key]["path"])
+    for key, path in layers["streets"].items():
+        layers["streets"][key] = convert_path(path)
+    for label in layers["routeLabels"]:
+        label["x"], label["y"] = (round(value, 1) for value in convert(label["x"], label["y"]))
+    bounds = (source_left, source_bottom, source_right, source_top)
+    projection.update({
+        "type": "uniform-fit-web-mercator",
+        "preserveAspectRatio": True,
+        "transform": dict(zip(("scale", "translateX", "translateY"), (round(value, 9) for value in uniform_transform(bounds)))),
+    })
+    return asset
+
+
 def validate_asset(asset: dict[str, Any], path: Path) -> None:
     if asset.get("schemaVersion") != 1:
         raise RuntimeError("Unsupported or missing schemaVersion")
     if asset.get("viewBox") != list(VIEWBOX):
         raise RuntimeError("Unexpected SVG viewBox")
+    if not asset.get("projection", {}).get("preserveAspectRatio"):
+        raise RuntimeError("Map geometry must use one geographic scale for both axes")
     layers = asset.get("layers", {})
     required_paths = (
         layers.get("county", {}).get("path"),
@@ -581,8 +658,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Generated JSON asset path")
     parser.add_argument("--verify-only", action="store_true", help="Validate an existing asset without network access")
+    parser.add_argument("--reproject", action="store_true", help="Convert a legacy per-axis asset to one geographic scale without network access")
     args = parser.parse_args()
     output = args.output.resolve()
+
+    if args.reproject:
+        asset = reproject_legacy_asset(json.loads(output.read_text(encoding="utf-8")))
+        output.write_text(json.dumps(asset, ensure_ascii=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        validate_asset(asset, output)
+        print(f"Reprojected {output} ({output.stat().st_size:,} bytes)")
+        return 0
 
     if args.verify_only:
         asset = json.loads(output.read_text(encoding="utf-8"))

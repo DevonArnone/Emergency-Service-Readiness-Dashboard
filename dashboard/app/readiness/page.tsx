@@ -21,10 +21,13 @@ import {
 import { useMemo, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FormDialog, { Field } from '@/components/FormDialog'
+import IncidentsTheater from '@/components/IncidentsTheater'
+import UnitsSwitchboard from '@/components/UnitsSwitchboard'
 import { useStationScope } from '@/components/ScopeContext'
+import { useOperationalHistory } from '@/hooks/useOperationalHistory'
 import { WriteButton as Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
 import { api, queryKeys } from '@/lib/api'
-import type { UnitReadiness } from '@/lib/schemas'
+import type { Unit, UnitReadiness } from '@/lib/schemas'
 import { cn, formatRelativeTime, titleCase } from '@/lib/utils'
 
 type Notice = { tone: 'success' | 'danger'; message: string } | null
@@ -55,6 +58,9 @@ export default function OperationsPage() {
   })
   const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
+  const unitDefinitions = useQuery({ queryKey: queryKeys.units, queryFn: api.units, enabled: view === 'units' || view === 'incidents' })
+  const assignments = useQuery({ queryKey: queryKeys.assignments, queryFn: api.assignments, enabled: view === 'units' })
+  const history = useOperationalHistory(view === 'units' || view === 'incidents')
 
   const invalidateOperations = async () => {
     await Promise.all([
@@ -63,6 +69,8 @@ export default function OperationsPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.units }),
       queryClient.invalidateQueries({ queryKey: queryKeys.assignments }),
       queryClient.invalidateQueries({ queryKey: queryKeys.personnel }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.audit }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.incidents }),
     ])
   }
 
@@ -89,6 +97,11 @@ export default function OperationsPage() {
   const createUnit = useMutation({
     mutationFn: api.createUnit,
     onSuccess: async (unit) => { await invalidateOperations(); setSelectedUnitId(unit.unit_id); setSearch(unit.unit_name); setStatusFilter('all'); setUnitDialog(false); setNotice({ tone: 'success', message: 'Response unit added.' }) },
+    onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
+  })
+  const updateUnitStatus = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: Unit }) => api.updateUnit(id, value),
+    onSuccess: async () => { await invalidateOperations(); setNotice({ tone: 'success', message: 'Unit service status updated and recorded.' }) },
     onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
   const createAssignment = useMutation({
@@ -121,9 +134,34 @@ export default function OperationsPage() {
     const tone = readinessTone(unit.readiness_score)
     return matchesSearch && (statusFilter === 'all' || tone === statusFilter)
   }), [units, search, statusFilter])
-  const selectedUnit = filteredUnits.find((unit) => unit.unit_id === selectedUnitId) || filteredUnits[0]
+  const scopedUnits = view === 'units' && stationId !== 'all'
+    ? units.filter((unit) => unitDefinitions.data?.some((definition) => definition.unit_id === unit.unit_id && definition.station_id === stationId))
+    : units
+  const selectableUnits = view === 'units' ? scopedUnits : filteredUnits
+  const latestIncident = [...(operations.data?.incidents || [])].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .find((incident) => selectableUnits.some((unit) => unit.unit_id === (incident.unit_id || incident.assigned_unit_ids[0])))
+  const selectedUnit = selectableUnits.find((unit) => unit.unit_id === selectedUnitId)
+    || selectableUnits.find((unit) => unit.unit_id === (latestIncident?.unit_id || latestIncident?.assigned_unit_ids[0]))
+    || selectableUnits[0]
   const alerts = operations.data?.alerts || []
   const incidents = operations.data?.incidents || []
+
+  const selectUnit = (id: string) => {
+    setSelectedUnitId(id)
+    simulation.reset()
+    const query = new URLSearchParams(params.toString())
+    query.set('view', 'units')
+    query.set('unit', id)
+    router.replace(`/readiness?${query}`, { scroll: false })
+  }
+
+  const setUnitStatus = (unit: Unit, status: Unit['operational_status']) => {
+    const action = status === 'OUT_OF_SERVICE' ? 'mark out of service' : status === 'MAINTENANCE' ? 'place in maintenance' : 'return to service'
+    const committed = incidents.find((incident) => incident.unit_id === unit.unit_id || incident.assigned_unit_ids.includes(unit.unit_id))
+    const warning = committed && status !== 'AVAILABLE' ? ` ${unit.unit_name} is still assigned to an active incident (${committed.title}); its incident assignment is not changed.` : ''
+    if (!window.confirm(`Confirm: ${action} for ${unit.unit_name}?${warning} This changes the recorded unit status and readiness posture.`)) return
+    updateUnitStatus.mutate({ id: unit.unit_id, value: { ...unit, operational_status: status } })
+  }
 
   const submitUnit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -161,12 +199,12 @@ export default function OperationsPage() {
   }
 
   return (
-    <div className="ops-page page-enter">
+    <div className={cn('ops-page page-enter', view === 'incidents' && 'incident-theater-page', view === 'units' && 'units-switchboard-page')}>
       <div className="ops-shell space-y-6">
-        <PageHeader eyebrow="Operational control" title="Operations" description="Monitor unit readiness, clear exceptions, coordinate incidents, and test staffing contingencies from one workspace." actions={<><Button onClick={() => setIncidentDialog(true)}><Siren className="size-4" />Open incident</Button><Button variant="primary" onClick={() => setUnitDialog(true)}><Plus className="size-4" />Add unit</Button></>} />
-
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
+        {view === 'incidents' ? <IncidentsTheater snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} history={history} scope={stationId} updating={updateIncident.isPending} resolving={resolveIncident.isPending} onOpen={() => setIncidentDialog(true)} onUpdate={async (incident) => { await updateIncident.mutateAsync({ id: incident.incident_id, value: incident }) }} onResolve={(id) => resolveIncident.mutate(id)} /> : view === 'units' ? <><UnitsSwitchboard snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} assignments={assignments.data || []} personnel={personnel.data || []} history={history} scope={stationId} selectedUnit={selectedUnit} onSelectUnit={selectUnit} onAddUnit={() => setUnitDialog(true)} onAssign={() => setAssignmentDialog(true)} onSimulate={(unitId) => simulation.mutate({ unitId })} simulation={simulation.data} simulating={simulation.isPending} onSetStatus={setUnitStatus} updatingStatus={updateUnitStatus.isPending} loading={operations.isLoading || stations.isLoading || unitDefinitions.isLoading || assignments.isLoading} />{unitDefinitions.isError && <ErrorState message={unitDefinitions.error.message} retry={() => unitDefinitions.refetch()} />}{assignments.isError && <ErrorState message={assignments.error.message} retry={() => assignments.refetch()} />}</> : <>
+        <PageHeader eyebrow="Operational control" title="Operations" description="Monitor unit readiness, clear exceptions, coordinate incidents, and test staffing contingencies from one workspace." actions={<><Button onClick={() => setIncidentDialog(true)}><Siren className="size-4" />Open incident</Button><Button variant="primary" onClick={() => setUnitDialog(true)}><Plus className="size-4" />Add unit</Button></>} />
 
         <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="District readiness" value={operations.data ? `${Math.round(operations.data.summary.overall_readiness_pct)}%` : '—'} detail={`${operations.data?.summary.ready_units || 0} fully ready units`} icon={CircleDot} tone={readinessTone(operations.data?.summary.overall_readiness_pct || 0)} />
@@ -209,14 +247,6 @@ export default function OperationsPage() {
             </section>
           </Tabs.Content>
 
-          <Tabs.Content value="incidents" className="tab-content">
-            <section className="ops-panel">
-              <SectionHeader title="Incident command" description="Active events and their assigned response resources" action={<Button variant="primary" onClick={() => setIncidentDialog(true)}><Plus className="size-4" />Open incident</Button>} />
-              <div className="incident-grid">{incidents.map((incident) => <article key={incident.incident_id} className="incident-card"><div><StatusBadge tone={incident.priority === 'CRITICAL' ? 'danger' : incident.priority === 'HIGH' ? 'warning' : 'info'}>{incident.priority}</StatusBadge><StatusBadge tone={incident.status === 'ON_SCENE' ? 'danger' : 'warning'}>{incident.status.replaceAll('_', ' ')}</StatusBadge></div><h3>{incident.title}</h3><p>{incident.display_location || 'Location pending'} · {incident.incident_type}</p><p>{incident.description || 'No incident detail entered.'}</p><dl><div><dt>Commander</dt><dd>{incident.commander || 'Unassigned'}</dd></div><div><dt>Unit</dt><dd>{incident.unit_id || 'District-wide'}</dd></div></dl><Field label="Dispatch lifecycle"><select className="form-control" value={incident.status} disabled={updateIncident.isPending} onChange={(event) => updateIncident.mutate({ id: incident.incident_id, value: { ...incident, status: event.target.value } })}><option>ACTIVE</option><option>ENROUTE</option><option>ON_SCENE</option><option>TRANSPORT</option><option>INVESTIGATING</option></select></Field><Button onClick={() => resolveIncident.mutate(incident.incident_id)} busy={resolveIncident.isPending}><CheckCircle2 className="size-4" />Close incident</Button></article>)}</div>
-              {!incidents.length && <EmptyState title="No active incidents" description="Open a new incident when an event requires coordinated command." icon={Siren} />}
-            </section>
-          </Tabs.Content>
-
           <Tabs.Content value="simulation" className="tab-content">
             <div className="master-detail-grid">
               <section className="ops-panel"><SectionHeader title="Contingency scenario" description="Select a unit, then remove one member or place the unit offline" />{selectedUnit ? <><div className="simulation-unit"><span className={`score-ring score-${readinessTone(selectedUnit.readiness_score)}`}>{selectedUnit.readiness_score}</span><div><strong>{selectedUnit.unit_name}</strong><small>{selectedUnit.staff_present} personnel currently assigned</small></div></div><div className="simulation-actions"><Button onClick={() => simulation.mutate({ unitId: selectedUnit.unit_id })} busy={simulation.isPending}><Wrench className="size-4" />Simulate unit offline</Button>{selectedUnit.assigned_personnel.map((person) => <Button key={person.personnel_id} onClick={() => simulation.mutate({ unitId: selectedUnit.unit_id, personnelId: person.personnel_id })} busy={simulation.isPending}><UserPlus className="size-4" />Call out {person.name}</Button>)}</div></> : <EmptyState title="Select a unit first" description="Return to Units and choose the operational asset to test." />}</section>
@@ -224,6 +254,7 @@ export default function OperationsPage() {
             </div>
           </Tabs.Content>
         </Tabs.Root>
+        </>}
       </div>
 
       <FormDialog open={unitDialog} onOpenChange={setUnitDialog} title="Add response unit" description="Define staffing and credential requirements for a new operational asset." submitLabel="Add unit" submitting={createUnit.isPending} error={createUnit.error?.message} onSubmit={submitUnit}><div className="form-grid"><Field label="Unit name"><input className="form-control" name="unit_name" required /></Field><Field label="Unit type"><select className="form-control" name="type" defaultValue="ENGINE"><option>ENGINE</option><option>LADDER</option><option>RESCUE</option><option>MEDIC</option><option>SAR_TEAM</option></select></Field><Field label="Minimum staff"><input className="form-control" name="minimum_staff" type="number" min="1" defaultValue="3" required /></Field><Field label="Station"><select className="form-control" name="station_id" defaultValue={stationId === 'all' ? '' : stationId}><option value="">Unassigned</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field><Field label="Required certifications" hint="Comma-separated credential names"><input className="form-control" name="required_certifications" placeholder="FF1, EMT-B" /></Field></div></FormDialog>
