@@ -22,7 +22,8 @@ import { useStationScope } from '@/components/ScopeContext'
 import { WriteButton as Button, EmptyState, ErrorState, LoadingState, PageHeader, Pagination, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
 import { api, queryKeys } from '@/lib/api'
 import type { Certification, RenewalTask } from '@/lib/schemas'
-import { cn, formatDate, titleCase } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
+import { CredentialHorizon, UnitQualificationMatrix, type ExpirationBand } from '@/components/OperatingSurfaces'
 
 type Notice = { tone: 'success' | 'danger'; message: string } | null
 type CredentialRisk = { personnelId: string; personnelName: string; stationId?: string | null; certification: string; expiresOn: string; daysLeft: number }
@@ -38,6 +39,8 @@ export default function CredentialsPage() {
   const queryClient = useQueryClient()
   const { stationId } = useStationScope()
   const [search, setSearch] = useState('')
+  const [view, setView] = useState('renewals')
+  const [band, setBand] = useState<ExpirationBand>('all')
   const [renewalDialog, setRenewalDialog] = useState<CredentialRisk | null>(null)
   const [editingCert, setEditingCert] = useState<Certification | 'new' | null>(null)
   const [selectedCertId, setSelectedCertId] = useState('')
@@ -94,8 +97,8 @@ export default function CredentialsPage() {
     personnelId: person.personnel_id, personnelName: person.name, stationId: person.station_id, certification, expiresOn,
     daysLeft: Math.floor((new Date(expiresOn).getTime() - Date.now()) / 86400000),
   }))).filter((risk) => risk.daysLeft <= 90).sort((a, b) => a.daysLeft - b.daysLeft), [scopedPeople])
-  const filteredRisks = risks.filter((risk) => `${risk.personnelName} ${risk.certification}`.toLowerCase().includes(search.toLowerCase()))
-  const riskPage = usePagination(filteredRisks, `${stationId}:${search}`)
+  const filteredRisks = risks.filter((risk) => `${risk.personnelName} ${risk.certification}`.toLowerCase().includes(search.toLowerCase()) && (band === 'all' || (band === 'expired' && risk.daysLeft < 0) || (band === '14' && risk.daysLeft >= 0 && risk.daysLeft <= 14) || (band === '30' && risk.daysLeft > 14 && risk.daysLeft <= 30) || (band === '90' && risk.daysLeft > 30 && risk.daysLeft <= 90)))
+  const riskPage = usePagination(filteredRisks, `${stationId}:${search}:${band}`)
   const openRenewals = (renewals.data || []).filter((task) => task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && scopedPeople.some((person) => person.personnel_id === task.personnel_id))
   const renewalPage = usePagination(openRenewals, stationId)
   const selectedCert = certifications.data?.find((cert) => cert.certification_id === selectedCertId) || certifications.data?.[0]
@@ -123,7 +126,7 @@ export default function CredentialsPage() {
   }
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell space-y-6">
         <PageHeader eyebrow="Qualification assurance" title="Credentials" description="Work a prioritized renewal queue, measure qualification risk, and safely maintain credential definitions and unit requirements." actions={<Button variant="primary" onClick={() => setEditingCert('new')}><Plus className="size-4" />Add credential</Button>} />
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
@@ -136,7 +139,9 @@ export default function CredentialsPage() {
           <StatCard label="Open renewals" value={openRenewals.length} detail="Tracked tasks in workflow" icon={CalendarCheck} tone={openRenewals.length ? 'info' : 'success'} />
         </section>
 
-        <Tabs.Root defaultValue="renewals" className="workspace-tabs">
+        <CredentialHorizon days={risks.map(risk => risk.daysLeft)} selected={band} onSelect={value => { setBand(value); setView('risk') }} />
+
+        <Tabs.Root value={view} onValueChange={setView} className="workspace-tabs">
           <Tabs.List className="tab-list" aria-label="Credential views">
             <Tabs.Trigger value="renewals">Renewal queue <span>{openRenewals.length}</span></Tabs.Trigger>
             <Tabs.Trigger value="risk">Workforce risk <span>{risks.length}</span></Tabs.Trigger>
@@ -147,14 +152,14 @@ export default function CredentialsPage() {
           <Tabs.Content value="renewals" className="tab-content">
             <section className="ops-panel table-panel">
               <SectionHeader title="Renewal work queue" description="Owner, schedule, and complete qualification work before it affects deployability" />
-              {renewals.isLoading ? <LoadingState rows={6} /> : <div className="responsive-table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Due</th><th>Owner</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{renewalPage.rows.map((task) => { const person = people.data?.find((item) => item.personnel_id === task.personnel_id); return <tr key={task.renewal_id}><td><div className="primary-cell"><span className="person-avatar person-avatar-small">{person?.name.split(' ').map((part) => part[0]).slice(0, 2).join('') || '—'}</span><span><strong>{person?.name || 'Unknown personnel'}</strong><small>{person?.role || 'Record unavailable'}</small></span></div></td><td><strong>{task.certification}</strong></td><td>{formatDate(task.due_date)}{new Date(task.due_date) < new Date() && <small className="table-warning">Overdue</small>}</td><td>{task.owner || 'Unassigned'}</td><td><StatusBadge tone={task.status === 'OPEN' ? 'danger' : 'info'}>{task.status}</StatusBadge></td><td><div className="row-actions">{task.status === 'OPEN' && <Button variant="ghost" onClick={() => setRenewalAction({ task, status: 'SCHEDULED' })} busy={updateRenewal.isPending}><CalendarCheck className="size-4" />Schedule</Button>}<Button variant="ghost" onClick={() => setRenewalAction({ task, status: 'COMPLETED' })} busy={updateRenewal.isPending}><CheckCircle2 className="size-4" />Complete</Button></div></td></tr> })}</tbody></table></div>}
+              {renewals.isLoading ? <LoadingState rows={6} /> : <div className="responsive-table" tabIndex={0} role="region" aria-label="Scrollable record table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Due</th><th>Owner</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{renewalPage.rows.map((task) => { const person = people.data?.find((item) => item.personnel_id === task.personnel_id); return <tr key={task.renewal_id}><td><div className="primary-cell"><span className="person-avatar person-avatar-small">{person?.name.split(' ').map((part) => part[0]).slice(0, 2).join('') || '—'}</span><span><strong>{person?.name || 'Unknown personnel'}</strong><small>{person?.role || 'Record unavailable'}</small></span></div></td><td><strong>{task.certification}</strong></td><td>{formatDate(task.due_date)}{new Date(task.due_date) < new Date() && <small className="table-warning">Overdue</small>}</td><td>{task.owner || 'Unassigned'}</td><td><StatusBadge tone={task.status === 'OPEN' ? 'danger' : 'info'}>{task.status}</StatusBadge></td><td><div className="row-actions">{task.status === 'OPEN' && <Button variant="ghost" onClick={() => setRenewalAction({ task, status: 'SCHEDULED' })} busy={updateRenewal.isPending}><CalendarCheck className="size-4" />Schedule</Button>}<Button variant="ghost" onClick={() => setRenewalAction({ task, status: 'COMPLETED' })} busy={updateRenewal.isPending}><CheckCircle2 className="size-4" />Complete</Button></div></td></tr> })}</tbody></table></div>}
               <Pagination {...renewalPage} />
               {!openRenewals.length && !renewals.isLoading && <EmptyState title="Renewal queue is clear" description="Credential risks can be converted into tracked renewal tasks from Workforce risk." icon={CheckCircle2} />}
             </section>
           </Tabs.Content>
 
           <Tabs.Content value="risk" className="tab-content">
-            <section className="ops-panel table-panel"><div className="section-toolbar"><SectionHeader title="Qualification risk forecast" description="Expired credentials and expirations within the next 90 days" /><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search person or credential" /></label></div><div className="responsive-table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Expiration</th><th>Risk</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{riskPage.rows.map((risk) => <tr key={`${risk.personnelId}-${risk.certification}`}><td><strong>{risk.personnelName}</strong></td><td>{risk.certification}</td><td>{formatDate(risk.expiresOn)}</td><td><StatusBadge tone={riskTone(risk.daysLeft)}>{risk.daysLeft < 0 ? `${Math.abs(risk.daysLeft)} days expired` : `${risk.daysLeft} days left`}</StatusBadge></td><td><Button variant="ghost" onClick={() => setRenewalDialog(risk)}><Plus className="size-4" />Create task</Button></td></tr>)}</tbody></table></div><Pagination {...riskPage} />{!filteredRisks.length && <EmptyState title="No credential risk" description="No expirations are forecast within the selected window." icon={ShieldCheck} />}</section>
+            <section className="ops-panel table-panel"><div className="section-toolbar"><SectionHeader title="Qualification risk forecast" description="Expired credentials and expirations within the next 90 days" /><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search person or credential" /></label></div><div className="responsive-table" tabIndex={0} role="region" aria-label="Scrollable record table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Expiration</th><th>Risk</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{riskPage.rows.map((risk) => <tr key={`${risk.personnelId}-${risk.certification}`}><td><strong>{risk.personnelName}</strong></td><td>{risk.certification}</td><td>{formatDate(risk.expiresOn)}</td><td><StatusBadge tone={riskTone(risk.daysLeft)}>{risk.daysLeft < 0 ? `${Math.abs(risk.daysLeft)} days expired` : `${risk.daysLeft} days left`}</StatusBadge></td><td><Button variant="ghost" onClick={() => setRenewalDialog(risk)}><Plus className="size-4" />Create task</Button></td></tr>)}</tbody></table></div><Pagination {...riskPage} />{!filteredRisks.length && <EmptyState title="No credential risk" description="No expirations are forecast within the selected window." icon={ShieldCheck} />}</section>
           </Tabs.Content>
 
           <Tabs.Content value="library" className="tab-content">
@@ -162,7 +167,7 @@ export default function CredentialsPage() {
           </Tabs.Content>
 
           <Tabs.Content value="requirements" className="tab-content">
-            <section className="ops-panel"><SectionHeader title="Unit qualification matrix" description="Credentials required before personnel can be assigned to each response unit" /><div className="requirement-grid">{units.data?.filter((unit) => stationId === 'all' || unit.station_id === stationId).map((unit) => <article key={unit.unit_id} className="requirement-card"><div><span><ShieldCheck className="size-4" /></span><div><h3>{unit.unit_name}</h3><p>{titleCase(unit.type)} · {unit.minimum_staff} minimum staff</p></div></div><div className="credential-cloud">{unit.required_certifications.map((cert) => <span key={cert}><Award className="size-3.5" />{cert}</span>)}</div>{!unit.required_certifications.length && <div className="compact-empty">No specific credentials required.</div>}</article>)}</div></section>
+            <section className="civic-plate"><SectionHeader title="Unit qualification matrix" description="REQ marks a required qualification, not proof of a qualified crew. Select apparatus to inspect readiness." /><UnitQualificationMatrix units={(units.data || []).filter(unit => stationId === 'all' || unit.station_id === stationId)} />{!units.data?.length && <EmptyState title="No unit requirements returned" description="Refresh the unit register to review requirements." />}</section>
           </Tabs.Content>
         </Tabs.Root>
       </div>

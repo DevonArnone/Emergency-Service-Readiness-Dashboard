@@ -75,6 +75,18 @@ test('operator completes personnel, incident, shift and credential workflows', a
   await page.getByRole('button', { name: 'Return unit' }).click()
   await expect(page.locator('.sb-service')).toContainText('IN SERVICE')
 
+  // Scenario results are projections; recorded apparatus readiness does not change.
+  await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).getByRole('link', { name: /Plans & Hazards/ }).click()
+  await page.getByLabel('Scenario apparatus').selectOption('unit-engine-01')
+  const baseline = await page.locator('.comparison-instrument strong').first().textContent()
+  await page.getByRole('button', { name: 'Calculate scenario', exact: true }).click()
+  await expect(page.locator('.comparison-instrument strong').nth(1)).not.toHaveText('—')
+  await expect(page.locator('.comparison-instrument strong').first()).toHaveText(baseline!)
+  await expect(page.locator('.recovery-worksheet li').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Reset scenario', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Awaiting calculation' })).toBeVisible()
+  await expect(page.locator('.comparison-instrument strong').first()).toHaveText(baseline!)
+
   await page.getByRole('button', { name: /Search unit, station, incident, location/ }).click()
   await page.getByLabel('Search workspaces and actions').fill('Scheduling')
   await page.getByRole('button', { name: /Scheduling/ }).click()

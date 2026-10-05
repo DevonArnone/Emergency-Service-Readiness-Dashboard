@@ -30,6 +30,7 @@ import {
   YAxis,
 } from 'recharts'
 import { useStationScope } from '@/components/ScopeContext'
+import { ReadinessAnalysis } from '@/components/OperatingSurfaces'
 import { Button, EmptyState, ErrorState, LoadingState, PageHeader, SectionHeader, StatCard, StatusBadge } from '@/components/ui'
 import { api, queryKeys } from '@/lib/api'
 import { formatDate, titleCase } from '@/lib/utils'
@@ -57,7 +58,7 @@ function AnalyticsWorkspace() {
   const operations = useQuery({
     queryKey: queryKeys.operations(stationId),
     queryFn: () => api.operationsSnapshot(scopedStation),
-    enabled: activeTab === 'overview' || activeTab === 'readiness',
+    enabled: true,
   })
   const trends = useQuery({
     queryKey: queryKeys.analytics.trends(days, scopedStation),
@@ -67,12 +68,12 @@ function AnalyticsWorkspace() {
   const staffing = useQuery({
     queryKey: queryKeys.analytics.staffing(scopedStation),
     queryFn: () => api.staffingGaps(scopedStation),
-    enabled: activeTab === 'overview' || activeTab === 'staffing',
+    enabled: true,
   })
   const credentialRisk = useQuery({
     queryKey: queryKeys.analytics.credentialRisk(days, scopedStation),
     queryFn: () => api.certificationRisk(days, scopedStation),
-    enabled: activeTab === 'overview' || activeTab === 'credentials',
+    enabled: true,
   })
   const liveShifts = useQuery({
     queryKey: queryKeys.liveShifts,
@@ -135,7 +136,7 @@ function AnalyticsWorkspace() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `ridgecrest-${activeTab}-${days}d.csv`
+    link.download = `aegis-${activeTab}-${days}d-${stationId}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -144,7 +145,7 @@ function AnalyticsWorkspace() {
   const isLoading = operations.isLoading || trends.isLoading || staffing.isLoading || credentialRisk.isLoading || liveShifts.isLoading
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell space-y-6">
         <PageHeader eyebrow="Decision intelligence" title="Analytics" description="Move between focused readiness, staffing, credential, and coverage analyses without losing station or time context." actions={<Button onClick={exportCsv}><Download className="size-4" />Export current view</Button>} />
 
@@ -153,6 +154,9 @@ function AnalyticsWorkspace() {
           <label className="compare-toggle"><input type="checkbox" checked={compare} onChange={(event) => updateFilters({ compare: event.target.checked })} /><span /><div><strong>Compare baseline</strong><small>Show period average</small></div></label>
           <div className="active-scope"><span>Active scope</span><strong>{scopedStation ? stations.data?.find((station) => station.station_id === scopedStation)?.name.replace(/^Station \d+ — /, '') || scopedStation : 'All stations'}</strong></div>
         </div>
+
+        {operations.data && <ReadinessAnalysis snapshot={operations.data} gaps={staffing.data || []} risks={credentialRisk.data || []} />}
+        <p className="civic-provenance">Synthetic planning report · trend window and credential horizon: {days} days. Staffing and attendance are current snapshots; changing the window does not manufacture their history.</p>
 
         {currentError && <ErrorState message={currentError.message} retry={() => { operations.refetch(); trends.refetch(); staffing.refetch(); credentialRisk.refetch(); liveShifts.refetch() }} />}
 
@@ -174,7 +178,7 @@ function AnalyticsWorkspace() {
           </Tabs.Content>
 
           <Tabs.Content value="staffing" className="tab-content">
-            {staffing.isLoading ? <div className="ops-panel"><LoadingState rows={7} /></div> : <div className="analytics-layout"><section className="ops-panel analytics-chart"><SectionHeader title="Headcount gaps by unit" description="Present staffing compared with minimum requirement" /><div className="chart-frame"><ResponsiveContainer width="100%" height="100%"><BarChart data={staffing.data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid stroke="rgba(231,237,233,.06)" vertical={false} /><XAxis dataKey="unit_name" tick={{ fill: '#5D6B71', fontSize: 8 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={chartTooltip} /><Bar dataKey="staff_present" name="Present" fill="#244A63" radius={0} /><Bar dataKey="gap" name="Gap" fill="#C44732" radius={0} /></BarChart></ResponsiveContainer></div></section><section className="ops-panel table-panel analytics-table"><SectionHeader title="Staffing exceptions" description="Highest operational gaps first" /><div className="responsive-table"><table className="data-table"><thead><tr><th>Unit</th><th>Present</th><th>Required</th><th>Gap</th><th>Readiness</th></tr></thead><tbody>{staffing.data?.map((row) => <tr key={row.unit_id}><td><strong>{row.unit_name}</strong><small className="table-subtitle">{titleCase(row.unit_type)}</small></td><td>{row.staff_present}</td><td>{row.staff_required}</td><td><StatusBadge tone={row.gap ? 'danger' : 'success'}>{row.gap ? `-${row.gap}` : 'Covered'}</StatusBadge></td><td>{row.readiness_score}%</td></tr>)}</tbody></table></div></section></div>}
+            {staffing.isLoading ? <div className="ops-panel"><LoadingState rows={7} /></div> : <div className="analytics-layout"><section className="ops-panel analytics-chart"><SectionHeader title="Headcount gaps by unit" description="Present staffing compared with minimum requirement" /><div className="chart-frame"><ResponsiveContainer width="100%" height="100%"><BarChart data={staffing.data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid stroke="rgba(231,237,233,.06)" vertical={false} /><XAxis dataKey="unit_name" tick={{ fill: '#5D6B71', fontSize: 8 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={chartTooltip} /><Bar dataKey="staff_present" name="Present" fill="#244A63" radius={0} /><Bar dataKey="gap" name="Gap" fill="#C44732" radius={0} /></BarChart></ResponsiveContainer></div></section><section className="ops-panel table-panel analytics-table"><SectionHeader title="Staffing exceptions" description="Highest operational gaps first" /><div className="responsive-table" tabIndex={0} role="region" aria-label="Scrollable record table"><table className="data-table"><thead><tr><th>Unit</th><th>Present</th><th>Required</th><th>Gap</th><th>Readiness</th></tr></thead><tbody>{staffing.data?.map((row) => <tr key={row.unit_id}><td><strong>{row.unit_name}</strong><small className="table-subtitle">{titleCase(row.unit_type)}</small></td><td>{row.staff_present}</td><td>{row.staff_required}</td><td><StatusBadge tone={row.gap ? 'danger' : 'success'}>{row.gap ? `-${row.gap}` : 'Covered'}</StatusBadge></td><td>{row.readiness_score}%</td></tr>)}</tbody></table></div></section></div>}
           </Tabs.Content>
 
           <Tabs.Content value="credentials" className="tab-content">
@@ -210,7 +214,7 @@ function OverviewPanel({ summary, latestTrend, trendDelta, totalGap, expiredRisk
 
 function CredentialAnalytics({ rows, days }: { rows: Awaited<ReturnType<typeof api.certificationRisk>>; days: number }) {
   const buckets = [{ name: 'Expired', value: rows.filter((row) => row.status === 'EXPIRED').length, fill: '#C44732' }, { name: '0–14 days', value: rows.filter((row) => row.status === 'CRITICAL').length, fill: '#D59A2E' }, { name: '15+ days', value: rows.filter((row) => row.status === 'WARNING').length, fill: '#244A63' }]
-  return <div className="analytics-layout"><section className="ops-panel analytics-chart"><SectionHeader title="Credential risk horizon" description={`Qualification expirations in the next ${days} days`} /><div className="chart-frame"><ResponsiveContainer width="100%" height="100%"><BarChart data={buckets} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid stroke="rgba(231,237,233,.06)" vertical={false} /><XAxis dataKey="name" tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={chartTooltip} /><Bar dataKey="value" name="Credentials" radius={0}>{buckets.map((row) => <Cell key={row.name} fill={row.fill} />)}</Bar></BarChart></ResponsiveContainer></div></section><section className="ops-panel table-panel analytics-table"><SectionHeader title="At-risk credentials" description="Ordered by earliest expiration" /><div className="responsive-table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Expires</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.personnel_id}-${row.cert}`}><td><strong>{row.personnel_name}</strong></td><td>{row.cert}</td><td>{formatDate(row.expires_on)}</td><td><StatusBadge tone={row.status === 'EXPIRED' || row.status === 'CRITICAL' ? 'danger' : 'warning'}>{row.days_left < 0 ? `${Math.abs(row.days_left)} days expired` : `${row.days_left} days`}</StatusBadge></td></tr>)}</tbody></table></div>{!rows.length && <EmptyState title="No credential risk" description="No qualifications expire in this analysis window." icon={CheckCircle2} />}</section></div>
+  return <div className="analytics-layout"><section className="ops-panel analytics-chart"><SectionHeader title="Credential risk horizon" description={`Qualification expirations in the next ${days} days`} /><div className="chart-frame"><ResponsiveContainer width="100%" height="100%"><BarChart data={buckets} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid stroke="rgba(231,237,233,.06)" vertical={false} /><XAxis dataKey="name" tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: '#5D6B71', fontSize: 9 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={chartTooltip} /><Bar dataKey="value" name="Credentials" radius={0}>{buckets.map((row) => <Cell key={row.name} fill={row.fill} />)}</Bar></BarChart></ResponsiveContainer></div></section><section className="ops-panel table-panel analytics-table"><SectionHeader title="At-risk credentials" description="Ordered by earliest expiration" /><div className="responsive-table" tabIndex={0} role="region" aria-label="Scrollable record table"><table className="data-table"><thead><tr><th>Personnel</th><th>Credential</th><th>Expires</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.personnel_id}-${row.cert}`}><td><strong>{row.personnel_name}</strong></td><td>{row.cert}</td><td>{formatDate(row.expires_on)}</td><td><StatusBadge tone={row.status === 'EXPIRED' || row.status === 'CRITICAL' ? 'danger' : 'warning'}>{row.days_left < 0 ? `${Math.abs(row.days_left)} days expired` : `${row.days_left} days`}</StatusBadge></td></tr>)}</tbody></table></div>{!rows.length && <EmptyState title="No credential risk" description="No qualifications expire in this analysis window." icon={CheckCircle2} />}</section></div>
 }
 
 function CoverageAnalytics({ rows }: { rows: Array<{ name: string; assigned: number; clockedIn: number; required: number; coverage: number; status: string }> }) {

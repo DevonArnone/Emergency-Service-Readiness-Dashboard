@@ -30,37 +30,43 @@ The unit switchboard connects 39 station rows to every synthetic apparatus recor
 
 ![Aegis workforce workspace with searchable roster and operational profile](pictures/aegis-personnel-desktop.png)
 
-The department-scale roster supports station scope, status filters, pagination, verified credential dates, availability control, guarded archival, and active assignments. [View Workforce on mobile](pictures/aegis-personnel-mobile.png).
+The station personnel register filters the fixed-column roster directly into an accountable profile sheet. Availability segments, credential dates, profile deep links, guarded archival, and current assignments retain the recorded operational context. Availability is not qualification clearance. [View Workforce on mobile](pictures/aegis-personnel-mobile.png).
 
 ### Scheduling
 
 ![Aegis scheduling workspace with coverage metrics and live roster](pictures/aegis-shifts-desktop.png)
 
-Operators can create shifts, validate coverage windows, assign qualified personnel, clock roster members in and out, and safely cancel shifts. [View Scheduling on mobile](pictures/aegis-shifts-mobile.png).
+The duty-roster board plots recorded shift windows against a daily time ruler, including overnight continuation. Countywide shifts are grouped by actual apparatus assignments, with a coverage ledger highlighting attendance below minimums. Operators can create shifts, validate windows, assign qualified personnel, clock crew in and out, and safely cancel shifts. [View Scheduling on mobile](pictures/aegis-shifts-mobile.png).
 
 ### Credentials
 
 ![Aegis credentials workspace with renewal queue and qualification risk](pictures/aegis-certifications-management-desktop.png)
 
-Credential work includes renewal ownership, scheduling, completion tracking, workforce risk, protected definitions, and unit qualification requirements. [View Credentials on mobile](pictures/aegis-certifications-management-mobile.png).
+Selectable expiration bands open the corresponding workforce-risk docket. Renewal ownership, scheduling, completion, protected definitions, and a linked apparatus qualification matrix keep requirements distinct from verified crew qualifications. [View Credentials on mobile](pictures/aegis-certifications-management-mobile.png).
 
 ### Analytics
 
 ![Aegis analytics workspace with readiness and staffing visualizations](pictures/aegis-analytics-desktop.png)
 
-The analytics workspace exposes readiness, staffing, qualification risk, and coverage trends with shareable URL state and station scope. [View Analytics on mobile](pictures/aegis-analytics-mobile.png).
+Station comparison instruments trace current readiness to staffing and credential exceptions, then link to the accountable apparatus or personnel record. Trend windows, baseline comparisons, station scope, five report views, and CSV exports support planning without presenting current attendance as historical data or claiming predictive response coverage. [View Analytics on mobile](pictures/aegis-analytics-mobile.png).
+
+### Plans & Hazards
+
+![Aegis contingency workbench with apparatus and crew dependencies, baseline, projected readiness, and recovery worksheet](pictures/aegis-plans-desktop.png)
+
+Select an apparatus outage or recorded crew callout to calculate hypothetical qualification and staffing consequences. The dependency register, baseline comparison, projected issues, and recovery worksheet use the existing simulation API without changing live records. Calculation remains permission-gated. [View Plans & Hazards on mobile](pictures/aegis-plans-mobile.png).
 
 ### Weather
 
 ![Aegis Fairfax weather register with forecast, wind, hazards, and source freshness](pictures/aegis-weather-desktop.png)
 
-The weather register presents the [National Weather Service API](https://www.weather.gov/documentation/services-web-api) forecast and active alerts for planning, with source time, cached/stale state, and a clear unavailable state. It does not replace official warning or dispatch channels. [View Weather on mobile](pictures/aegis-weather-mobile.png).
+The selectable forecast plot connects each [National Weather Service](https://www.weather.gov/documentation/services-web-api) period to its detailed outlook, wind instrument, and precipitation probability. The ledger and hazard docket retain source time, cached/stale status, missing readings, and a clear unavailable state. Forecasts are not observed weather and do not replace official warning or dispatch channels. [View Weather on mobile](pictures/aegis-weather-mobile.png).
 
 ### Admin
 
 ![Aegis access and service register showing identity, rights, and system provenance](pictures/aegis-admin-desktop.png)
 
-The access register makes the current identity, effective permissions, service checks, and data provenance visible. The existing synthetic demo reset remains permission-gated and requires confirmation. [View Admin on mobile](pictures/aegis-admin-mobile.png).
+Selectable identity, operations, and audit checks explain precisely what each verified browser response establishes—not independent infrastructure health. A filterable recent-change register exposes tenant-scoped event summaries and actors without secrets. The existing synthetic demo reset remains permission-gated and requires confirmation. [View Admin on mobile](pictures/aegis-admin-mobile.png).
 
 ---
 

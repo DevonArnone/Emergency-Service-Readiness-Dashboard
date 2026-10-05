@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
+const screenshotRoot = process.env.E2E_SCREENSHOT_DIR || "../pictures"
+
 const workspaces = [
   { path: '/', heading: 'Fairfax County readiness board', dataSelector: '.resource-register tbody tr' },
   { path: '/readiness', heading: 'APPARATUS READINESS', dataSelector: '.sb-matrix tbody tr' },
@@ -51,7 +53,7 @@ test('command wall and map controls work on desktop and mobile', async ({ page, 
   expect(await page.evaluate(() => document.querySelector('.dispatch-register tbody tr:last-child')!.getBoundingClientRect().bottom <= document.querySelector('.dispatch-register > footer')!.getBoundingClientRect().top)).toBe(true)
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= 1024 && document.documentElement.scrollWidth <= 1536)).toBe(true)
   await page.evaluate(() => window.scrollTo(0, 0))
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-command-desktop.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-command-desktop.png', fullPage: true, animations: 'disabled' })
   for (const width of [1920, 1600, 1440, 1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: width <= 390 ? 844 : 1000 })
     await expect(page.locator('h1')).toBeVisible()
@@ -66,7 +68,7 @@ test('command wall and map controls work on desktop and mobile', async ({ page, 
   expect(await page.evaluate(() => document.querySelector('.resource-register table')!.getBoundingClientRect().right <= document.documentElement.clientWidth)).toBe(true)
   await expect(page.locator('.dispatch-register tbody tr').first().locator('[data-label="UNITS"]')).toBeVisible()
   await page.evaluate(() => window.scrollTo(0, 0))
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-command-mobile.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-command-mobile.png', fullPage: true, animations: 'disabled' })
 
   await page.keyboard.press('Tab')
   await expect(page.locator(':focus-visible')).toBeVisible()
@@ -142,7 +144,7 @@ test('plotted incident theater links map, register, worksheet, lifecycle timelin
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= 1536)).toBe(true)
   await page.goto('/readiness?view=incidents')
   await expect.poll(() => rows.count(), { timeout: 15_000 }).toBeGreaterThanOrEqual(12)
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-incidents-desktop.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-incidents-desktop.png', fullPage: true, animations: 'disabled' })
   for (const width of [1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 844 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
@@ -150,7 +152,7 @@ test('plotted incident theater links map, register, worksheet, lifecycle timelin
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.locator('.it-posture tbody tr').first()).toBeVisible()
   expect(await page.locator('.it-actions .button').first().evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44)
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-incidents-mobile.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-incidents-mobile.png', fullPage: true, animations: 'disabled' })
 })
 
 test('unit switchboard selects exact apparatus and reconstructs recorded activity', async ({ page, browserName }) => {
@@ -197,7 +199,7 @@ test('unit switchboard selects exact apparatus and reconstructs recorded activit
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   await page.goto('/readiness?view=units')
   await expect(page.locator('#sb-dossier-heading')).toHaveText('ENGINE 421')
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-units-desktop.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-units-desktop.png', fullPage: true, animations: 'disabled' })
   for (const width of [1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 844 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
@@ -205,7 +207,7 @@ test('unit switchboard selects exact apparatus and reconstructs recorded activit
   }
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.locator('.sb-unit').first().evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44)
-  if (browserName === 'chromium') await page.screenshot({ path: '../pictures/aegis-units-mobile.png', fullPage: true, animations: 'disabled' })
+  if (browserName === 'chromium') await page.screenshot({ path: screenshotRoot + '/aegis-units-mobile.png', fullPage: true, animations: 'disabled' })
 })
 
 for (const workspace of workspaces) {
@@ -217,11 +219,11 @@ for (const workspace of workspaces) {
       expect(accessibility.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([])
     }
     if (workspace.path !== '/') {
-      if (browserName === 'chromium') await page.screenshot({ path: `../pictures/aegis-${workspace.path.split('?')[0].slice(1)}-desktop.png`, fullPage: true, animations: 'disabled' })
+      if (browserName === 'chromium') await page.screenshot({ path: `${screenshotRoot}/aegis-${workspace.path.split('?')[0].slice(1)}-desktop.png`, fullPage: true, animations: 'disabled' })
       await page.setViewportSize({ width: 390, height: 844 })
       await expect.poll(() => page.locator('.app-sidebar').evaluate(element => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-      if (browserName === 'chromium') await page.screenshot({ path: `../pictures/aegis-${workspace.path.split('?')[0].slice(1)}-mobile.png`, fullPage: true, animations: 'disabled' })
+      if (browserName === 'chromium') await page.screenshot({ path: `${screenshotRoot}/aegis-${workspace.path.split('?')[0].slice(1)}-mobile.png`, fullPage: true, animations: 'disabled' })
     }
   })
 }

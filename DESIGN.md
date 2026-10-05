@@ -77,6 +77,23 @@ typography:
     lineHeight: 0.9
     letterSpacing: "-0.01em"
     fontVariation: "'wdth' 80"
+  task-headline:
+    fontFamily: "IBM Plex Sans Variable, IBM Plex Sans, Arial, sans-serif"
+    fontSize: "26px"
+    fontWeight: 650
+    lineHeight: 1.08
+    letterSpacing: "-0.02em"
+  task-metric:
+    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontSize: "36px"
+    fontWeight: 600
+    lineHeight: 1
+  task-title:
+    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontSize: "13px"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "0.025em"
 rounded:
   square: "0px"
   plate: "1px"
@@ -145,6 +162,12 @@ components:
     rounded: "{rounded.square}"
     padding: "10px 11px 8px"
     height: "124px"
+  task-instrument:
+    backgroundColor: "{colors.instrument-ivory}"
+    textColor: "{colors.graphite}"
+    typography: "{typography.task-metric}"
+    rounded: "{rounded.square}"
+    padding: "10px 14px"
 ---
 
 # Design System: Aegis Municipal Systems Room
@@ -223,6 +246,7 @@ The palette behaves like physical control equipment: dark painted structure, war
 - **Label** (500, 8px, 0.12em tracking): Uppercase register labels, metadata, status stamps, table headings, and navigation indices.
 - **Metric** (700, 46px, 1): Tabular operational figures, always paired with a text label and supporting explanation; compact down at narrower viewports.
 - **Figure Condensed** (700, 29–40px, 0.9, width axis 80–82%): Narrow-instrument figures on Units and Incidents, using the self-hosted Plex Sans Variable width axis (`@fontsource-variable/ibm-plex-sans/wdth.css`) so several counts fit one instrument without shrinking.
+- **Task Headline / Metric / Title:** The seven refined task workspaces use the measured `task-headline`, `task-metric`, and `task-title` variants from frontmatter for page headings, overview readings, and worksheet section headings. These are local task variants; they do not redefine the status-wall, Units, or Incidents type hierarchy. Utility registers use a responsive mono reading (`clamp(25px, 2.4vw, 36px)`), and task page headings reduce to 23px on small screens.
 
 **The Instrument Voice Rule.** Use mono for indices, codes, time, statuses, register cells, and machine-like labels; use Sans for readable names, large instrument figures, descriptions, and decisions. Do not set whole paragraphs in mono.
 
@@ -236,7 +260,11 @@ At the approved 1536 × 1024 reference viewport, the fixed top operating registe
 
 Other routes reuse the same municipal register language without copying the status wall's exact composition: paper page header, instrument measures, tabs or filter strip, then master-detail, worksheet, or report layouts. Operations and Workforce favor a list-to-detail split; Scheduling uses roster and time-strip worksheets; Credentials combines renewal and qualification registers with record detail; Analytics uses report plates and comparison tables. Weather adds forecast and hazard dockets with explicit NWS source and freshness; Admin adds access, service, and provenance registers. Within Operations, Units is a coverage-and-crew switchboard (narrow instruments over a station-by-apparatus matrix and a selected-unit dossier, then a dark recorded-history timeline spanning the lower width), and Incidents is a plotted incident theater (instruments, an incident register and record sheet, then a lifecycle timeline beside a unit-posture register). The ten rail indices include deep links within these eight routes; Scheduling and Credentials remain available in the switchboard directory.
 
-At 1023px and below, the desktop rail becomes a 252px off-canvas drawer, the content loses its left offset, instruments form two columns, and situation and lower worksheet grids stack vertically. A fixed five-key mobile function register exposes the most-used destinations; the switchboard and drawer retain the rest. At 767px and below, instruments become one column, tables scroll horizontally inside their plates, the brief becomes one column, and the map remains a 500px-tall review surface. Map layer and tool controls reach 44px targets. At 390px and below, the board title and surrounding copy compress without suppressing stations or status text. The broader workspace styles also use 760px, 639px, and 400px thresholds; new screens should verify the assembled result at 320px and above, not merely copy a breakpoint.
+At 1023px and below, the desktop rail gives way to a dismissible switchboard directory/drawer, the content loses its left offset, instruments form two columns, and situation and lower worksheet grids stack vertically. The directory exposes all workspaces and restores focus to its trigger on dismissal; there is no fixed bottom navigation register. At 767px and below, overview instruments become one column, tables scroll horizontally inside their plates, the brief becomes one column, and the map remains a 500px-tall review surface. Map layer and tool controls reach 44px targets. At 390px and below, the board title and surrounding copy compress without suppressing stations or status text. The broader workspace styles also use 760px, 639px, and 400px thresholds; new screens should verify the assembled result at 320px and above, not merely copy a breakpoint.
+
+The seven refined task surfaces use 10px top and side insets, a 24px bottom inset, and repeated 10px vertical intervals. Their paper page headers have 12px by 16px insets and a one-pixel bottom rule; task instruments have a 104px minimum height and 10px by 14px insets. The first viewport exposes the task mechanism—distribution, time ruler, expiration selection, station comparison, scenario controls, forecast selection, or session checks—alongside the evidence it operates on. This shared density is a task extension, not a replacement for the overview composition.
+
+Task layouts adapt to their records: personnel retains name, role, station, and status columns; the duty board preserves its 650px time canvas within a scrollable plate; the qualification matrix preserves its 800px requirements canvas. Station comparisons reduce from six to four to three columns, while comparison evidence and scenario worksheets stack. Utility registers become two columns below 980px and ordinarily one below 720px. Weather overrides that last step with a compact two-column register below 767px, then leads with period controls, the selected wind and outlook, and an SVG plot at its natural aspect ratio. At the reviewed 390 × 844 viewport, the selected wind evidence ends at 826px. Preserve the first-viewport evidence relationship across the desktop-first 320–1920px range without forcing one surface's composition onto another.
 
 **The Instrument Alignment Rule.** Keep separate overview instruments on one exact baseline with the established narrow gutter; use shared edges and internal dividers within dockets and worksheets. Do not substitute floating metric cards.
 
@@ -249,7 +277,6 @@ The system is flat by default. Depth comes from the dark-shell/paper-plate contr
 ### Shadow Vocabulary
 
 - **Temporary Layer** (`8px 12px 28px rgba(0, 0, 0, .32)`): Dialogs, command search, and dropdown panels only.
-- **Mobile Dock** (`0 -8px 24px rgba(0, 0, 0, .2)`): The fixed mobile navigation register only.
 
 **The Flat Operations Rule.** Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.
 
@@ -289,7 +316,7 @@ Fields use paper-bright fill, graphite text, a square municipal blue-gray stroke
 
 ### Navigation
 
-Desktop navigation is a 184px indexed rail with ten 47px ruled rows. The active row fills municipal blue with an ivory inset side rule and exposes `aria-current`; inactive rows stay quiet blue-gray. Scheduling and Credentials are auxiliary switchboard destinations rather than invented rail rows. At tablet and mobile widths the rail becomes a 252px dismissible drawer and a five-key bottom register with 62px cells. The command directory is keyboard reachable with Command/Ctrl+K and uses a true titled dialog with search and station scope.
+Desktop navigation is a 184px indexed rail with ten 47px ruled rows. The active row fills municipal blue with an ivory inset side rule and exposes `aria-current`; inactive rows stay quiet blue-gray. Scheduling and Credentials are auxiliary switchboard destinations rather than invented rail rows. At tablet and mobile widths a dismissible directory/drawer exposes all destinations, returns focus on close, and leaves the content free of a fixed bottom register. The command directory is keyboard reachable with Command/Ctrl+K and uses a true titled dialog with search and station scope.
 
 ### Tables and Registers
 
@@ -306,6 +333,20 @@ Units and Incidents share one timeline grammar: hour ticks above a ruled track, 
 ### Operational Period
 
 The period label in the top register and the duty officer brief is derived from the active shift record: its stored window plus a watch name taken from the shift identifier, in the form "HHMM – HHMM (A WATCH)". With no covering shift it reads NO ACTIVE SHIFT (NO RECORDED WATCH); never print a fixed rota name.
+
+### Task Instruments and Evidence Worksheets
+
+These patterns extend the municipal world on the seven refined workspaces. Each selected control has visible state, keyboard access, and evidence adjacent to its selection; their specific composition remains local to the task.
+
+- **Personnel station distribution and profile register:** Ruled station buttons expose a compact availability track and a text legend. Selection scopes the fixed-column roster and keeps the selected profile and record identity visible. Deep links resolve the requested person within the active roster scope.
+- **Duty-roster board and coverage ledger:** A day ruler plots stored windows in rows grouped by recorded apparatus assignments, with explicit present/minimum text, overnight `+1D`, and cancellation hatching. Selecting a row opens its parent shift and apparatus ledger. The selected shift leads with location; date and time follow as metadata rather than a decorative eyebrow.
+- **Qualification expiration horizon and matrix:** Expiration bands are square buttons with counts, a small track, `aria-pressed`, and a municipal-blue selected underline. They filter the linked risk docket. The requirements matrix uses explicit `REQ` marks and apparatus links; a requirement does not establish qualified staffing.
+- **Station readiness comparison:** Repeated ruled station controls expose current readiness and unit counts; the selected control turns municipal blue with ivory text. Adjacent staffing and credential exceptions link to source apparatus and personnel records. Historical trend periods and CSV exports preserve scope and provenance.
+- **Contingency comparison and recovery worksheet:** Square apparatus/disruption controls and recorded crew rows feed labeled baseline and hypothetical readings with ruled scales. Changing inputs clears the result; reset clears scenario state. Calculation remains guarded by effective write permission, even though it makes no live changes; returned issues and numbered recovery actions retain their hypothetical status.
+- **Forecast period and wind instrument:** Period selection updates the temperature plot, selected wind direction/speed, and detailed NWS outlook. The plot skips missing readings and does not connect across them. Mobile puts controls and selected evidence before the natural-aspect plot. Stale, unavailable, missing, source-time, and planning-only states stay explicit.
+- **Session assurance and recent audit ledger:** Ruled response-check controls reveal what a current-session identity, operations, or audit response establishes. The recent tenant ledger filters by record type and exposes the selected event's actor, time, summary, and record identity. Successful responses are not independent infrastructure monitoring; protected demo reset retains its established policy and confirmation.
+
+The first full review of this refresh requested two corrections, to Weather's mobile first viewport and Scheduling's date eyebrow. Both were resolved in the consolidated fix and the follow-up disposition was ship. That verdict covers those two findings; it is not a whole-surface 90% fidelity score. Fourteen validated desktop/mobile captures with origin metadata live in `.impeccable/review/remaining/`, with matching gallery images in `pictures/`.
 
 ### County Plot and Dispatch Docket
 

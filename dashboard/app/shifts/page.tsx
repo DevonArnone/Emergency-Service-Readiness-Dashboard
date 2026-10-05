@@ -25,6 +25,7 @@ import { WriteButton as Button, EmptyState, ErrorState, LoadingState, PageHeader
 import { api, queryKeys } from '@/lib/api'
 import type { LiveShift, Shift } from '@/lib/schemas'
 import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
+import { AttendanceCoverageLedger, ShiftTimeBoard } from '@/components/OperatingSurfaces'
 
 type Notice = { tone: 'success' | 'danger'; message: string } | null
 
@@ -53,6 +54,7 @@ export default function SchedulingPage() {
   const liveShifts = useQuery({ queryKey: [...queryKeys.liveShifts, selectedDate], queryFn: () => api.liveShifts(selectedDate), refetchInterval: 15_000 })
   const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
+  const units = useQuery({ queryKey: queryKeys.units, queryFn: api.units })
   const activity = useQuery({ queryKey: queryKeys.audit, queryFn: () => api.auditEvents(80) })
 
   const invalidate = async () => {
@@ -87,14 +89,16 @@ export default function SchedulingPage() {
   })
 
   const filteredShifts = useMemo(() => (shifts.data || []).filter((shift) => {
-    const dateMatches = formatDate(shift.start_time, 'yyyy-MM-dd') === selectedDate
+    const dayStart = new Date(`${selectedDate}T00:00:00`)
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1)
+    const dateMatches = new Date(shift.start_time) < dayEnd && new Date(shift.end_time) > dayStart
     const scopeMatches = stationId === 'all' || shift.station_id === stationId
     const searchMatches = shift.location.toLowerCase().includes(search.toLowerCase())
     return dateMatches && scopeMatches && searchMatches
   }), [shifts.data, selectedDate, stationId, search])
   const selected = filteredShifts.find((shift) => shift.shift_id === selectedId) || filteredShifts[0]
   const liveSelected = liveShifts.data?.find((shift) => shift.shift_id === selected?.shift_id)
-  const scopedLive = liveShifts.data?.filter((shift) => stationId === 'all' || shift.station_id === stationId) || []
+  const scopedLive = liveShifts.data?.filter((shift) => shift.status !== 'CANCELLED' && filteredShifts.some(row => row.shift_id === shift.shift_id)) || []
   const required = scopedLive.reduce((sum, shift) => sum + shift.required_headcount, 0)
   const clocked = scopedLive.reduce((sum, shift) => sum + shift.clocked_in_count, 0)
   const rosterPage = usePagination(liveSelected?.assigned_personnel || [], selected?.shift_id || 'none', 20)
@@ -119,7 +123,7 @@ export default function SchedulingPage() {
   }
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell space-y-6">
         <PageHeader eyebrow="Coverage and attendance" title="Scheduling" description="Plan station coverage, staff each shift, and track clock events against required headcount without leaving the roster view." actions={<Button variant="primary" onClick={() => setShiftDialog(true)}><Plus className="size-4" />Create shift</Button>} />
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
@@ -132,7 +136,9 @@ export default function SchedulingPage() {
           <StatCard label="Scheduled roster" value={scopedLive.reduce((sum, shift) => sum + shift.assigned_count, 0)} detail="Personnel linked to live shifts" icon={Users} tone="info" />
         </section>
 
-        <div className="toolbar schedule-toolbar"><label className="date-control"><CalendarDays className="size-4" /><input aria-label="Roster date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} /></label><label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shift location" /></label><div className="date-shortcuts"><button onClick={() => setSelectedDate(dateInput())}>Today</button><button onClick={() => setSelectedDate(dateInput(new Date(Date.now() + 86400000)))}>Tomorrow</button></div></div>
+        <div className="toolbar schedule-toolbar"><label className="date-control"><CalendarDays className="size-4" /><input aria-label="Roster date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value || dateInput())} /></label><label className="search-control"><Search className="size-4" /><input aria-label="Search shift location" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search shift location" /></label><div className="date-shortcuts"><button onClick={() => { const date = new Date(`${selectedDate}T12:00:00`); date.setDate(date.getDate() - 1); setSelectedDate(dateInput(date)) }}>Previous day</button><button onClick={() => setSelectedDate(dateInput())}>Today</button><button onClick={() => { const date = new Date(`${selectedDate}T12:00:00`); date.setDate(date.getDate() + 1); setSelectedDate(dateInput(date)) }}>Next day</button></div></div>
+
+        <ShiftTimeBoard shifts={filteredShifts} live={liveShifts.data || []} units={units.data || []} selectedId={selected?.shift_id} date={selectedDate} onSelect={setSelectedId} />
 
         {shifts.isLoading ? <div className="ops-panel"><LoadingState rows={8} /></div> : (
           <div className="master-detail-grid schedule-grid">
@@ -143,10 +149,11 @@ export default function SchedulingPage() {
                 return <ShiftRow key={shift.shift_id} shift={shift} live={live} active={selected?.shift_id === shift.shift_id} onSelect={() => setSelectedId(shift.shift_id)} />
               })}
               {!filteredShifts.length && <EmptyState title="No shifts scheduled" description="Create a shift for this date or select another day." icon={CalendarDays} action={<Button variant="primary" onClick={() => setShiftDialog(true)}><Plus className="size-4" />Create shift</Button>} />}
+              {selected && <AttendanceCoverageLedger live={liveSelected} units={units.data || []} />}
             </section>
 
             <section className="ops-panel detail-panel">
-              {selected ? <div className="shift-detail"><div className="shift-detail-heading"><div><span className="eyebrow">{formatDate(selected.start_time, 'EEEE · MMM d')}</span><h2>{selected.location}</h2><p>{formatDate(selected.start_time, 'h:mm a')} – {formatDate(selected.end_time, 'h:mm a')}</p></div><StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge></div><div className="coverage-hero"><div><span>Clocked in</span><strong>{liveSelected?.clocked_in_count ?? 0}</strong></div><div><span>Assigned</span><strong>{liveSelected?.assigned_count ?? 0}</strong></div><div><span>Required</span><strong>{selected.required_headcount}</strong></div></div><div className="detail-toolbar"><Button variant="primary" onClick={() => setRosterDialog(true)} disabled={selected.status === 'CANCELLED'}><UserPlus className="size-4" />Add to roster</Button><ConfirmAction title="Cancel this shift?" description={`${selected.location}: linked roster assignments will be cancelled and clocked-in personnel released.`} onConfirm={() => cancelShift.mutateAsync(selected.shift_id)} disabled={selected.status === 'CANCELLED'}><XCircle className="size-4" />Cancel shift</ConfirmAction></div><div className="detail-section"><SectionHeader title="Roster" description="Clock status updates readiness immediately" />{rosterPage.rows.map((person) => <div key={person.personnel_id} className="roster-row"><span className={cn('attendance-dot', person.clocked_in_at && !person.clocked_out_at && 'attendance-live')} /><div className="min-w-0 flex-1"><strong>{person.name}</strong><small>{titleCase(person.status)} · Unit {person.unit_id.slice(0, 8)}</small></div>{person.clocked_in_at && !person.clocked_out_at ? <Button onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'out' })} busy={clockAction.isPending}><LogOut className="size-4" />Clock out</Button> : <Button variant="primary" onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'in' })} busy={clockAction.isPending}><LogIn className="size-4" />Clock in</Button>}</div>)}{!liveSelected?.assigned_personnel.length && <div className="compact-empty">No personnel assigned to this shift.</div>}{liveSelected?.assigned_personnel.length ? <Pagination {...rosterPage} /> : null}</div>{selected.notes && <div className="profile-notes"><strong>Shift notes</strong><p>{selected.notes}</p></div>}</div> : <EmptyState title="Select a shift" description="Choose a shift to review its coverage and roster." />}
+              {selected ? <div className="shift-detail"><div className="shift-detail-heading"><div><h2>{selected.location}</h2><p>{formatDate(selected.start_time, 'EEEE · MMM d')} · {formatDate(selected.start_time, 'h:mm a')} – {formatDate(selected.end_time, 'h:mm a')}</p></div><StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge></div><div className="coverage-hero"><div><span>Clocked in</span><strong>{liveSelected?.clocked_in_count ?? 0}</strong></div><div><span>Assigned</span><strong>{liveSelected?.assigned_count ?? 0}</strong></div><div><span>Required</span><strong>{selected.required_headcount}</strong></div></div><div className="detail-toolbar"><Button variant="primary" onClick={() => setRosterDialog(true)} disabled={selected.status === 'CANCELLED'}><UserPlus className="size-4" />Add to roster</Button><ConfirmAction title="Cancel this shift?" description={`${selected.location}: linked roster assignments will be cancelled and clocked-in personnel released.`} onConfirm={() => cancelShift.mutateAsync(selected.shift_id)} disabled={selected.status === 'CANCELLED'}><XCircle className="size-4" />Cancel shift</ConfirmAction></div><div className="detail-section"><SectionHeader title="Roster" description="Clock status updates readiness immediately" />{rosterPage.rows.map((person) => <div key={person.personnel_id} className="roster-row"><span className={cn('attendance-dot', person.clocked_in_at && !person.clocked_out_at && 'attendance-live')} /><div className="min-w-0 flex-1"><strong>{person.name}</strong><small>{titleCase(person.status)} · Unit {person.unit_id.slice(0, 8)}</small></div>{person.clocked_in_at && !person.clocked_out_at ? <Button onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'out' })} busy={clockAction.isPending}><LogOut className="size-4" />Clock out</Button> : <Button variant="primary" onClick={() => clockAction.mutate({ shiftId: selected.shift_id, personnelId: person.personnel_id, action: 'in' })} busy={clockAction.isPending}><LogIn className="size-4" />Clock in</Button>}</div>)}{!liveSelected?.assigned_personnel.length && <div className="compact-empty">No personnel assigned to this shift.</div>}{liveSelected?.assigned_personnel.length ? <Pagination {...rosterPage} /> : null}</div>{selected.notes && <div className="profile-notes"><strong>Shift notes</strong><p>{selected.notes}</p></div>}</div> : <EmptyState title="Select a shift" description="Choose a shift to review its coverage and roster." />}
             </section>
           </div>
         )}

@@ -1,6 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { ForecastInstrument } from '@/components/UtilityInstruments'
 import {
   AlertTriangle,
   CloudSun,
@@ -31,6 +33,7 @@ function severityLabel(value: string) {
 }
 
 export default function WeatherPage() {
+  const [selectedPeriod, setSelectedPeriod] = useState(0)
   const weather = useQuery({
     queryKey: queryKeys.weather,
     queryFn: api.weatherFairfax,
@@ -43,7 +46,7 @@ export default function WeatherPage() {
   const statusLabel = data?.status === 'unavailable' ? 'Unavailable' : data?.stale ? 'Stale report' : 'Current report'
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell">
         <div className={styles.workspace}>
           <PageHeader
@@ -59,17 +62,19 @@ export default function WeatherPage() {
             <section className={styles.plate} aria-label="Loading Fairfax weather"><LoadingState rows={8} /></section>
           ) : data ? (
             <>
-              <section className={styles.register} aria-label="Current weather readings">
-                <div className={styles.registerCell}><span className={styles.registerLabel}><Thermometer className="size-4" aria-hidden="true" />Temperature</span><strong className={styles.registerValue}>{current?.temperature == null ? '—' : `${Math.round(current.temperature)}°${current.temperature_unit || 'F'}`}</strong><span className={styles.registerDetail}>{current?.short_forecast || 'Current forecast not reported'}</span></div>
+              <section className={`${styles.register} weather-register`} aria-label="Current weather readings">
+                <div className={styles.registerCell}><span className={styles.registerLabel}><Thermometer className="size-4" aria-hidden="true" />Forecast temperature</span><strong className={styles.registerValue}>{current?.temperature == null ? '—' : `${Math.round(current.temperature)}°${current.temperature_unit || 'F'}`}</strong><span className={styles.registerDetail}>{current?.short_forecast || 'Current forecast not reported'}</span></div>
                 <div className={styles.registerCell}><span className={styles.registerLabel}><Wind className="size-4" aria-hidden="true" />Wind</span><strong className={styles.registerValue}>{data.wind.speed || '—'}</strong><span className={styles.registerDetail}>{data.wind.direction ? `From ${data.wind.direction}` : 'Direction not reported'}</span></div>
                 <div className={styles.registerCell}><span className={styles.registerLabel}><AlertTriangle className="size-4" aria-hidden="true" />Active alerts</span><strong className={styles.registerValue}>{data.active_alerts.length.toString().padStart(2, '0')}</strong><span className={styles.registerDetail}>{data.active_alerts.length ? 'Review hazard docket below' : 'No active NWS alerts returned'}</span></div>
                 <div className={styles.registerCell}><span className={styles.registerLabel}><Gauge className="size-4" aria-hidden="true" />Report state</span><strong className={styles.registerValue}>{statusLabel}</strong><span className={styles.registerDetail}>As of {formatClock(sourceTime)}</span></div>
               </section>
 
+              <ForecastInstrument data={data} selectedIndex={selectedPeriod < data.forecast_periods.length ? selectedPeriod : 0} onSelect={setSelectedPeriod} />
+
               <div className={styles.grid}>
                 <section className={styles.plate} aria-labelledby="forecast-heading">
                   <header className={styles.plateHeader}><div><h2 id="forecast-heading">Forecast ledger</h2><p>National Weather Service periods for Fairfax County</p></div><span className={styles.plateLabel}>{data.forecast_periods.length} periods</span></header>
-                  {data.forecast_periods.length ? <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th scope="col">Period</th><th scope="col">Condition</th><th scope="col">Temp.</th><th scope="col">Wind</th></tr></thead><tbody>{data.forecast_periods.map((period) => <tr key={`${period.start_time}-${period.number}`}><td><strong>{period.name || 'Forecast period'}</strong><small className={styles.time}>{period.start_time ? formatDate(period.start_time, 'EEE, MMM d · h:mm a') : 'Time not reported'}</small></td><td><span className={styles.condition}><CloudSun className="size-4" aria-hidden="true" /><strong>{period.short_forecast || 'Forecast unavailable'}</strong></span><small>{period.detailed_forecast || 'No detailed narrative returned.'}</small></td><td><span className={styles.temperature}>{period.temperature == null ? '—' : `${Math.round(period.temperature)}°${period.temperature_unit || 'F'}`}</span></td><td><strong>{period.wind_speed || 'Not reported'}</strong><small><Compass className="mr-1 inline size-3" aria-hidden="true" />{period.wind_direction || 'Direction unavailable'}</small></td></tr>)}</tbody></table></div> : <p className={styles.emptyRow}>No forecast periods were returned. Refresh the register or use the linked public weather source.</p>}
+                  {data.forecast_periods.length ? <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="Scrollable forecast register"><table className={styles.table}><thead><tr><th scope="col">Period</th><th scope="col">Condition</th><th scope="col">Temp.</th><th scope="col">Wind</th></tr></thead><tbody>{data.forecast_periods.map((period) => <tr key={`${period.start_time}-${period.number}`}><td><strong>{period.name || 'Forecast period'}</strong><small className={styles.time}>{period.start_time ? formatDate(period.start_time, 'EEE, MMM d · h:mm a') : 'Time not reported'}</small></td><td><span className={styles.condition}><CloudSun className="size-4" aria-hidden="true" /><strong>{period.short_forecast || 'Forecast unavailable'}</strong></span><small>{period.detailed_forecast || 'No detailed narrative returned.'}</small></td><td><span className={styles.temperature}>{period.temperature == null ? '—' : `${Math.round(period.temperature)}°${period.temperature_unit || 'F'}`}</span></td><td><strong>{period.wind_speed || 'Not reported'}</strong><small><Compass className="mr-1 inline size-3" aria-hidden="true" />{period.wind_direction || 'Direction unavailable'}</small></td></tr>)}</tbody></table></div> : <p className={styles.emptyRow}>No forecast periods were returned. Refresh the register or use the linked public weather source.</p>}
                 </section>
 
                 <div className={styles.stack}>

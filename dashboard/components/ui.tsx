@@ -177,7 +177,7 @@ export function ErrorState({ message, retry }: { message?: string; retry?: () =>
 
 export function LoadingState({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="loading-stack" aria-label="Loading data" aria-busy="true">
+    <div className="loading-stack" role="status" aria-label="Loading data" aria-busy="true">
       {Array.from({ length: rows }).map((_, index) => <div key={index} className="loading-row" />)}
     </div>
   )

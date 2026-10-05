@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useState } from 'react'
+import { AssuranceInstrument, AuditRegister } from '@/components/UtilityInstruments'
 import { useAccess } from '@/hooks/useAccess'
 import { api } from '@/lib/api'
 import { Button, ErrorState, LoadingState, PageHeader } from '@/components/ui'
@@ -22,6 +23,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient()
   const access = useAccess()
   const operations = useQuery({ queryKey: ['admin', 'operations-health'], queryFn: () => api.operationsSnapshot() })
+  const audit = useQuery({ queryKey: ['admin', 'recent-audit'], queryFn: () => api.auditEvents(60) })
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const resetDemo = useMutation({
     mutationFn: api.resetDemo,
@@ -43,7 +45,7 @@ export default function AdminPage() {
   const serviceReady = operations.isSuccess
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell">
         <div className={styles.workspace}>
           <PageHeader eyebrow="System administration" title="Access & Service Register" description="Review the current identity, effective permissions, service availability, and synthetic-data provenance. This workspace never displays credentials or grants additional access." />
@@ -58,6 +60,9 @@ export default function AdminPage() {
                 <div className={styles.registerCell}><span className={styles.registerLabel}><ServerCog className="size-4" aria-hidden="true" />Operations service</span><strong className={styles.registerValue}>{operations.isPending ? 'Checking' : serviceReady ? 'Connected' : 'Attention'}</strong><span className={styles.registerDetail}>{operations.data ? `Snapshot ${formatRelativeTime(operations.data.timestamp)}` : 'Waiting for a verified response'}</span></div>
                 <div className={styles.registerCell}><span className={styles.registerLabel}><ShieldCheck className="size-4" aria-hidden="true" />Data boundary</span><strong className={styles.registerValue}>Synthetic</strong><span className={styles.registerDetail}>Unofficial concept; no county operational records</span></div>
               </section>
+
+              <AssuranceInstrument identityReady={access.isSuccess} operationsReady={serviceReady} auditReady={audit.isSuccess} checking={access.isFetching || operations.isFetching || audit.isFetching} snapshotTime={operations.data?.timestamp} onRefresh={() => { access.refetch(); operations.refetch(); audit.refetch() }} />
+              {audit.isError ? <ErrorState message={audit.error.message} retry={() => audit.refetch()} /> : audit.isPending ? <LoadingState rows={4} /> : <AuditRegister events={audit.data || []} />}
 
               <div className={styles.adminGrid}>
                 <section className={styles.plate} aria-labelledby="identity-heading">

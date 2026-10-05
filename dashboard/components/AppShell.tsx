@@ -134,7 +134,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span className={cn('system-pulse', !serviceLive && 'system-pulse-error')} />
           <div><strong>{snapshot.isError ? 'OPERATIONS OFFLINE' : serviceLive ? 'OPERATIONS CONNECTED' : 'OPERATIONS SYNCING'}</strong><small>LAST SYNC {localRegisterTime(snapshot.data?.timestamp)}</small></div>
         </div>
-        <button type="button" className="command-trigger" onClick={() => setCommandOpen(true)}><span>Search unit, station, incident, location</span><Search size={16} /><kbd>⌘K</kbd></button>
+        <button type="button" className="command-trigger" aria-label="Search unit, station, incident, location" onClick={() => setCommandOpen(true)}><span>Search unit, station, incident, location</span><Search size={16} /><kbd>⌘K</kbd></button>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild><button className="topbar-alert" aria-label={`${openAlerts.length} open alerts`}><Bell size={18} />{openAlerts.length > 0 && <span>{Math.min(openAlerts.length, 9)}</span>}</button></DropdownMenu.Trigger>
           <DropdownMenu.Portal>

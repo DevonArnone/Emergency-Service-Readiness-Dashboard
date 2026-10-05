@@ -1,13 +1,12 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-01T00:00:00-04:00",
+  "generatedAt": "2026-10-05T00:00:00-04:00",
   "title": "Design System: Aegis Municipal Systems Room",
   "extensions": {
     "colorMeta": {
       "midnight-shell": {
         "role": "neutral",
         "displayName": "Midnight Shell",
-        "canonical": "#0b1720",
         "tonalRamp": [
           "#050b0f",
           "#0b1720",
@@ -22,7 +21,6 @@
       "status-shell": {
         "role": "neutral",
         "displayName": "Status Shell",
-        "canonical": "#081923",
         "tonalRamp": [
           "#040b0f",
           "#081923",
@@ -37,7 +35,6 @@
       "workspace-shell": {
         "role": "neutral",
         "displayName": "Workspace Shell",
-        "canonical": "#0b202a",
         "tonalRamp": [
           "#050d11",
           "#0b202a",
@@ -52,7 +49,6 @@
       "plotted-board": {
         "role": "neutral",
         "displayName": "Plotted Board",
-        "canonical": "#0b1d28",
         "tonalRamp": [
           "#050c10",
           "#0b1d28",
@@ -67,7 +63,6 @@
       "midnight-soft": {
         "role": "neutral",
         "displayName": "Midnight Soft",
-        "canonical": "#102330",
         "tonalRamp": [
           "#081117",
           "#102330",
@@ -82,7 +77,6 @@
       "indexed-rail": {
         "role": "neutral",
         "displayName": "Indexed Rail",
-        "canonical": "#09141d",
         "tonalRamp": [
           "#04090d",
           "#09141d",
@@ -97,7 +91,6 @@
       "instrument-ivory": {
         "role": "neutral",
         "displayName": "Instrument Ivory",
-        "canonical": "#efe8d7",
         "tonalRamp": [
           "#28251f",
           "#4b463a",
@@ -112,7 +105,6 @@
       "paper-bright": {
         "role": "neutral",
         "displayName": "Paper Bright",
-        "canonical": "#f7f1e3",
         "tonalRamp": [
           "#29261f",
           "#4d483c",
@@ -127,7 +119,6 @@
       "paper-muted": {
         "role": "neutral",
         "displayName": "Paper Muted",
-        "canonical": "#d9d2c1",
         "tonalRamp": [
           "#25231e",
           "#474239",
@@ -142,7 +133,6 @@
       "graphite": {
         "role": "neutral",
         "displayName": "Graphite",
-        "canonical": "#20282e",
         "tonalRamp": [
           "#101417",
           "#20282e",
@@ -157,7 +147,6 @@
       "graphite-secondary": {
         "role": "neutral",
         "displayName": "Graphite Secondary",
-        "canonical": "#46545d",
         "tonalRamp": [
           "#151a1d",
           "#293136",
@@ -172,7 +161,6 @@
       "graphite-muted": {
         "role": "neutral",
         "displayName": "Graphite Muted",
-        "canonical": "#68757c",
         "tonalRamp": [
           "#171b1d",
           "#30373b",
@@ -187,7 +175,6 @@
       "municipal-blue": {
         "role": "primary",
         "displayName": "Municipal Blue",
-        "canonical": "#244a63",
         "tonalRamp": [
           "#0b171f",
           "#142d3c",
@@ -202,7 +189,6 @@
       "service-green": {
         "role": "secondary",
         "displayName": "Service Green",
-        "canonical": "#3c7b62",
         "tonalRamp": [
           "#102119",
           "#214633",
@@ -217,7 +203,6 @@
       "service-green-strong": {
         "role": "secondary",
         "displayName": "Service Green Strong",
-        "canonical": "#285e49",
         "tonalRamp": [
           "#0b1d15",
           "#173c2b",
@@ -232,7 +217,6 @@
       "signal-amber": {
         "role": "secondary",
         "displayName": "Signal Amber",
-        "canonical": "#d59a2e",
         "tonalRamp": [
           "#2b1d05",
           "#563d0c",
@@ -247,7 +231,6 @@
       "alert-vermilion": {
         "role": "tertiary",
         "displayName": "Alert Vermilion",
-        "canonical": "#c44732",
         "tonalRamp": [
           "#2b0d08",
           "#561c13",
@@ -262,7 +245,6 @@
       "focus-amber": {
         "role": "tertiary",
         "displayName": "Focus Amber",
-        "canonical": "#efb649",
         "tonalRamp": [
           "#302205",
           "#60460d",
@@ -277,7 +259,6 @@
       "ruled-line": {
         "role": "neutral",
         "displayName": "Ruled Line",
-        "canonical": "#9da7a6",
         "tonalRamp": [
           "#1c201f",
           "#373d3c",
@@ -292,7 +273,6 @@
       "board-title-accent": {
         "role": "neutral",
         "displayName": "Board Title Brass",
-        "canonical": "#d8c38f",
         "tonalRamp": [
           "#2d2510",
           "#53441d",
@@ -307,7 +287,6 @@
       "pictogram-vermilion": {
         "role": "tertiary",
         "displayName": "Pictogram Vermilion",
-        "canonical": "#c9402e",
         "tonalRamp": [
           "#32100b",
           "#5b1d15",
@@ -322,7 +301,6 @@
       "pictogram-mark": {
         "role": "neutral",
         "displayName": "Pictogram Mark Ivory",
-        "canonical": "#f6efdf",
         "tonalRamp": [
           "#30250d",
           "#584419",
@@ -337,7 +315,6 @@
       "timeline-available": {
         "role": "secondary",
         "displayName": "Timeline Available Green",
-        "canonical": "#79c899",
         "tonalRamp": [
           "#122b1c",
           "#215034",
@@ -352,7 +329,6 @@
       "timeline-assigned": {
         "role": "primary",
         "displayName": "Timeline Assigned Blue",
-        "canonical": "#2a6aad",
         "tonalRamp": [
           "#0c1e31",
           "#16375a",
@@ -367,7 +343,6 @@
       "timeline-on-scene": {
         "role": "secondary",
         "displayName": "Timeline On-Scene Amber",
-        "canonical": "#f8ca55",
         "tonalRamp": [
           "#392a05",
           "#684d08",
@@ -382,7 +357,6 @@
       "timeline-transport": {
         "role": "secondary",
         "displayName": "Timeline Transport Orange",
-        "canonical": "#f0a24b",
         "tonalRamp": [
           "#382005",
           "#683b09",
@@ -397,7 +371,6 @@
       "timeline-investigating": {
         "role": "primary",
         "displayName": "Timeline Investigating Slate",
-        "canonical": "#5e78a8",
         "tonalRamp": [
           "#151c28",
           "#273349",
@@ -412,7 +385,6 @@
       "timeline-out-of-service": {
         "role": "tertiary",
         "displayName": "Out-of-Service Hatch Red",
-        "canonical": "#b8342a",
         "tonalRamp": [
           "#320e0b",
           "#5b1a15",
@@ -427,7 +399,6 @@
       "timeline-maintenance": {
         "role": "tertiary",
         "displayName": "Maintenance Hatch Brick",
-        "canonical": "#8e3b30",
         "tonalRamp": [
           "#2e130f",
           "#54231c",
@@ -442,7 +413,6 @@
       "timeline-no-record": {
         "role": "neutral",
         "displayName": "No Record Hatch",
-        "canonical": "#1b3644",
         "tonalRamp": [
           "#11232c",
           "#204050",
@@ -457,7 +427,6 @@
       "timeline-crew": {
         "role": "neutral",
         "displayName": "Crew Window Rule",
-        "canonical": "#a9c6d3",
         "tonalRamp": [
           "#152228",
           "#263f4a",
@@ -498,6 +467,18 @@
       "figure-condensed": {
         "displayName": "Condensed Figure",
         "purpose": "Plex Sans Variable at 80-82% width for multi-count instruments on Units and Incidents."
+      },
+      "task-headline": {
+        "displayName": "Task Page Heading",
+        "purpose": "Measured Plex Sans page-heading variant on the seven refined task workspaces; does not redefine the status-wall hierarchy."
+      },
+      "task-metric": {
+        "displayName": "Task Register Reading",
+        "purpose": "Measured Plex Mono overview figure on the seven refined task workspaces; utility readings adapt to available width."
+      },
+      "task-title": {
+        "displayName": "Task Worksheet Heading",
+        "purpose": "Compact Plex Mono section heading on task plates and registers."
       }
     },
     "shadows": [
@@ -505,11 +486,6 @@
         "name": "temporary-layer",
         "value": "8px 12px 28px rgba(0, 0, 0, .32)",
         "purpose": "Dialogs, command search, and dropdowns only."
-      },
-      {
-        "name": "mobile-dock",
-        "value": "0 -8px 24px rgba(0, 0, 0, .2)",
-        "purpose": "Separates the fixed mobile navigation register from scrolling worksheets."
       }
     ],
     "motion": [
@@ -559,6 +535,18 @@
       {
         "name": "narrow-board-labels",
         "value": "390px"
+      },
+      {
+        "name": "task-compact-distribution",
+        "value": "1279px"
+      },
+      {
+        "name": "utility-two-column-register",
+        "value": "980px"
+      },
+      {
+        "name": "utility-stacked-register",
+        "value": "720px"
       }
     ]
   },
@@ -658,6 +646,22 @@
       "description": "Unit service history reconstructed from audit facts only; unrecorded time is a dark hatch, never available green.",
       "html": "<div class=\"ds-tl\" role=\"group\" aria-label=\"Recorded unit activity\"><span class=\"ds-tl-label\">E401</span><div class=\"ds-tl-track\"><button class=\"ds-tl-seg ds-unrec\" style=\"left:0;width:22%\">NO RECORD</button><button class=\"ds-tl-seg ds-avail\" style=\"left:22%;width:30%\">AVAILABLE</button><button class=\"ds-tl-seg ds-assigned\" style=\"left:52%;width:8%\">ENR</button><button class=\"ds-tl-seg ds-scene\" style=\"left:60%;width:16%\">ONS</button><button class=\"ds-tl-seg ds-oos\" style=\"left:76%;width:18%\">OUT OF SERVICE</button><i class=\"ds-tl-crew\" style=\"left:22%;width:72%\"></i><i class=\"ds-tl-now\" style=\"left:94%\"></i></div></div>",
       "css": ".ds-tl { display:grid; grid-template-columns:56px 1fr; align-items:center; width:520px; background:#0a2131; color:#f2efe2; font:500 10px 'IBM Plex Mono',monospace; } .ds-tl-label { padding-left:10px; font-weight:700; } .ds-tl-track { position:relative; height:28px; border-bottom:1px solid #4c6672; } .ds-tl-seg { position:absolute; top:5px; height:18px; overflow:hidden; border:0; padding:0 6px; color:#0b1d28; font:500 10px/18px 'IBM Plex Mono',monospace; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; } .ds-avail { background:#79c899; } .ds-assigned { color:#f6f8ff; background:#2a6aad; } .ds-scene { background:#f8ca55; } .ds-oos { color:#fff4ef; background:repeating-linear-gradient(135deg,#b8342a 0 6px,#cf4a3d 6px 11px); } .ds-unrec { color:#b8c6c6; background:repeating-linear-gradient(135deg,#1b3644 0 5px,#24414f 5px 9px); box-shadow:inset 0 0 0 1px #35535f; } .ds-tl-crew { position:absolute; bottom:1px; height:3px; background:#a9c6d3; } .ds-tl-now { position:absolute; top:-1px; bottom:-1px; width:2px; background:#efb649; } .ds-tl-seg:hover { filter:brightness(1.08); } .ds-tl-seg:focus-visible { z-index:4; outline:2px solid #efb649; outline-offset:1px; }"
+    },
+    {
+      "name": "Task Register Instrument",
+      "kind": "custom",
+      "refersTo": "task-instrument",
+      "description": "Compact task overview cell with a mono reading and accountable supporting detail; the status-wall instrument remains a separate variant.",
+      "html": "<div class=\"ds-task-register\"><div class=\"ds-task-instrument\"><span>PERSONNEL IN SCOPE</span><strong>24</strong><small>Selected station · synthetic records</small></div><div class=\"ds-task-instrument\"><span>AVAILABLE</span><strong>08</strong><small>Availability is not qualification clearance</small></div></div>",
+      "css": ".ds-task-register { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--municipal-blue,#244a63); background:var(--paper,#efe8d7); color:var(--ink,#20282e); } .ds-task-instrument { min-height:104px; padding:10px 14px; } .ds-task-instrument + .ds-task-instrument { border-left:1px solid var(--rule,#9da7a6); } .ds-task-instrument > span { font:500 10px 'IBM Plex Mono',monospace; } .ds-task-instrument strong { display:block; margin-top:11px; font:600 36px/1 'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; } .ds-task-instrument small { display:block; margin-top:8px; color:#5d6a70; font:11px/1.4 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; } .ds-task-instrument:hover { background:var(--paper-muted,#d9d2c1); } .ds-task-register:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+    },
+    {
+      "name": "Qualification Expiration Selection",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Square expiration-band control with a labeled count and selected underline; opens the corresponding credential-risk docket.",
+      "html": "<div class=\"ds-expiration\" role=\"group\" aria-label=\"Qualification expiration bands\"><button type=\"button\" aria-pressed=\"true\"><span>0–14 DAYS</span><strong>03</strong><i><b></b></i><small>credential records</small></button><button type=\"button\" aria-pressed=\"false\"><span>15–30 DAYS</span><strong>06</strong><i><b></b></i><small>credential records</small></button></div>",
+      "css": ".ds-expiration { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid #879a9f; background:var(--paper,#efe8d7); color:var(--ink,#20282e); } .ds-expiration button { border:0; border-right:1px solid var(--rule,#9da7a6); border-radius:0; padding:12px 16px; text-align:left; color:inherit; background:transparent; cursor:pointer; } .ds-expiration button:last-child { border-right:0; } .ds-expiration button[aria-pressed=true] { background:#d9d2c1; box-shadow:inset 0 -3px var(--municipal-blue,#244a63); } .ds-expiration button > span { font:10px 'IBM Plex Mono',monospace; } .ds-expiration strong { display:block; margin:4px 0 8px; font:600 30px/1 'IBM Plex Mono',monospace; } .ds-expiration i { display:block; height:6px; margin-bottom:6px; background:#c8cbbf; } .ds-expiration b { display:block; height:100%; width:30%; background:#c44732; } .ds-expiration small { color:#46545d; font:10px 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; } .ds-expiration button:hover { background:#d9d2c1; } .ds-expiration button:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-expiration button:active { transform:translateY(1px); } @media(max-width:767px) { .ds-expiration button { min-height:44px; } }"
     }
   ],
   "narrative": {
@@ -728,22 +732,22 @@
       }
     ],
     "dos": [
-      "Do lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
-      "Do use warm paper plates, strong rules, compact mono labels, tabular figures, and repeated worksheet geometry across all eight route workspaces.",
-      "Do preserve the 50px top register, 184px indexed rail, four aligned overview instruments, and dominant GIS board at the approved desktop composition; adapt rather than crop them on smaller screens.",
-      "Do pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
-      "Do build history from recorded facts only: unrecorded time is a NO RECORD hatch, and untimed or inferred spans stay visibly marked.",
-      "Do preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, aria-current, live status messaging, and 44px mobile controls.",
-      "Do preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",
-      "Do keep errors recoverable, loading states legible, destructive actions confirmed, and read-only actions visibly unavailable rather than absent."
+      "**Do** lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
+      "**Do** use warm paper plates, strong rules, compact mono labels, tabular figures, and repeated worksheet geometry across all eight route workspaces.",
+      "**Do** preserve the 50px top register, 184px indexed rail, four aligned overview instruments, and dominant GIS board at the approved desktop composition; adapt rather than crop them on smaller screens.",
+      "**Do** pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
+      "**Do** build history from recorded facts only: unrecorded time is a NO RECORD hatch, and untimed or inferred spans stay visibly marked.",
+      "**Do** preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, `aria-current`, live status messaging, and 44px mobile controls.",
+      "**Do** preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",
+      "**Do** keep errors recoverable, loading states legible, destructive actions confirmed, and read-only actions visibly unavailable rather than absent."
     ],
     "donts": [
-      "Don't turn Aegis into generic SaaS cards, cyberpunk neon, glass panels, gradient spectacle, oversized pills, or decorative command-center theater.",
-      "Don't use color, animation, iconography, or a large metric as the only explanation of state.",
-      "Don't soften the system with broad radii, floating persistent shadows, loose card spacing, or unlabeled whitespace.",
-      "Don't imply dispatch authority, county endorsement, patient care, personnel decisions, or suitability for real emergency operations.",
-      "Don't add patient identifiers, clinical narratives, ePHI, private county-system data, invented incident facts, or claims not supported by measured evidence.",
-      "Don't hide access limits, stale connections, synthetic provenance, or destructive consequences to make the interface appear more capable."
+      "**Don't** turn Aegis into generic SaaS cards, cyberpunk neon, glass panels, gradient spectacle, oversized pills, or decorative command-center theater.",
+      "**Don't** use color, animation, iconography, or a large metric as the only explanation of state.",
+      "**Don't** soften the system with broad radii, floating persistent shadows, loose card spacing, or unlabeled whitespace.",
+      "**Don't** imply dispatch authority, county endorsement, patient care, personnel decisions, or suitability for real emergency operations.",
+      "**Don't** add patient identifiers, clinical narratives, ePHI, private county-system data, invented incident facts, or claims not supported by measured evidence.",
+      "**Don't** hide access limits, stale connections, synthetic provenance, or destructive consequences to make the interface appear more capable."
     ]
   }
 }

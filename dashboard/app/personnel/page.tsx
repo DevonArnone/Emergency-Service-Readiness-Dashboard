@@ -6,7 +6,6 @@ import {
   Archive,
   Award,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Edit3,
   Mail,
@@ -17,7 +16,9 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { Suspense, useMemo, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { PersonnelStationRegister } from '@/components/OperatingSurfaces'
 import ConfirmAction from '@/components/ConfirmAction'
 import { usePagination } from '@/hooks/usePagination'
 import FormDialog, { Field } from '@/components/FormDialog'
@@ -37,13 +38,15 @@ function availabilityTone(status: Personnel['availability_status']) {
   return 'neutral' as const
 }
 
-export default function WorkforcePage() {
+function WorkforcePage() {
+  const params = useSearchParams()
   const queryClient = useQueryClient()
   const access = useAccess()
   const { stationId } = useStationScope()
   const [search, setSearch] = useState('')
   const [view, setView] = useState('active')
   const [selectedId, setSelectedId] = useState('')
+  const [rosterStation, setRosterStation] = useState('all')
   const [editing, setEditing] = useState<Personnel | 'new' | null>(null)
   const [formError, setFormError] = useState<string>()
   const [notice, setNotice] = useState<Notice>(null)
@@ -64,7 +67,7 @@ export default function WorkforcePage() {
 
   const savePerson = useMutation({
     mutationFn: ({ existing, payload }: { existing?: Personnel; payload: unknown }) => existing ? api.updatePersonnel(existing.personnel_id, payload) : api.createPersonnel(payload),
-    onSuccess: async (saved) => { await invalidate(); setEditing(null); setSelectedId(saved.personnel_id); setSearch(saved.name); setView('active'); setNotice({ tone: 'success', message: 'Personnel record saved.' }) },
+    onSuccess: async (saved) => { await invalidate(); setEditing(null); setSelectedId(saved.personnel_id); setSearch(saved.name); setRosterStation('all'); setView('active'); setNotice({ tone: 'success', message: 'Personnel record saved.' }) },
     onError: (error: Error) => setNotice({ tone: 'danger', message: error.message }),
   })
   const archivePerson = useMutation({
@@ -82,10 +85,10 @@ export default function WorkforcePage() {
   const filteredPeople = useMemo(() => scopedPeople.filter((person) => {
     const matchesSearch = `${person.name} ${person.role} ${person.rank || ''}`.toLowerCase().includes(search.toLowerCase())
     const matchesView = view === 'active' || (view === 'available' && ['AVAILABLE', 'ON_CALL'].includes(person.availability_status)) || (view === 'deployed' && person.availability_status === 'DEPLOYED') || (view === 'off' && ['OFF', 'IN_TRAINING'].includes(person.availability_status))
-    return matchesSearch && matchesView
-  }), [scopedPeople, search, view])
-  const page = usePagination(filteredPeople, `${stationId}:${view}:${search}`)
-  const selected = page.rows.find((person) => person.personnel_id === selectedId) || page.rows[0]
+    return matchesSearch && matchesView && (rosterStation === 'all' || person.station_id === rosterStation)
+  }), [scopedPeople, search, view, rosterStation])
+  const page = usePagination(filteredPeople, `${stationId}:${view}:${search}:${rosterStation}`)
+  const selected = filteredPeople.find((person) => person.personnel_id === (selectedId || params.get('person'))) || page.rows[0]
   const selectedAssignments = assignments.data?.filter((assignment) => assignment.personnel_id === selected?.personnel_id && assignment.assignment_status !== 'CANCELLED') || []
   const selectedUnit = units.data?.find((unit) => unit.unit_id === selected?.current_unit_id)
   const selectedStation = stations.data?.find((station) => station.station_id === selected?.station_id)
@@ -110,7 +113,7 @@ export default function WorkforcePage() {
   }
 
   return (
-    <div className="ops-page page-enter">
+    <div className="ops-page page-enter civic-workspace">
       <div className="ops-shell space-y-6">
         <PageHeader eyebrow="People and qualification" title="Workforce" description="Find deployable personnel quickly, understand role and credential constraints, and maintain the canonical district roster." actions={<Button variant="primary" onClick={() => setEditing('new')}><Plus className="size-4" />Add personnel</Button>} />
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
@@ -123,6 +126,8 @@ export default function WorkforcePage() {
           <StatCard label="Credential risk" value={expiringCount} detail="Expired or due within 30 days" icon={ShieldAlert} tone={expiringCount ? 'warning' : 'success'} href="/certifications-management" />
         </section>
 
+        <PersonnelStationRegister people={scopedPeople} stations={stations.data || []} onInspect={(id) => { setRosterStation(id); setSelectedId(''); setSearch(''); setView('active') }} />
+
         <Tabs.Root value={view} onValueChange={setView} className="workspace-tabs">
           <div className="toolbar toolbar-tabs">
             <Tabs.List className="tab-list" aria-label="Roster status">
@@ -131,14 +136,15 @@ export default function WorkforcePage() {
               <Tabs.Trigger value="deployed">Assigned</Tabs.Trigger>
               <Tabs.Trigger value="off">Unavailable</Tabs.Trigger>
             </Tabs.List>
-            <label className="search-control"><Search className="size-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, role, or rank" /></label>
+            <label className="inline-select"><span>Roster station</span><select aria-label="Roster station" value={rosterStation} onChange={event => setRosterStation(event.target.value)}><option value="all">All in scope</option>{stations.data?.filter(station => stationId === 'all' || station.station_id === stationId).map(station => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></label>
+            <label className="search-control"><Search className="size-4" /><input aria-label="Search personnel" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, role, or rank" /></label>
           </div>
           <Tabs.Content value={view} className="tab-content">
             {people.isLoading ? <div className="ops-panel"><LoadingState rows={8} /></div> : (
               <div className="master-detail-grid workforce-grid">
                 <section className="ops-panel people-list-panel">
-                  <div className="list-column-heading"><span>Personnel</span><span>Status</span></div>
-                  {page.rows.map((person) => <button key={person.personnel_id} className={cn('person-list-row', selected?.personnel_id === person.personnel_id && 'person-list-row-active')} onClick={() => setSelectedId(person.personnel_id)}><span className="person-avatar">{person.name.split(' ').filter((part) => !part.endsWith('.')).map((part) => part[0]).slice(0, 2).join('')}</span><span className="min-w-0 flex-1"><strong>{person.name}</strong><small>{person.rank || person.role} · {stations.data?.find((station) => station.station_id === person.station_id)?.name.replace(/^Station \d+ — /, '') || 'Unassigned'}</small></span><StatusBadge tone={availabilityTone(person.availability_status)}>{titleCase(person.availability_status)}</StatusBadge><ChevronRight className="size-4" /></button>)}
+                  <div className="person-register-heading"><span>Personnel / role</span><span>Station</span><span>Unit</span><span>Availability</span></div>
+                  {page.rows.map((person) => <button type="button" aria-pressed={selected?.personnel_id === person.personnel_id} key={person.personnel_id} className={cn('person-list-row', selected?.personnel_id === person.personnel_id && 'person-list-row-active')} onClick={() => { setSelectedId(person.personnel_id); const query = new URLSearchParams(params.toString()); query.set('person', person.personnel_id); window.history.replaceState(null, '', `/personnel?${query}`) }}><span className="min-w-0"><strong>{person.name}</strong><small>{person.rank || person.role}</small></span><span className="person-register-code">{stations.data?.find(station => station.station_id === person.station_id)?.name.split(' — ')[0].replace('Station ', 'ST. ') || '—'}</span><span className="person-register-code">{units.data?.find(unit => unit.unit_id === person.current_unit_id)?.unit_name || '—'}</span><StatusBadge tone={availabilityTone(person.availability_status)}>{titleCase(person.availability_status)}</StatusBadge></button>)}
                   {!filteredPeople.length && <EmptyState title="No personnel match" description="Try another status view or search phrase." />}<Pagination {...page} />
                 </section>
                 <section className="ops-panel detail-panel">
@@ -156,3 +162,5 @@ export default function WorkforcePage() {
     </div>
   )
 }
+
+export default function PersonnelPage() { return <Suspense fallback={<LoadingState rows={8} />}><WorkforcePage /></Suspense> }

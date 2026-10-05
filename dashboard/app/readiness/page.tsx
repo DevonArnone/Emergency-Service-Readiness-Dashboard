@@ -1,5 +1,7 @@
 'use client'
 
+import ContingencyWorkbench from '@/components/ContingencyWorkbench'
+
 import * as Tabs from '@radix-ui/react-tabs'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -58,7 +60,7 @@ export default function OperationsPage() {
   })
   const personnel = useQuery({ queryKey: queryKeys.personnel, queryFn: api.personnel })
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
-  const unitDefinitions = useQuery({ queryKey: queryKeys.units, queryFn: api.units, enabled: view === 'units' || view === 'incidents' })
+  const unitDefinitions = useQuery({ queryKey: queryKeys.units, queryFn: api.units, enabled: view === 'units' || view === 'incidents' || view === 'simulation' })
   const assignments = useQuery({ queryKey: queryKeys.assignments, queryFn: api.assignments, enabled: view === 'units' })
   const history = useOperationalHistory(view === 'units' || view === 'incidents')
 
@@ -199,11 +201,11 @@ export default function OperationsPage() {
   }
 
   return (
-    <div className={cn('ops-page page-enter', view === 'incidents' && 'incident-theater-page', view === 'units' && 'units-switchboard-page')}>
+    <div className={cn('ops-page page-enter', view === 'incidents' && 'incident-theater-page', view === 'units' && 'units-switchboard-page', view === 'simulation' && 'civic-workspace')}>
       <div className="ops-shell space-y-6">
         {notice && <div className={cn('notice-banner', notice.tone === 'success' ? 'notice-success' : 'notice-danger')} role="status"><span>{notice.message}</span><button onClick={() => setNotice(null)}>Dismiss</button></div>}
         {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
-        {view === 'incidents' ? <IncidentsTheater snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} history={history} scope={stationId} updating={updateIncident.isPending} resolving={resolveIncident.isPending} onOpen={() => setIncidentDialog(true)} onUpdate={async (incident) => { await updateIncident.mutateAsync({ id: incident.incident_id, value: incident }) }} onResolve={(id) => resolveIncident.mutate(id)} /> : view === 'units' ? <><UnitsSwitchboard snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} assignments={assignments.data || []} personnel={personnel.data || []} history={history} scope={stationId} selectedUnit={selectedUnit} onSelectUnit={selectUnit} onAddUnit={() => setUnitDialog(true)} onAssign={() => setAssignmentDialog(true)} onSimulate={(unitId) => simulation.mutate({ unitId })} simulation={simulation.data} simulating={simulation.isPending} onSetStatus={setUnitStatus} updatingStatus={updateUnitStatus.isPending} loading={operations.isLoading || stations.isLoading || unitDefinitions.isLoading || assignments.isLoading} />{unitDefinitions.isError && <ErrorState message={unitDefinitions.error.message} retry={() => unitDefinitions.refetch()} />}{assignments.isError && <ErrorState message={assignments.error.message} retry={() => assignments.refetch()} />}</> : <>
+        {view === 'incidents' ? <IncidentsTheater snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} history={history} scope={stationId} updating={updateIncident.isPending} resolving={resolveIncident.isPending} onOpen={() => setIncidentDialog(true)} onUpdate={async (incident) => { await updateIncident.mutateAsync({ id: incident.incident_id, value: incident }) }} onResolve={(id) => resolveIncident.mutate(id)} /> : view === 'units' ? <><UnitsSwitchboard snapshot={operations.data} stations={stations.data || []} definitions={unitDefinitions.data || []} assignments={assignments.data || []} personnel={personnel.data || []} history={history} scope={stationId} selectedUnit={selectedUnit} onSelectUnit={selectUnit} onAddUnit={() => setUnitDialog(true)} onAssign={() => setAssignmentDialog(true)} onSimulate={(unitId) => simulation.mutate({ unitId })} simulation={simulation.data} simulating={simulation.isPending} onSetStatus={setUnitStatus} updatingStatus={updateUnitStatus.isPending} loading={operations.isLoading || stations.isLoading || unitDefinitions.isLoading || assignments.isLoading} />{unitDefinitions.isError && <ErrorState message={unitDefinitions.error.message} retry={() => unitDefinitions.refetch()} />}{assignments.isError && <ErrorState message={assignments.error.message} retry={() => assignments.refetch()} />}</> : view === 'simulation' ? <ContingencyWorkbench units={units} definitions={unitDefinitions.data || []} selected={selectedUnit} result={simulation.data} busy={simulation.isPending} onSelect={id => { setSelectedUnitId(id); simulation.reset(); const query = new URLSearchParams(params.toString()); query.set('unit', id); router.replace(`/readiness?${query}`, { scroll: false }) }} onRun={(unitId, personnelId) => simulation.mutate({ unitId, personnelId })} onReset={() => simulation.reset()} /> : <>
         <PageHeader eyebrow="Operational control" title="Operations" description="Monitor unit readiness, clear exceptions, coordinate incidents, and test staffing contingencies from one workspace." actions={<><Button onClick={() => setIncidentDialog(true)}><Siren className="size-4" />Open incident</Button><Button variant="primary" onClick={() => setUnitDialog(true)}><Plus className="size-4" />Add unit</Button></>} />
 
         <section className="instrument-register grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
