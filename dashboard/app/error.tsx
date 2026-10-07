@@ -1,19 +1,22 @@
 'use client'
 
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui'
+import styles from './states.module.css'
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="ops-page flex items-center justify-center">
-      <section className="ops-panel max-w-lg text-center" role="alert">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/25 bg-red-500/10 text-red-300">
-          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+    <div className={styles.inline}>
+      <section className={styles.inlineCard} role="alert">
+        <span className={styles.icon}><AlertTriangle aria-hidden="true" /></span>
+        <h1>This workspace could not load</h1>
+        <p>{error.message || 'An unexpected application error occurred.'}</p>
+        <p>Your records are unchanged. Retry, or return to the county overview.</p>
+        <div className="ui-page-actions" style={{ marginTop: 20 }}>
+          <Button variant="primary" onClick={reset}><RefreshCw aria-hidden="true" />Retry</Button>
+          <Link className="ui-button" href="/">County overview</Link>
         </div>
-        <h1 className="mt-5 text-xl font-semibold text-white">This workspace could not load</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-400">{error.message || 'An unexpected application error occurred.'}</p>
-        <button type="button" onClick={reset} className="ops-button-primary mt-6 gap-2">
-          <RefreshCw className="h-4 w-4" aria-hidden="true" /> Retry
-        </button>
       </section>
     </div>
   )

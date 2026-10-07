@@ -1,16 +1,17 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import styles from './states.module.css'
 
 export default function NotFound() {
   return (
-    <div className="ops-page flex items-center justify-center">
-      <section className="ops-panel max-w-lg text-center">
-        <div className="panel-kicker">404</div>
-        <h1 className="mt-3 text-2xl font-semibold text-white">Workspace not found</h1>
-        <p className="mt-2 text-sm text-slate-400">The requested operational view does not exist.</p>
-        <Link href="/" className="ops-button-secondary mt-6 gap-2">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Return to command center
-        </Link>
+    <div className={styles.inline}>
+      <section className={styles.inlineCard}>
+        <span className={styles.code}>404</span>
+        <h1>Workspace not found</h1>
+        <p>No Aegis Command workspace lives at this address. Use the navigation or search to find a station, unit, or incident.</p>
+        <div className="ui-page-actions" style={{ marginTop: 20 }}>
+          <Link href="/" className="ui-button ui-button-primary"><ArrowLeft aria-hidden="true" />Return to county overview</Link>
+        </div>
       </section>
     </div>
   )

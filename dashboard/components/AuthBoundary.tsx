@@ -2,8 +2,11 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { ShieldCheck, ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, LoaderCircle } from 'lucide-react'
+import Image from 'next/image'
 import { identityManager, OIDC_ENABLED, signIn } from '@/lib/auth'
+import styles from '@/app/states.module.css'
+import { Button, InlineError } from './ui'
 
 let callback: Promise<unknown> | undefined
 
@@ -47,17 +50,20 @@ export default function AuthBoundary({ children }: { children: React.ReactNode }
   }, [queryClient])
 
   if (status === 'ready') return children
-  return <main className="identity-screen">
-    <section className="identity-card">
-      <ShieldCheck size={34} aria-hidden="true" />
-      <p className="command-kicker">AEGIS / SECURE OPERATIONS</p>
-      <h1>Command starts<br />with trust<span>.</span></h1>
-      <p>Fairfax County Fire and Rescue<br />Unofficial coordination concept</p>
-      {status === 'loading' ? <p role="status">Verifying your session…</p> : <>
-        <button className="command-primary" onClick={() => { setError(''); void signIn().catch(() => setError('Identity provider unavailable. Please try again.')) }}>Sign in to command <ArrowUpRight size={18} /></button>
-        <small>Department identity · Role-based access · Synthetic data</small>
-      </>}
-      {error && <p role="alert">{error}</p>}
+  return <main className={styles.screen}>
+    <section className={styles.card}>
+      <div className={styles.mark}>
+        <Image src="/brand/aegis-command-seal-v2.png" alt="" width={30} height={44} priority />
+        <div><strong>Aegis Command</strong><span>Fairfax County Fire and Rescue · unofficial concept</span></div>
+      </div>
+      <h1>Sign in to the operating picture</h1>
+      <p>Access follows your department role. Operators can change records; analysts and observers read them.</p>
+      {status === 'loading' ? <p className={styles.status} role="status"><LoaderCircle className="ui-spin" aria-hidden="true" />Verifying your session…</p> : <div className={styles.actions}>
+        <Button variant="primary" onClick={() => { setError(''); void signIn().catch(() => setError('The identity provider is unavailable. Check your connection and try again.')) }}>Sign in to command <ArrowUpRight aria-hidden="true" /></Button>
+        <InlineError message={error} />
+      </div>}
+      {status === 'loading' && <InlineError message={error} />}
+      <p className={styles.fine}>Synthetic operational data. Not authorized for dispatch, patient care, or real emergency operations.</p>
     </section>
   </main>
 }

@@ -1,0 +1,73 @@
+@tailwind base;
+
+/* Aegis operating deck: light for reading and deciding, dark for space and time. */
+:root {
+  color-scheme: light;
+
+  /* Navigation */
+  --navy-950: #071226;
+  --navy-900: #0b1a33;
+  --navy-800: #12264a;
+  --navy-700: #1b3564;
+  --navy-ink: #e8eefb;
+  --navy-ink-2: #a9b9d6;
+  --navy-line: rgba(169, 185, 214, 0.16);
+
+  /* Workspace */
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --surface-sunken: #e9eef6;
+  --ink: #0d1b30;
+  --ink-2: #36465f;
+  --ink-3: #56667f;
+  --rule: #dbe3ee;
+  --rule-strong: #c2cede;
+
+  /* Selection and primary action */
+  --cobalt: #1f4fd8;
+  --cobalt-strong: #1a41b4;
+  --cobalt-soft: #e9effd;
+  --cobalt-rule: #b7c8f5;
+  --cobalt-ink: #173a9e;
+
+  /* State: always paired with a word */
+  --ok: #0c7347;
+  --ok-soft: #e2f4ea;
+  --ok-rule: #a9dcc1;
+  --warn: #8a5200;
+  --warn-soft: #fdf2d9;
+  --warn-rule: #edcf8a;
+  --warn-solid: #d99a06;
+  --bad: #b9271d;
+  --bad-soft: #fdeae8;
+  --bad-rule: #f0b4ae;
+  --quiet-soft: #eef1f6;
+
+  /* Stage: maps, timelines */
+  --stage: #081426;
+  --stage-2: #0e1e3a;
+  --stage-3: #162b50;
+  --stage-rule: #223a63;
+  --stage-ink: #e7eefb;
+  --stage-ink-2: #a3b5d4;
+  --stage-ok: #3ad29a;
+  --stage-warn: #ffc24a;
+  --stage-bad: #ff6f61;
+  --stage-cobalt: #78a2ff;
+  --stage-quiet: #5d7196;
+
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-stage: 14px;
+  --shadow-panel: 0 1px 2px rgba(13, 27, 48, 0.05);
+  --shadow-raised: 0 1px 2px rgba(13, 27, 48, 0.06), 0 12px 28px -14px rgba(13, 27, 48, 0.28);
+  --shadow-overlay: 0 2px 6px rgba(7, 18, 38, 0.12), 0 28px 60px -20px rgba(7, 18, 38, 0.45);
+
+  --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --rail-width: 248px;
+  --inspector-width: 408px;
+}
