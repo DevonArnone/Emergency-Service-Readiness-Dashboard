@@ -232,7 +232,8 @@ export function Inspector({ label, open, onClose, recordKey, dismissible = false
     <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
       <Dialog.Portal>
         <Dialog.Overlay className="ui-overlay" />
-        <Dialog.Content className="ui-drawer" aria-describedby={undefined}>
+        {/* Focus the drawer itself: focusing the close button would open its tooltip and swallow the first Escape. */}
+        <Dialog.Content className="ui-drawer" aria-describedby={undefined} onOpenAutoFocus={(event) => { event.preventDefault(); (event.currentTarget as HTMLElement).focus() }}>
           <Dialog.Title className="sr-only">{label}</Dialog.Title>
           <InspectorContext.Provider value={{ drawer: true, closeLabel }}>
             <div className="ui-inspector">{children}</div>

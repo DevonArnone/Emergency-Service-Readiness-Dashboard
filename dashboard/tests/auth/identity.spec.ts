@@ -33,7 +33,7 @@ for (const username of ['duty.officer', 'analyst']) {
       expect(resolved.status()).toBe(200)
     }
     await page.getByRole('button', { name: /Search unit, station, incident, location/ }).click()
-    await page.getByRole('button', { name: 'SIGN OUT', exact: true }).click()
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Sign in to command' })).toBeVisible()
   })
 }

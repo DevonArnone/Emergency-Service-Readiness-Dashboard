@@ -101,7 +101,7 @@ export default function WeatherPage() {
         <section className={cn('ui-stage', styles.forecast)} aria-labelledby="temperature-heading" data-ui="forecast">
           <header className="ui-stage-header"><div><h2 id="temperature-heading">Temperature by forecast period</h2><p>NWS period forecast · {data.stale ? 'stale cached report' : data.status === 'unavailable' ? 'unavailable' : 'current report'} · no interpolation between missing readings</p></div></header>
           {values.length ? (
-            <div className={styles.plot}>
+            <div className={styles.plot} tabIndex={0} role="region" aria-label="Temperature plot">
               <svg viewBox="0 0 900 204" role="img" aria-label={`Forecast temperatures by NWS period, from ${Math.min(...values)} to ${Math.max(...values)} degrees`}>
                 {[0, 1, 2, 3, 4].map(tick => { const value = minimum + (maximum - minimum) * tick / 4; return <g key={tick}><line x1="48" x2="852" y1={y(value)} y2={y(value)} stroke="#223a63" strokeWidth="1" /><text x="8" y={y(value) + 4} className={styles.axis}>{Math.round(value)}°</text></g> })}
                 {periods.slice(1).map((period, index) => period.temperature != null && periods[index].temperature != null && <line key={index} x1={x(index)} y1={y(periods[index].temperature!)} x2={x(index + 1)} y2={y(period.temperature)} stroke="#78a2ff" strokeWidth="2.4" strokeLinecap="round" />)}
@@ -109,7 +109,7 @@ export default function WeatherPage() {
               </svg>
             </div>
           ) : <p className="ui-empty-inline">Temperature readings unavailable. Use the official source or refresh the report.</p>}
-          <div className={styles.periods} data-ui="forecast-periods" role="group" aria-label="Forecast periods">
+          <div className={styles.periods} data-ui="forecast-periods" role="group" aria-label="Forecast periods" tabIndex={-1}>
             {periods.map((period, index) => <button type="button" key={index} aria-pressed={index === selectedIndex} onClick={() => setSelectedPeriod(index)}><span>{index + 1}. {period.name || 'Period'}</span><strong className="ui-num">{period.temperature == null ? '—' : `${period.temperature}°${period.temperature_unit || 'F'}`}</strong><small>{period.short_forecast || 'Not reported'}</small></button>)}
           </div>
         </section>

@@ -35,7 +35,13 @@ export default function FormDialog({
     <Dialog.Root open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next) }}>
       <Dialog.Portal>
         <Dialog.Overlay className="ui-overlay" />
-        <Dialog.Content className="ui-dialog">
+        <Dialog.Content className="ui-dialog" onOpenAutoFocus={(event) => {
+          // Start in the form, not on the close button, so typing and Escape work immediately.
+          const dialog = event.currentTarget as HTMLElement
+          const first = dialog.querySelector<HTMLElement>('.ui-dialog-body input:not([type="hidden"]), .ui-dialog-body select, .ui-dialog-body textarea')
+          event.preventDefault()
+          ;(first || dialog).focus()
+        }}>
           <div className="ui-dialog-header">
             <div className="min-w-0">
               <Dialog.Title asChild><h2>{title}</h2></Dialog.Title>
