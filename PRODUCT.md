@@ -24,7 +24,7 @@ The interface is desktop-first for a continuously monitored command environment 
 
 ## Capabilities and Constraints
 
-- Preserve the eight route workspaces—County Status Wall, Operations, Workforce, Scheduling, Credentials, Analytics, Weather, and Admin—and the ten indexed status-wall destinations, including deep links into incidents, units, stations, resource posture, and plans. Preserve URL state, API contracts, realtime behavior, OIDC roles, read-only public mode, and guarded destructive actions.
+- Preserve the eight routes and their thirteen navigation destinations—County overview, Incidents, Units, Alerts, Stations, Resource status, Personnel, Scheduling, Credentials, Analytics, Plans & Hazards, Weather, and Admin—including deep links into incidents, units, alerts, stations, resource posture, and plans. Preserve URL state, API contracts, realtime behavior, OIDC roles, read-only public mode, and guarded destructive actions.
 - PostgreSQL is the operational source of truth. Kafka-compatible priority channels, Redis fan-out, and Snowflake-ready analytics remain distinct system concerns.
 - The default concept uses 39 public Fairfax station locations and locally committed county iCare GIS geometry; units, personnel, incidents, staffing, credentials, and activity are synthetic. The plotted context is not for navigation or dispatch.
 - Weather is read-only public National Weather Service forecast and active-alert data with source time, cached/stale state, and an explicit unavailable state. Operators must confirm severe weather through official warning and command channels.
@@ -38,12 +38,12 @@ The interface is desktop-first for a continuously monitored command environment 
 - Product name: Aegis Command.
 - Target context: Fairfax County Fire and Rescue Department, always labeled as an unofficial portfolio concept.
 - Voice: calm, accountable, concise, operational, and specific.
-- Visual world: a 1970s municipal systems room combining public-infrastructure manuals, emergency operations wall boards, dispatch worksheets, and corporate control equipment.
-- Avoid generic dark SaaS cards, cyberpunk neon, glass effects, oversized pills, ornamental gradients, and decorative command-center theatrics.
+- Visual world: a calm operating deck. Cool-white workspaces, deep navy navigation, cobalt for selection and the primary action, and a dark stage for maps and timelines. The earlier municipal systems-room look is historical reference only.
+- Avoid walls of equal dense panels, generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, and decorative command-center theatrics.
 
 ## Task Workflows
 
-The seven refined workspaces support direct inspection and accountable action from the first viewport. They retain tenant and station scope, record links, URL state, effective permissions, source freshness, and the distinction between current snapshots, recorded history, and hypothetical results.
+The workspaces support direct inspection and accountable action from the first viewport. They retain tenant and station scope, record links, URL state, effective permissions, source freshness, and the distinction between current snapshots, recorded history, and hypothetical results.
 
 - **Personnel (`/personnel`):** Inspect station distribution, filter a fixed-column personnel register, and open the selected profile. Personnel deep links select the requested record within the active roster scope; availability is not qualification clearance.
 - **Scheduling (`/shifts`):** Select recorded duty windows on a day ruler grouped by actual apparatus assignments, including overnight windows. Inspect the parent shift and its apparatus attendance against recorded minimums in the coverage ledger; location is the heading, with date and time as record metadata.
@@ -53,13 +53,19 @@ The seven refined workspaces support direct inspection and accountable action fr
 - **Weather (`/weather`):** Select an NWS forecast period to inspect temperature, wind, and detailed outlook. Missing readings remain explicit, with no interpolation across missing temperatures; source time, stale cache, unavailable responses, official-source links, and planning-only use remain visible.
 - **Admin (`/admin`):** Select current-session response checks, filter and inspect the tenant's bounded recent audit sample, and review effective rights and provenance. Successful client responses do not independently establish infrastructure health. Demo reset preserves the existing server policy, permission gate, and confirmation.
 
-County Status Wall, Units, and Incidents retain their established workspaces and recorded-history behavior. On small screens, a dismissible switchboard directory exposes all workspaces; there is no fixed bottom navigation register. Desktop remains the primary operating context, with usable layouts and controls across 320–1920px.
+- **County overview (`/`):** Read the readiness summary, select a station on the map, and open an incident or alert from the exception queue. Stations (`/?layer=stations`) and Resource status (`/?panel=resources`) are focused views on the same route.
+- **Incidents (`/readiness?view=incidents`):** Select an incident in the register, on the map, or on the lifecycle timeline; edit its worksheet, add notes, assign units, and resolve it after confirmation in the record inspector.
+- **Units (`/readiness?view=units`):** Select apparatus in the station-grouped register or the coverage matrix; review crew, readiness checks, and recorded activity; record confirmed service-state changes; open the deployment history.
+- **Alerts (`/readiness?view=alerts`):** Filter the exception queue by state, open an alert's record context and audit trail, then acknowledge or resolve it.
+
+Every workspace leads with one primary surface. A selected record opens in an inspector docked beside it from 1280px and in a full-height drawer below that, which returns focus when closed. On small screens a navigation drawer exposes all thirteen destinations; there is no fixed bottom navigation. Desktop remains the primary operating context, with usable layouts and controls across 320–1920px.
 
 ## Evidence on Hand
 
 - Public target research and data provenance are documented in `docs/target-research.md`; the checked-in map derives from Fairfax County iCare GIS, and weather is sourced from the National Weather Service API.
 - Current product behavior and architecture are documented in `README.md`, `docs/architecture.md`, and `docs/security.md`.
-- Desktop and mobile captures for all eight route workspaces are stored in `pictures/`.
+- Desktop and mobile captures of the renewed workspaces are stored in `pictures/`; before-and-after review captures for the October 2026 renewal are in `.impeccable/review/renewal-baseline/` and `.impeccable/review/renewal-final/`.
+- The two bullets that follow describe the earlier municipal systems-room refresh and are retained as history.
 - The seven-workspace refresh has fourteen validated captures in `.impeccable/review/remaining/`: `personnel`, `shifts`, `certifications-management`, `analytics`, `plans`, `weather`, and `admin`, each at `1536` and `390` widths. Each capture has origin metadata; the corresponding `pictures/` gallery entries use the same images.
 - The first full refresh review requested two fixes: Weather's mobile first viewport and Scheduling's date eyebrow. Both were resolved in one consolidated pass, and the follow-up disposition was ship for those fixes. This does not certify whole-surface 90% visual fidelity or close the separate County Status Wall, Units, and Incidents comp-diff gate recorded in `DESIGN.md`.
 - Refresh verification passed lint, TypeScript, production build, 50 browser checks in Chromium and Firefox, eight targeted checks per browser after the review fixes, three authenticated workflows including hypothetical calculation and scenario reset, 55 backend checks, and the repository harness checks.

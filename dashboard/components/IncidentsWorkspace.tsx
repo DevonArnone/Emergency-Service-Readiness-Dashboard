@@ -11,6 +11,7 @@ import { EmptyState, InlineError, Inspector, InspectorBody, InspectorFooter, Ins
 import { clip, clock, duration, incidentHistory, incidentRef, LIFECYCLE_LABEL, ticks, type IncidentHistory } from '@/lib/history'
 import type { AuditEvent, Incident, OperationsSnapshot, Station, Unit, UnitReadiness } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
+import { useAccess } from '@/hooks/useAccess'
 import styles from './ops.module.css'
 
 type History = { incidentEvents: AuditEvent[]; unitEvents: AuditEvent[]; baselines: AuditEvent[]; incidents: Incident[]; loading: boolean }
@@ -44,7 +45,7 @@ const street = (incident: Incident) => (incident.display_location || incident.ti
 const city = (incident: Incident) => (incident.display_location || '').split(',').slice(1).join(',').trim()
 const statusKey = (incident: Incident) => (incident.is_active ? incident.status : 'RESOLVED').toLowerCase()
 const statusLabel = (incident: Incident) => incident.is_active ? STATUS_WORD[incident.status] : 'Closed'
-export const incidentStatusTone = (incident: Pick<Incident, 'is_active' | 'status'>): StatusTone => !incident.is_active ? 'neutral' : incident.status === 'ON_SCENE' ? 'danger' : incident.status === 'ENROUTE' || incident.status === 'TRANSPORT' ? 'warning' : 'info'
+export const incidentStatusTone = (incident: Pick<Incident, 'is_active' | 'status'>): StatusTone => !incident.is_active ? 'neutral' : incident.status === 'ON_SCENE' ? 'danger' : incident.status === 'TRANSPORT' ? 'warning' : 'info'
 
 export default function IncidentsWorkspace({ snapshot, stations, definitions, history, scope, loading, updating, resolving, actionError, onOpen, onUpdate, onResolve }: Props) {
   const router = useRouter()
@@ -177,6 +178,8 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
   const [unitSearch, setUnitSearch] = useState('')
   const [dialogError, setDialogError] = useState<string>()
   const [tab, setTab] = useState<PostureTab>('APPARATUS')
+  const access = useAccess()
+  const readOnly = access.data?.can_write !== true
   const closed = !incident.is_active
   const dirty = Object.entries(draft).some(([key, value]) => value !== (incident[key as keyof Incident] || ''))
   const lastEvent = record?.stages[record.stages.length - 1]?.event?.created_at || incident.resolved_at || incident.created_at
@@ -227,7 +230,7 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
     <InspectorHeader kind={`Incident ${incidentRef(incident)} · ${TYPE_LABEL[incident.incident_type]}`} title={street(incident)} subtitle={`${incident.title} · ${closed ? `closed ${clock(incident.resolved_at)}` : `updated ${clock(lastEvent)}`}`} badge={<StatusBadge tone={incidentStatusTone(incident)}>{statusLabel(incident)}</StatusBadge>} />
     <form onSubmit={save} style={{ display: 'contents' }} aria-label="Incident worksheet">
       <InspectorBody>
-        <fieldset disabled={closed} className={styles.worksheet}>
+        <fieldset disabled={closed || readOnly} className={styles.worksheet}>
           <legend className="sr-only">Incident details</legend>
           <label className="ui-field"><span>Type</span><select className="ui-select" value={draft.incident_type} onChange={(event) => setDraft({ ...draft, incident_type: event.target.value as IncidentType })}>{TYPES.map((type) => <option key={type} value={type}>{TYPE_LABEL[type]}</option>)}</select></label>
           <label className="ui-field"><span>Priority</span><select className="ui-select" value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as Incident['priority'] })}>{(Object.keys(PRIORITY_LABEL) as Incident['priority'][]).map((priority) => <option key={priority} value={priority}>{PRIORITY_LABEL[priority]}</option>)}</select></label>
@@ -269,6 +272,7 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
       </InspectorBody>
       <InspectorFooter>
         <InlineError message={actionError} />
+        {readOnly && !closed && <p className="ui-provenance">Read-only access. An operator account is required to change this incident.</p>}
         <div className="ui-inspector-actions" data-ui="incident-actions">
           <WriteButton type="submit" variant="primary" disabled={!dirty || closed} busy={updating}>Save changes</WriteButton>
           <WriteButton onClick={() => { setDialogError(undefined); setNoteOpen(true) }} disabled={closed}><NotebookPen aria-hidden="true" />Add note</WriteButton>

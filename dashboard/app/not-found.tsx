@@ -6,7 +6,6 @@ export default function NotFound() {
   return (
     <div className={styles.inline}>
       <section className={styles.inlineCard}>
-        <span className={styles.code}>404</span>
         <h1>Workspace not found</h1>
         <p>No Aegis Command workspace lives at this address. Use the navigation or search to find a station, unit, or incident.</p>
         <div className="ui-page-actions" style={{ marginTop: 20 }}>

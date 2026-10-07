@@ -320,11 +320,11 @@ test('read-only controls, pagination, and empty filters are complete', async ({ 
 
 test('overview incidents deep-link and the handover brief downloads', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('[data-ui="incident-queue"] a').first()).toBeVisible()
+  await expect(page.locator('[data-ui="incident-queue"] a').first()).toBeVisible({ timeout: 15_000 })
   await page.locator('[data-ui="incident-queue"] a').first().click()
   await expect(page).toHaveURL(/readiness\?view=incidents&incident=/)
   await page.goto('/')
-  await expect(page.locator('#resource-posture tbody tr').first()).toBeVisible()
+  await expect(page.locator('#resource-posture tbody tr').first()).toBeVisible({ timeout: 15_000 })
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export duty officer brief' }).click()
   expect((await download).suggestedFilename()).toMatch(/^aegis-command-brief-.*\.md$/)

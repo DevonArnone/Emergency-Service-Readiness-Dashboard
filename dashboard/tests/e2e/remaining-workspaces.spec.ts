@@ -1,15 +1,16 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
+const screenshotRoot = process.env.E2E_SCREENSHOT_DIR || '../pictures'
+const gallery: Record<string, string> = { '/readiness?view=simulation': 'plans', '/readiness?view=alerts': 'alerts', '/?layer=stations': 'stations' }
 const routes = ['/personnel', '/shifts', '/certifications-management', '/analytics', '/readiness?view=simulation', '/readiness?view=alerts', '/?layer=stations', '/?panel=resources', '/weather', '/admin']
 
 test('personnel station distribution, roster, and profile deep link agree', async ({ page }) => {
   await page.goto('/personnel')
-  await page.getByText('Station distribution', { exact: true }).click()
+  await page.locator('[data-ui="filters-toggle"]').click()
   const distribution = page.locator('[data-ui="station-distribution"] button')
   await expect(distribution).toHaveCount(39)
   await distribution.nth(1).click()
-  await page.locator('summary', { hasText: 'More filters' }).click()
   await expect(page.getByLabel('Roster station')).toHaveValue('fs-02')
   await expect(page.locator('[data-ui="person-row"] [data-ui="person-station"]').first()).toHaveText('St. 2')
   await page.locator('[data-ui="person-row"]').nth(1).locator('th button').click()
@@ -136,8 +137,9 @@ test('workspaces fit all target widths and preserve accessible controls', async 
     }
     if (browserName === 'chromium') {
       for (const width of [1536, 390]) {
-        await page.setViewportSize({ width, height: 1024 })
+        await page.setViewportSize({ width, height: width === 390 ? 844 : 1024 })
         await page.waitForTimeout(400) // let the inspector entrance settle before measuring contrast
+        if (gallery[path]) await page.screenshot({ path: `${screenshotRoot}/aegis-${gallery[path]}-${width === 390 ? 'mobile' : 'desktop'}.png`, fullPage: true, animations: 'disabled' })
         const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
         expect(result.violations.filter(item => ['serious', 'critical'].includes(item.impact || '')), `${path} at ${width}`).toEqual([])
       }

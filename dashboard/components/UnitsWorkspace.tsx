@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 import { EmptyState, Filters, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, Meter, PageHeader, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type StatusTone } from './ui'
 import { clip, clock, duration, eventTime, incidentHistory, incidentRef, LIFECYCLE_LABEL, SERVICE_LABEL, serviceSegments, ticks, type IncidentHistory, type LifecycleStatus, type ServiceState } from '@/lib/history'
 import type { AuditEvent, Incident, OperationsSnapshot, Personnel, SimulationResult, Station, Unit, UnitAssignment, UnitReadiness } from '@/lib/schemas'
-import { cn, titleCase } from '@/lib/utils'
+import { cn, ratioTone, titleCase } from '@/lib/utils'
 import styles from './ops.module.css'
 
 type History = { incidentEvents: AuditEvent[]; unitEvents: AuditEvent[]; baselines: AuditEvent[]; incidents: Incident[]; loading: boolean }
@@ -202,8 +202,8 @@ export default function UnitsWorkspace({ snapshot, stations, definitions, assign
     <div className="ui-page" data-view="units">
       <PageHeader title="Units" description="Apparatus by station with crew, readiness, and service state. Select a unit to review its record and act on it." actions={<WriteButton variant="primary" onClick={onAddUnit}><Plus aria-hidden="true" />Add unit</WriteButton>} />
       <SummaryStrip label="County unit summary" items={[
-        ...groupStats.map(({ group, ready, total, pct }) => ({ label: `${GROUP_LABEL[group]} ready`, value: `${ready} / ${total}`, detail: `${pct}%`, tone: pct >= 90 ? undefined : pct >= 75 ? 'warn' as const : 'bad' as const })),
-        { label: 'Staffing', value: `${staffPresent} / ${staffRequired}`, detail: `${staffingGap} below minimum`, tone: staffingGap ? 'warn' as const : undefined },
+        ...groupStats.map(({ group, ready, total, pct }) => ({ label: `${GROUP_LABEL[group]} ready`, value: `${ready} / ${total}`, detail: `${pct}%`, tone: ratioTone(pct) })),
+        { label: 'Staffing', value: `${staffPresent} / ${staffRequired}`, detail: `${staffingGap} below minimum`, tone: ratioTone(staffRequired ? staffPresent / staffRequired * 100 : 100) },
         { label: 'Out of service', value: down.length, detail: `${down.filter((unit) => unit.operational_status === 'MAINTENANCE').length} maintenance · ${committed.length} committed`, tone: down.length ? 'bad' as const : undefined },
       ]} />
 
@@ -509,7 +509,7 @@ function UnitTimeline({ units, stationById, readiness, assignments, histories, h
                   <div role="cell" className={styles.track}>
                     {hourTicks.map((tick) => <i key={tick} className={styles.gridLine} style={{ left: `${pct(tick)}%` }} aria-hidden="true" />)}
                     {now > start && now < end && <i className={styles.nowLine} style={{ left: `${pct(now)}%` }} aria-hidden="true" />}
-                    {bars.filter((bar) => bar.kind !== 'crew').sort((a, b) => Number(a.kind === 'incident') - Number(b.kind === 'incident')).map((bar) => <button type="button" key={bar.key} className={styles.bar} data-ui="unit-bar" data-kind={bar.kind} data-tone={bar.state} data-active={activeBar === bar.key || undefined} style={{ left: `${pct(bar.start)}%`, width: `${Math.max(0.35, pct(bar.end) - pct(bar.start))}%` }} onClick={() => setActiveBar(bar.key)} aria-label={`${unit.unit_name}: ${bar.label}, ${clock(bar.start)} to ${bar.end >= now - 1000 ? 'now' : clock(bar.end)}`}><span>{bar.label}</span></button>)}
+                    {bars.filter((bar) => bar.kind !== 'crew').sort((a, b) => Number(a.kind === 'incident') - Number(b.kind === 'incident')).map((bar) => <button type="button" key={bar.key} className={styles.bar} data-ui="unit-bar" data-kind={bar.kind} data-tone={bar.state} data-active={activeBar === bar.key || undefined} style={{ left: `${pct(bar.start)}%`, width: `${Math.max(0.35, pct(bar.end) - pct(bar.start))}%` }} onClick={() => setActiveBar(bar.key)} aria-label={`${unit.unit_name}: ${bar.label}, ${clock(bar.start)} to ${bar.end >= now - 1000 ? 'now' : clock(bar.end)}`} title={bar.label}><span>{pct(bar.end) - pct(bar.start) >= Math.min(24, bar.label.length * 1.15) ? bar.label : ''}</span></button>)}
                     {bars.filter((bar) => bar.kind === 'crew').map((bar) => <button type="button" key={bar.key} className={styles.crewLine} data-active={activeBar === bar.key || undefined} style={{ left: `${pct(bar.start)}%`, width: `${Math.max(0.35, pct(bar.end) - pct(bar.start))}%` }} onClick={() => setActiveBar(bar.key)} aria-label={`${unit.unit_name}: ${bar.detail}`} />)}
                   </div>
                 </div>

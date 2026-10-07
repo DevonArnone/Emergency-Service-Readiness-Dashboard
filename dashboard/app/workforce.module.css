@@ -6,7 +6,7 @@
 @media (min-width: 900px) { .pair { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Station distribution */
-.distributionPanel { margin-top: 10px; }
+.distributionPanel { flex-basis: 100%; display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rule); }
 .distribution { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
 .distribution button { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; min-height: 52px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); font-size: 0.875rem; text-align: left; transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out); }
 .distribution button:hover { border-color: var(--ink-3); }
@@ -19,7 +19,7 @@
 .stateTrack i[data-state='on_call'], .stateLegend i[data-state='on_call'] { background: #6fc3a0; }
 .stateTrack i[data-state='in_training'], .stateLegend i[data-state='in_training'] { background: var(--warn-solid); }
 .stateTrack i[data-state='off'], .stateLegend i[data-state='off'] { background: #9aa7ba; }
-.stateLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; color: var(--ink-2); font-size: 0.8125rem; }
+.stateLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-2); font-size: 0.8125rem; }
 .stateLegend li { display: inline-flex; align-items: center; gap: 6px; }
 .stateLegend i { width: 12px; height: 6px; border-radius: 999px; }
 
@@ -42,7 +42,7 @@
 .dutyLegend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--stage-ink-2); font-size: 0.8125rem; }
 .dutyLegend li { display: inline-flex; align-items: center; gap: 6px; }
 .dutyLegend i { width: 14px; height: 10px; border-radius: 2px; }
-.dutyLegend i[data-state='covered'], .dutyWindow[data-state='covered'] { background: #1f6a53; color: #d5f7ea; }
+.dutyLegend i[data-state='covered'], .dutyWindow[data-state='covered'] { background: var(--stage-3); box-shadow: inset 0 0 0 1px rgba(58, 210, 154, 0.45); color: var(--stage-ink); }
 .dutyLegend i[data-state='gap'], .dutyWindow[data-state='gap'] { background: var(--stage-bad); color: #2a0d0a; }
 .dutyLegend i[data-state='cancelled'], .dutyWindow[data-state='cancelled'] { background: repeating-linear-gradient(135deg, #3a4f78 0 5px, #263857 5px 10px); color: var(--stage-ink); }
 .dutyScroll { overflow: auto; max-height: 560px; }
@@ -78,13 +78,16 @@
 .roster :global(.ui-button) { min-height: 34px; padding: 0 10px; font-size: 0.8125rem; }
 
 /* Credentials */
-.horizon { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.horizon button { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); text-align: left; transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out); }
-.horizon button:hover { border-color: var(--ink-3); }
-.horizon button[aria-pressed='true'] { border-color: var(--cobalt); background: var(--cobalt-soft); }
-.horizon button > span:first-child { color: var(--ink-2); font-size: 0.875rem; font-weight: 500; }
-.horizon strong { font-size: 1.625rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
-.horizon small { color: var(--ink-3); font-size: 0.8125rem; }
+.horizon { display: flex; overflow-x: auto; border: 1px solid var(--rule-strong); border-radius: var(--radius-control); }
+.horizon button { display: flex; flex: 1 1 0; align-items: center; gap: 8px; min-width: 132px; min-height: 52px; padding: 8px 14px; border: 0; border-left: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); text-align: left; white-space: nowrap; transition: background 120ms var(--ease-out); }
+.horizon button:first-child { flex: 0 0 auto; border-left: 0; background: var(--surface-2); }
+.horizon button:hover { background: var(--surface-sunken); }
+.horizon button[aria-pressed='true'] { background: var(--cobalt-soft); color: var(--cobalt-ink); box-shadow: inset 0 -3px 0 var(--cobalt); }
+.horizon i { width: 10px; height: 10px; border-radius: 50%; background: var(--cobalt); }
+.horizon i[data-tone='danger'] { background: var(--bad); }
+.horizon i[data-tone='warning'] { background: var(--warn-solid); }
+.horizon span { flex: 1 1 auto; font-size: 0.875rem; font-weight: 500; }
+.horizon strong { font-size: 1.25rem; font-weight: 600; }
 .matrix { max-height: 640px; overflow: auto; }
 .matrix table { min-width: 900px; }
 .matrix th, .matrix td { white-space: nowrap; }

@@ -11,7 +11,7 @@ import { Button, EmptyState, ErrorState, InlineError, Inspector, InspectorBody, 
 import { usePagination } from '@/hooks/usePagination'
 import { api, queryKeys } from '@/lib/api'
 import type { LiveShift, Shift } from '@/lib/schemas'
-import { cn, formatDate, formatRelativeTime, titleCase } from '@/lib/utils'
+import { cn, formatDate, formatRelativeTime, ratioTone, titleCase } from '@/lib/utils'
 import styles from '../workforce.module.css'
 
 function dateInput(date = new Date()) {
@@ -136,7 +136,7 @@ export default function SchedulingPage() {
       <div className="ui-toolbar">
         <div className={styles.dateControls}>
           <Button onClick={() => moveDay(-1)} aria-label="Previous day"><ChevronLeft aria-hidden="true" /></Button>
-          <label className={styles.date}><CalendarDays aria-hidden="true" /><input aria-label="Roster date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value || dateInput())} /></label>
+          <label className={styles.date}><input aria-label="Roster date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value || dateInput())} /></label>
           <Button onClick={() => moveDay(1)} aria-label="Next day"><ChevronRight aria-hidden="true" /></Button>
           <Button onClick={() => setSelectedDate(dateInput())} disabled={selectedDate === dateInput()}>Today</Button>
         </div>
@@ -144,7 +144,7 @@ export default function SchedulingPage() {
       </div>
 
       <SummaryStrip label="Coverage summary" items={[
-        { label: 'Roster attendance', value: required ? `${Math.round((clocked / required) * 100)}%` : '—', detail: `${clocked} clocked in · ${required} required`, tone: !required ? undefined : clocked >= required ? 'ok' : 'bad' },
+        { label: 'Roster attendance', value: required ? `${Math.round((clocked / required) * 100)}%` : '—', detail: `${clocked} clocked in · ${required} required`, tone: required ? ratioTone(clocked / required * 100) : undefined },
         { label: 'Shifts in view', value: scopedLive.length, detail: 'selected date and scope' },
         { label: 'Staffing gaps', value: gaps, detail: 'shifts below minimum', tone: gaps ? 'bad' : undefined },
         { label: 'Scheduled roster', value: scopedLive.reduce((sum, shift) => sum + shift.assigned_count, 0), detail: 'personnel linked to live shifts' },
@@ -204,7 +204,7 @@ export default function SchedulingPage() {
 
         <Inspector label="Shift details" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.shift_id}>
           {selected ? <>
-            <InspectorHeader kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'h:mm a')} – ${formatDate(selected.end_time, 'h:mm a')}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
+            <InspectorHeader kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'HH:mm')} – ${formatDate(selected.end_time, 'HH:mm')}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
             <InspectorBody>
               <dl className="ui-facts">
                 <div><dt>Clocked in</dt><dd className="ui-num">{liveSelected?.clocked_in_count ?? 0}</dd></div>

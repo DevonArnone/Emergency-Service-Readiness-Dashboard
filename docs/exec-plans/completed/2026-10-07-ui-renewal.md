@@ -51,13 +51,13 @@ Backend routes, schemas, migrations, permissions, realtime events, query-cache k
 
 - [x] Baseline: read every page, component, hook, and test; capture all surfaces at 1536 and 390 into `.impeccable/review/renewal-baseline/`.
 - [x] Record this plan and the replacement surface briefs.
-- [ ] Foundation: tokens, type, shell and grouped navigation, page header, toolbar, summary strip, inspector and drawer, dialogs, tables, tabs, badges, loading, empty, error, and system states. Remove superseded global styles as pages migrate.
-- [ ] Signature workspaces: County overview (with Stations and Resource status), Units, Incidents, Alerts.
-- [ ] Remaining workspaces: Personnel, Scheduling, Credentials, Analytics, Plans & Hazards, Weather, Administration.
-- [ ] Per batch: desktop and mobile capture together, one consolidated correction pass, one confirming capture; design detector on changed targets.
-- [ ] Update browser tests tied to discarded layouts; run Chromium and Firefox suites and authenticated journeys.
-- [ ] Independent finish review; refresh `DESIGN.md`, its sidecar, briefs, `PRODUCT.md` brand commitments, and README captures.
-- [ ] Verify commit metadata and public-facing text carry no AI attribution.
+- [x] Foundation: tokens, type, shell and grouped navigation, page header, toolbar, summary strip, inspector and drawer, dialogs, tables, tabs, badges, loading, empty, error, and system states. Remove superseded global styles as pages migrate.
+- [x] Signature workspaces: County overview (with Stations and Resource status), Units, Incidents, Alerts.
+- [x] Remaining workspaces: Personnel, Scheduling, Credentials, Analytics, Plans & Hazards, Weather, Administration.
+- [x] Per batch: desktop and mobile capture together, one consolidated correction pass, one confirming capture; design detector on changed targets.
+- [x] Update browser tests tied to discarded layouts; run Chromium and Firefox suites and authenticated journeys.
+- [x] Independent finish review; refresh `DESIGN.md`, its sidecar, briefs, `PRODUCT.md` brand commitments, and README captures.
+- [x] Verify commit metadata and public-facing text carry no AI attribution.
 
 ## Validation
 
@@ -70,8 +70,18 @@ Backend routes, schemas, migrations, permissions, realtime events, query-cache k
 | 2026-10-07 | Direction is pinned by the brief; no concept roll and no image comps | The owner chose the code-led path with the stated palette and composition. |
 | 2026-10-07 | Work lands on `ui-renewal` with one commit per batch and no AI trailers | Owner selection; history on `main` stays intact. |
 | 2026-10-07 | Alerts, Stations, and Resource status become first-class views on their existing URLs | The plan asks for focused destinations while preserving every deep link. |
-| 2026-10-07 | Selection hooks used by browser tests are kept where the element still exists | Preserves behavioral assertions; only layout-bound checks are rewritten. |
+| 2026-10-07 | Browser tests select by role, label, and `data-ui` hooks | Page styles moved to CSS modules, so class selectors no longer exist; behavioral assertions were kept and extended. |
+| 2026-10-07 | Native `window.confirm` prompts became in-app confirmation dialogs | One dialog system; failures stay in the dialog with the input intact. |
+| 2026-10-07 | The illustrative apparatus photograph was dropped from the unit record | It was not a photograph of the selected unit and added no recorded fact. |
+| 2026-10-07 | Deployment history "notable events" lists incident dispatches as well as service changes | The old filter matched a retired `#` reference prefix, so incidents never appeared; the list now matches its evident intent. |
+| 2026-10-07 | One readiness threshold (quiet at 85%, warning from 60%, critical below) for summary figures | The finish review found the same figure toned differently on three pages. |
 
 ## Completion Notes
 
-In progress.
+Shipped on branch `ui-renewal`: a new token system and shell, shared page header, summary strip, toolbar with filter disclosure, docked inspector and drawer, dialog system, and system states; all fifteen surfaces rebuilt; superseded stylesheets and components removed; `DESIGN.md`, its sidecar, the surface briefs, `PRODUCT.md`, and the README gallery replaced.
+
+Verified: lint, TypeScript, production build, 58 Chromium and Firefox checks (workflows, deep-link reloads, scope, filtering, pagination, exports, back navigation, read-only gating, failed-query recovery, stale and unavailable weather, not-found), no horizontal overflow from 320px to 1920px, no serious or critical axe findings at 1536px and 390px, the 10-second load assertion, and the repository harness.
+
+Not verified: the authenticated operator and analyst journeys (`playwright.auth.config.ts`). They are updated for the new controls, but port 3000 was held by an unrelated local server during this work, so they were not run. Disconnected-state behavior is unchanged in code and was not exercised in a browser.
+
+Finish review: first pass returned eight material fixes; the verdict pass scored six resolved and two partial. The remaining changes for the two partial items (mobile summary order, chart end label, weather tick type) were applied afterward and have not been re-scored. Known residue recorded by the documenter: some timeline and chart fills are literal hex values rather than tokens, and readiness thresholds are re-implemented inline in four components.

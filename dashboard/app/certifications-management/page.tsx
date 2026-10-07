@@ -8,7 +8,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import ConfirmAction from '@/components/ConfirmAction'
 import FormDialog, { Field } from '@/components/FormDialog'
 import { useStationScope } from '@/components/ScopeContext'
-import { EmptyState, ErrorState, Inspector, InspectorBody, InspectorFooter, InspectorHeader, LoadingState, Meter, Notice, PageHeader, Pagination, Panel, SearchInput, StatusBadge, SummaryStrip, WriteButton, type NoticeValue, type StatusTone } from '@/components/ui'
+import { EmptyState, ErrorState, Inspector, InspectorBody, InspectorFooter, InspectorHeader, LoadingState, Notice, PageHeader, Pagination, Panel, SearchInput, StatusBadge, SummaryStrip, WriteButton, type NoticeValue, type StatusTone } from '@/components/ui'
 import { usePagination } from '@/hooks/usePagination'
 import { api, queryKeys } from '@/lib/api'
 import type { Certification, RenewalTask } from '@/lib/schemas'
@@ -133,21 +133,19 @@ export default function CredentialsPage() {
 
       <SummaryStrip label="Credential summary" items={[
         { label: 'Compliance rate', value: people.data ? `${Math.round(((totalCredentials - expired) / Math.max(1, totalCredentials)) * 100)}%` : '—', detail: 'non-expired personnel credentials', tone: expired ? 'warn' : undefined },
-        { label: 'Expired', value: people.data ? expired : '—', detail: 'immediate qualification impact', tone: expired ? 'bad' : undefined },
-        { label: 'Due in 30 days', value: people.data ? dueSoon : '—', detail: 'renew before operational impact', tone: dueSoon ? 'warn' : undefined },
+        { label: 'In the 90-day horizon', value: people.data ? risks.length : '—', detail: `${expired} expired · ${dueSoon} due within 30 days`, tone: expired ? 'bad' : dueSoon ? 'warn' : undefined },
         { label: 'Open renewals', value: renewals.data ? openRenewals.length : '—', detail: 'tracked tasks in workflow' },
       ]} />
 
-      <Panel title="Expiration horizon" description="Select a band to open the matching personnel in Workforce risk">
+      <Panel title="Expiration horizon" description="Credential records by time to expiration, nearest first. Select a band to open the matching personnel in Workforce risk.">
         <div className={styles.horizon} data-ui="horizon">
           {BANDS.map(item => {
             const count = risks.filter(risk => item.test(risk.daysLeft)).length
             return (
-              <button type="button" key={item.id} aria-pressed={band === item.id} onClick={() => { setBand(item.id); setView('risk') }}>
+              <button type="button" key={item.id} aria-pressed={band === item.id} style={item.id === 'all' ? undefined : { flexGrow: 1 + (risks.length ? count / risks.length * 3 : 0) }} onClick={() => { setBand(item.id); setView('risk') }}>
+                <i data-tone={item.tone} aria-hidden="true" />
                 <span>{item.label}</span>
                 <strong className="ui-num">{count}</strong>
-                <Meter value={risks.length ? count / risks.length * 100 : 0} tone={item.tone} />
-                <small>credential records</small>
               </button>
             )
           })}

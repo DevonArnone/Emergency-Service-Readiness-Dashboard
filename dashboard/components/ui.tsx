@@ -64,13 +64,13 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <header className="ui-page-header">
       <div className="min-w-0">
-        <h1>{title}</h1>
+        <div className="ui-title-row">
+          <h1>{title}</h1>
+          <span className="ui-access">{operator ? <PencilLine aria-hidden="true" /> : <Eye aria-hidden="true" />}{access.isPending ? 'Checking access' : operator ? 'Operator access' : 'Read-only access'}</span>
+        </div>
         <p>{description}</p>
       </div>
-      <div className="ui-page-actions">
-        <span className="ui-access">{operator ? <PencilLine aria-hidden="true" /> : <Eye aria-hidden="true" />}{access.isPending ? 'Checking access' : operator ? 'Operator access' : 'Read-only access'}</span>
-        {actions}
-      </div>
+      {actions && <div className="ui-page-actions">{actions}</div>}
     </header>
   )
 }
@@ -80,7 +80,7 @@ export type SummaryItem = { label: string; value: ReactNode; detail?: ReactNode;
 
 export function SummaryStrip({ items, label }: { items: SummaryItem[]; label: string }) {
   return (
-    <dl className="ui-summary" aria-label={label}>
+    <dl className="ui-summary" aria-label={label} tabIndex={0}>
       {items.map((item) => (
         <div key={item.label} data-tone={item.tone}>
           <dt>{item.label}</dt>
@@ -139,7 +139,7 @@ export const SearchInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTML
 export function Filters({ label = 'More filters', activeCount = 0, children }: { label?: string; activeCount?: number; children: ReactNode }) {
   return (
     <details className="ui-disclosure ui-filters">
-      <summary><SlidersHorizontal aria-hidden="true" />{label}{activeCount > 0 && <StatusBadge tone="info" dot={false}>{activeCount} active</StatusBadge>}<ChevronDown className="ui-chevron" aria-hidden="true" /></summary>
+      <summary data-ui="filters-toggle"><SlidersHorizontal aria-hidden="true" />{label}{activeCount > 0 && <StatusBadge tone="info" dot={false}>{activeCount} active</StatusBadge>}<ChevronDown className="ui-chevron" aria-hidden="true" /></summary>
       <div className="ui-filters-body" style={{ marginTop: 8 }}>{children}</div>
     </details>
   )
@@ -249,8 +249,8 @@ export function InspectorHeader({ kind, title, subtitle, badge, headingId, child
   return (
     <header className="ui-inspector-header">
       <div className="min-w-0">
-        {kind && <span className="ui-inspector-kind">{kind}</span>}
         <h2 id={headingId}>{title}</h2>
+        {kind && <p className="ui-inspector-kind">{kind}</p>}
         {subtitle && <p>{subtitle}</p>}
         {children}
       </div>

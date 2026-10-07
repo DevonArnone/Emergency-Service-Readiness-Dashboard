@@ -23,7 +23,7 @@
 .lifecycle li:last-child::before { display: none; }
 .lifecycle i { width: 11px; height: 11px; margin-top: 5px; border-radius: 50%; background: var(--cobalt); }
 .lifecycle li[data-status='on_scene'] i { background: var(--bad); }
-.lifecycle li[data-status='transport'] i, .lifecycle li[data-status='enroute'] i { background: var(--warn-solid); }
+.lifecycle li[data-status='transport'] i { background: var(--warn-solid); }
 .lifecycle li[data-status='resolved'] i { background: var(--ink-3); }
 .lifecycle div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .lifecycle strong { font-size: 0.875rem; font-weight: 600; }
@@ -105,9 +105,13 @@ button.rowLabel:hover, .rowLabel button:hover { color: var(--stage-cobalt); }
 
 /* Coverage matrix */
 .matrix { max-height: 680px; overflow: auto; }
-.matrix table { min-width: 980px; }
-.matrix th, .matrix td { padding: 7px 10px; white-space: nowrap; }
-.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 9px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 500; transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out); }
+.matrix table { min-width: 760px; font-size: 0.8125rem; }
+.matrix th, .matrix td { padding: 6px 6px; white-space: nowrap; }
+.matrix tbody th, .matrix thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.matrix thead th:first-child { z-index: 2; background: var(--surface-2); }
+.matrix tbody tr[aria-selected='true'] th { background: var(--cobalt-soft); }
+.matrix :global(.ui-badge) { padding: 1px 7px; font-size: 0.75rem; }
+.chip { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 7px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 500; transition: border-color 120ms var(--ease-out), background 120ms var(--ease-out); }
 .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
 .chip[data-state='attention'] i { background: var(--warn-solid); }
 .chip[data-state='critical'] i { background: var(--bad); }
@@ -133,7 +137,8 @@ button.rowLabel:hover, .rowLabel button:hover { color: var(--stage-cobalt); }
 /* Deployment history */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--stage-rule); color: var(--stage-ink-2); font-size: 0.8125rem; }
 .legend li { display: inline-flex; align-items: center; gap: 7px; }
-.legend i { width: 14px; height: 10px; border-radius: 2px; background: #1f6a53; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; background: var(--stage-3); box-shadow: inset 0 0 0 1px rgba(58, 210, 154, 0.55); }
+.legend i:not([data-tone='available']) { box-shadow: none; }
 .legend i[data-tone='assigned'], .bar[data-tone='assigned'] { background: #2f5fe0; }
 .legend i[data-tone='scene'], .bar[data-tone='scene'] { background: var(--stage-bad); }
 .legend i[data-tone='transport'], .bar[data-tone='transport'] { background: var(--stage-warn); }
@@ -141,7 +146,8 @@ button.rowLabel:hover, .rowLabel button:hover { color: var(--stage-cobalt); }
 .legend i[data-tone='maintenance'], .bar[data-tone='maintenance'] { background: #b77a08; }
 .legend i[data-tone='unrecorded'], .bar[data-tone='unrecorded'] { background: repeating-linear-gradient(135deg, #3a4f78 0 5px, #263857 5px 10px); }
 .legend i[data-tone='crew'] { height: 3px; background: var(--stage-ink-2); }
-.bar[data-tone='available'] { background: #1f6a53; color: #d5f7ea; }
+.bar[data-tone='available'] { background: var(--stage-3); box-shadow: inset 0 0 0 1px rgba(58, 210, 154, 0.4); color: var(--stage-ink-2); }
+.bar[data-tone='available'][data-active] { box-shadow: 0 0 0 2px #fff; }
 .bar[data-tone='scene'] { color: #2a0d0a; }
 .bar[data-tone='transport'] { color: #2e1f00; }
 .bar[data-tone='investigating'] { background: #9db0d6; color: #0b1a33; }

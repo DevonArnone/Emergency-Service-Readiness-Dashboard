@@ -248,6 +248,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </Dialog.Root>
 
       <main className={styles.main} id="main-content">
+        <p className={styles.mobileProvenance}>Unofficial concept · synthetic data · not for dispatch</p>
         {(snapshot.isError || streamState === 'offline' || streamState === 'reconnecting') && (
           <div className={styles.connectionNotice} role="status">
             <Activity aria-hidden="true" />

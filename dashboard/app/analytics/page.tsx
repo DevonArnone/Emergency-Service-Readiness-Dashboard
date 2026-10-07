@@ -6,7 +6,7 @@ import { CheckCircle2, ChevronDown, Clock3, Download } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useStationScope } from '@/components/ScopeContext'
 import { Button, EmptyState, ErrorState, LoadingState, Meter, PageHeader, Panel, StatusBadge, TextLink } from '@/components/ui'
 import { api, queryKeys } from '@/lib/api'
@@ -168,7 +168,7 @@ function AnalyticsWorkspace() {
 
         <Tabs.Content value="overview" className="ui-tab-content">
           <Analysis title="Department readiness trend" description={`Overall readiness across the last ${days} days`} loading={trends.isLoading}
-            chart={<ResponsiveContainer width="100%" height="100%"><AreaChart data={trendData} margin={{ top: 12, right: 16, left: -12, bottom: 0 }}>{grid}<XAxis dataKey="displayDate" tick={axisTick} axisLine={false} tickLine={false} minTickGap={24} /><YAxis domain={[0, 100]} tick={axisTick} axisLine={false} tickLine={false} /><Tooltip contentStyle={tooltipStyle} /><Area type="monotone" dataKey="overall" name="Readiness" stroke="#78a2ff" fill="#78a2ff" fillOpacity={0.18} strokeWidth={2.5} />{compare && <Line type="monotone" dataKey="baseline" name="Period average" stroke="#a3b5d4" strokeDasharray="5 5" dot={false} />}</AreaChart></ResponsiveContainer>}
+            chart={<ResponsiveContainer width="100%" height="100%"><AreaChart data={trendData} margin={{ top: 22, right: 52, left: -12, bottom: 0 }}>{grid}<XAxis dataKey="displayDate" tick={axisTick} axisLine={false} tickLine={false} minTickGap={24} /><YAxis domain={[0, 100]} tick={axisTick} axisLine={false} tickLine={false} /><Tooltip contentStyle={tooltipStyle} /><ReferenceLine y={100} stroke="#3ad29a" strokeDasharray="4 4" label={{ value: 'Target 100%', position: 'insideTopLeft', fill: '#3ad29a', fontSize: 12 }} />{trendData.length > 0 && <ReferenceDot x={String(trendData.at(-1)!.displayDate)} y={latestTrend} r={5} fill="#fff" stroke="#78a2ff" strokeWidth={2} label={{ value: `${Math.round(summary?.overall_readiness_pct || latestTrend)}%`, position: 'right', fill: '#e7eefb', fontSize: 13, fontWeight: 600 }} />}<Area type="monotone" dataKey="overall" name="Readiness" stroke="#78a2ff" fill="#78a2ff" fillOpacity={0.18} strokeWidth={2.5} />{compare && <Line type="monotone" dataKey="baseline" name="Period average" stroke="#a3b5d4" strokeDasharray="5 5" dot={false} />}</AreaChart></ResponsiveContainer>}
             findings={[
               <>Current readiness is <strong>{Math.round(summary?.overall_readiness_pct || latestTrend)}%</strong>, {trendDelta >= 0 ? 'up' : 'down'} {Math.abs(trendDelta)} points over {trendData.length} days.</>,
               <><strong>{summary?.ready_units ?? 0} of {summary?.total_units ?? 0}</strong> units are fully ready; {summary?.degraded_units ?? 0} degraded and {summary?.critical_units ?? 0} critical.</>,

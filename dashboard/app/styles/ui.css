@@ -9,6 +9,7 @@
 .ui-page > * { min-width: 0; }
 .ui-page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
 .ui-page-header h1 { font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.02em; }
+.ui-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .ui-page-header p { max-width: 72ch; margin-top: 4px; color: var(--ink-2); font-size: 0.9375rem; }
 .ui-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ui-access { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 0.8125rem; white-space: nowrap; }
@@ -101,7 +102,7 @@ textarea.ui-input { min-height: 96px; padding: 10px 12px; line-height: 1.45; res
 .ui-inline-field { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 0.8125rem; white-space: nowrap; }
 .ui-inline-field .ui-select, .ui-inline-field .ui-input { width: auto; min-width: 150px; }
 
-.ui-filters { flex-basis: 100%; }
+.ui-filters[open] { flex-basis: 100%; order: 10; }
 .ui-filters-body { display: flex; flex-wrap: wrap; gap: 12px 16px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface-2); }
 
 /* Segmented control and tabs */
@@ -166,7 +167,7 @@ textarea.ui-input { min-height: 96px; padding: 10px 12px; line-height: 1.45; res
 
 /* Comparison bar */
 .ui-meter { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-sunken); }
-.ui-meter i { display: block; height: 100%; border-radius: inherit; background: var(--cobalt); transition: width 300ms var(--ease-out); }
+.ui-meter i { display: block; height: 100%; border-radius: inherit; background: var(--cobalt); }
 .ui-meter[data-tone='success'] i { background: var(--ok); }
 .ui-meter[data-tone='warning'] i { background: var(--warn-solid); }
 .ui-meter[data-tone='danger'] i { background: var(--bad); }
@@ -179,8 +180,8 @@ textarea.ui-input { min-height: 96px; padding: 10px 12px; line-height: 1.45; res
 .ui-inspector-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 14px; border-bottom: 1px solid var(--rule); }
 .ui-inspector-header h2 { font-size: 1.1875rem; line-height: 1.25; overflow-wrap: anywhere; }
 .ui-inspector-header p { margin-top: 2px; color: var(--ink-3); font-size: 0.8125rem; }
-.ui-inspector-kind { color: var(--ink-3); font-size: 0.8125rem; }
-.ui-inspector-body { display: grid; gap: 20px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px; overscroll-behavior: contain; }
+.ui-inspector-header p.ui-inspector-kind { margin-top: 3px; color: var(--ink-2); }
+.ui-inspector-body { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 20px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px; overscroll-behavior: contain; }
 .ui-inspector-footer { display: grid; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--rule); background: var(--surface-2); border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
 .ui-inspector-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ui-inspector-actions > * { flex: 1 1 auto; }
@@ -284,9 +285,14 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--cobalt);
   .ui-tabs button { min-height: 46px; }
   .ui-search { max-width: none; flex-basis: 100%; }
   .ui-table-wrap > .ui-table { min-width: 560px; }
-  .ui-summary > div { flex-basis: 50%; border-top: 1px solid var(--rule); }
-  .ui-summary > div:nth-child(-n + 2) { border-top: 0; }
-  .ui-summary > div:nth-child(odd) { border-left: 0; }
+  .ui-summary { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .ui-summary > div { flex: 0 0 auto; min-width: 112px; max-width: 200px; padding: 8px 12px; scroll-snap-align: start; }
+  .ui-summary > div[data-tone='bad'], .ui-summary > div[data-tone='warn'] { order: -1; }
+  .ui-summary > div[data-tone='bad'] + div, .ui-summary > div[data-tone='warn'] + div { border-left: 1px solid var(--rule); }
+  .ui-summary dt { white-space: normal; }
+  .ui-summary dd { font-size: 1.125rem; }
+  .ui-summary dd small { flex-basis: 100%; }
+  .ui-page-header p { font-size: 0.875rem; }
   .ui-dialog-footer > * { flex: 1 1 auto; }
   .ui-inline-field { flex: 1 1 100%; justify-content: space-between; }
   .ui-inline-field .ui-select, .ui-inline-field .ui-input { flex: 1 1 auto; min-width: 0; }

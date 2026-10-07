@@ -12,7 +12,7 @@ function formatClock(value?: string | null) {
   if (!value) return 'Not reported'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Not reported'
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(date)
+  return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' }).format(date)
 }
 
 function severity(value: string): { label: string; tone: StatusTone } {
@@ -51,10 +51,10 @@ export default function WeatherPage() {
           <div className="ui-notice" data-tone={data.status === 'unavailable' ? 'danger' : 'info'} role="status"><AlertTriangle aria-hidden="true" /><span>{data.status === 'unavailable' ? 'The weather source is unavailable. No forecast readings are shown; use the official source below.' : `Showing a stale cached report from ${formatClock(sourceTime)}. Refresh, or confirm conditions with the official source.`}{data.message ? ` ${data.message}` : ''}</span></div>
         )}
         <SummaryStrip label="Current weather readings" items={[
-          { label: 'Forecast temperature', value: current?.temperature == null ? '—' : `${Math.round(current.temperature)}°${current.temperature_unit || 'F'}`, detail: current?.short_forecast || 'not reported' },
-          { label: 'Wind', value: data.wind.speed || '—', detail: data.wind.direction ? `from ${data.wind.direction}` : 'direction not reported' },
           { label: 'Active alerts', value: data.active_alerts.length, detail: data.active_alerts.length ? 'review below' : 'none returned', tone: data.active_alerts.length ? 'bad' : undefined },
           { label: 'Report state', value: statusLabel, detail: `as of ${formatClock(sourceTime)}`, tone: data.status === 'unavailable' ? 'bad' : data.stale ? 'warn' : undefined },
+          { label: 'Forecast periods', value: periods.length, detail: current?.name ? `from ${current.name.toLowerCase()}` : 'none returned' },
+          { label: 'Current wind', value: data.wind.speed || '—', detail: data.wind.direction ? `from ${data.wind.direction}` : 'direction not reported' },
         ]} />
 
         <div className={styles.lead}>
@@ -105,7 +105,7 @@ export default function WeatherPage() {
               <svg viewBox="0 0 900 204" role="img" aria-label={`Forecast temperatures by NWS period, from ${Math.min(...values)} to ${Math.max(...values)} degrees`}>
                 {[0, 1, 2, 3, 4].map(tick => { const value = minimum + (maximum - minimum) * tick / 4; return <g key={tick}><line x1="48" x2="852" y1={y(value)} y2={y(value)} stroke="#223a63" strokeWidth="1" /><text x="8" y={y(value) + 4} className={styles.axis}>{Math.round(value)}°</text></g> })}
                 {periods.slice(1).map((period, index) => period.temperature != null && periods[index].temperature != null && <line key={index} x1={x(index)} y1={y(periods[index].temperature!)} x2={x(index + 1)} y2={y(period.temperature)} stroke="#78a2ff" strokeWidth="2.4" strokeLinecap="round" />)}
-                {periods.map((period, index) => period.temperature != null && <g key={index}>{index === selectedIndex && <line x1={x(index)} x2={x(index)} y1="26" y2="172" stroke="#fff" strokeDasharray="3 4" />}<circle cx={x(index)} cy={y(period.temperature)} r={index === selectedIndex ? 6.5 : 3.5} fill={index === selectedIndex ? '#fff' : '#78a2ff'} stroke="#081426" strokeWidth="2" /><text x={x(index)} y="194" textAnchor="middle" className={styles.axis}>{index + 1}</text></g>)}
+                {periods.map((period, index) => period.temperature != null && <g key={index}>{index === selectedIndex && <line x1={x(index)} x2={x(index)} y1="26" y2="172" stroke="#fff" strokeDasharray="3 4" />}<circle cx={x(index)} cy={y(period.temperature)} r={index === selectedIndex ? 6.5 : 3.5} fill={index === selectedIndex ? '#fff' : '#78a2ff'} stroke="#081426" strokeWidth="2" /><text x={x(index)} y="194" textAnchor="middle" className={styles.tick}>{period.start_time ? `${formatDate(period.start_time, 'EEE')}${period.is_daytime === false ? ' nt' : ''}` : index + 1}</text></g>)}
               </svg>
             </div>
           ) : <p className="ui-empty-inline">Temperature readings unavailable. Use the official source or refresh the report.</p>}

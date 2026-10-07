@@ -16,7 +16,7 @@ import { api, queryKeys } from '@/lib/api'
 import { downloadText } from '@/lib/download'
 import { incidentRef } from '@/lib/history'
 import type { Incident } from '@/lib/schemas'
-import { titleCase } from '@/lib/utils'
+import { ratioTone, titleCase } from '@/lib/utils'
 import styles from './overview.module.css'
 
 type View = 'overview' | 'stations' | 'resources'
@@ -35,7 +35,7 @@ function nextBriefTime(value?: string | null) {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-const incidentTone = (status: Incident['status']): StatusTone => status === 'ON_SCENE' ? 'danger' : status === 'ENROUTE' || status === 'TRANSPORT' ? 'warning' : 'info'
+const incidentTone = (status: Incident['status']): StatusTone => status === 'ON_SCENE' ? 'danger' : status === 'TRANSPORT' ? 'warning' : 'info'
 const alertCategory = (type: string) => /STAFF/i.test(type) ? 'Staffing' : /CERT|CREDENTIAL/i.test(type) ? 'Credential' : titleCase(type.split('_')[0])
 const TYPE_LABEL: Record<Incident['incident_type'], string> = { FIRE: 'Fire', EMS: 'EMS', HAZMAT: 'HazMat', OTHER: 'Other' }
 const STATUS_WORD: Record<Incident['status'], string> = { ACTIVE: 'Dispatched', ENROUTE: 'Enroute', ON_SCENE: 'On scene', TRANSPORT: 'Transport', INVESTIGATING: 'Investigating', RESOLVED: 'Closed' }
@@ -104,7 +104,7 @@ export default function CommandCenterPage() {
 
   const summary = (
     <SummaryStrip label="Countywide readiness summary" items={[
-      { label: 'Operational readiness', value: snapshot ? `${readiness}%` : '—', detail: `target 100% · as of ${clock(snapshot?.timestamp)}`, tone: !snapshot ? undefined : readiness >= 85 ? 'ok' : readiness >= 60 ? 'warn' : 'bad' },
+      { label: 'Operational readiness', value: snapshot ? `${readiness}%` : '—', detail: `target 100% · as of ${clock(snapshot?.timestamp)}`, tone: snapshot ? ratioTone(readiness) : undefined },
       { label: 'On-duty personnel', value: board ? `${board.personnel.on_duty} / ${board.personnel.authorized}` : '—', detail: board ? `${board.personnel.authorized - board.personnel.on_duty} short · ${board.personnel.available} off-unit reserve` : undefined },
       { label: 'Active incidents', value: snapshot ? incidents.length : '—', detail: board ? `Fire ${board.incident_types.FIRE ?? 0} · EMS ${board.incident_types.EMS ?? 0} · HazMat ${board.incident_types.HAZMAT ?? 0} · Other ${board.incident_types.OTHER ?? 0}` : undefined, href: '/readiness?view=incidents' },
       { label: 'Open alerts', value: snapshot ? openAlerts.length : '—', detail: openAlerts.length ? 'awaiting review' : 'none awaiting review', tone: openAlerts.length ? 'bad' : undefined, href: '/readiness?view=alerts' },
@@ -133,8 +133,8 @@ export default function CommandCenterPage() {
             <td className="ui-num">{group.total}</td>
             <td className="ui-num">{group.in_service}</td>
             <td className="ui-num">{group.out_of_service}</td>
-            <td className="ui-num" style={group.availability_pct < 90 ? { color: 'var(--bad)', fontWeight: 600 } : undefined}>{Math.round(group.availability_pct)}%</td>
-            <td className={styles.barColumn}><Meter value={group.availability_pct} tone={group.availability_pct < 90 ? 'danger' : 'success'} /></td>
+            <td className="ui-num" style={ratioTone(group.availability_pct) ? { color: ratioTone(group.availability_pct) === 'bad' ? 'var(--bad)' : 'var(--warn)', fontWeight: 600 } : undefined}>{Math.round(group.availability_pct)}%</td>
+            <td className={styles.barColumn}><Meter value={group.availability_pct} tone={readinessTone(group.availability_pct)} /></td>
           </tr>
         ))}</tbody>
       </table>

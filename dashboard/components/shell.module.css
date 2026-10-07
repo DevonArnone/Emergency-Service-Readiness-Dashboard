@@ -50,6 +50,7 @@
 .searchTrigger kbd, .commandInput kbd { padding: 1px 6px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--surface-2); color: var(--ink-3); font-family: var(--font-mono); font-size: 0.75rem; }
 
 .main { min-width: 0; }
+.mobileProvenance { margin: 0; padding: 6px 16px; border-bottom: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2); font-size: 0.8125rem; }
 .connectionNotice { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--warn-rule); background: var(--warn-soft); color: #6b3f00; font-size: 0.875rem; }
 .connectionNotice svg { width: 16px; height: 16px; }
 .connectionNotice span { flex: 1 1 240px; }
@@ -114,6 +115,7 @@
   .topbar, .main { margin-left: var(--rail-width); }
   .topbar { padding: 8px 28px; }
   .menuTrigger { display: none; }
+  .mobileProvenance { display: none; }
   .connection { display: flex; }
 }
 

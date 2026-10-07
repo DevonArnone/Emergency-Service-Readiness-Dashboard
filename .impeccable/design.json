@@ -1,753 +1,1134 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T00:00:00-04:00",
-  "title": "Design System: Aegis Municipal Systems Room",
+  "generatedAt": "2026-10-07T00:00:00-04:00",
+  "title": "Design System: Aegis Command",
   "extensions": {
     "colorMeta": {
-      "midnight-shell": {
-        "role": "neutral",
-        "displayName": "Midnight Shell",
+      "navy-950": {
+        "role": "secondary",
+        "displayName": "Rail Navy Deep",
+        "canonical": "oklch(18.5% 0.044 261)",
         "tonalRamp": [
-          "#050b0f",
-          "#0b1720",
-          "#142936",
-          "#294757",
-          "#496876",
-          "#728e99",
-          "#a8bdc4",
-          "#e5edef"
+          "#020a1d",
+          "#1a263c",
+          "#38455d",
+          "#586780",
+          "#7a8aa5",
+          "#9eafcb",
+          "#c1d2ef",
+          "#e6effe"
         ]
       },
-      "status-shell": {
-        "role": "neutral",
-        "displayName": "Status Shell",
+      "navy-900": {
+        "role": "secondary",
+        "displayName": "Rail Navy",
+        "canonical": "oklch(22.0% 0.053 260)",
         "tonalRamp": [
-          "#040b0f",
-          "#081923",
-          "#15303d",
-          "#2b4d5b",
-          "#4c6c78",
-          "#74909b",
-          "#aabfc6",
-          "#e8eff1"
+          "#010a21",
+          "#162640",
+          "#344562",
+          "#546785",
+          "#778aaa",
+          "#9bafd0",
+          "#bdd2f5",
+          "#e5efff"
         ]
       },
-      "workspace-shell": {
-        "role": "neutral",
-        "displayName": "Workspace Shell",
+      "navy-800": {
+        "role": "secondary",
+        "displayName": "Rail Navy Hover",
+        "canonical": "oklch(27.4% 0.072 261)",
         "tonalRamp": [
-          "#050d11",
-          "#0b202a",
-          "#173743",
-          "#2e5361",
-          "#507380",
-          "#7895a0",
-          "#aec4cb",
-          "#e8f0f2"
+          "#000728",
+          "#112549",
+          "#2f456b",
+          "#4f668f",
+          "#718ab5",
+          "#95afdc",
+          "#b8d2fe",
+          "#e6efff"
         ]
       },
-      "plotted-board": {
-        "role": "neutral",
-        "displayName": "Plotted Board",
+      "navy-700": {
+        "role": "secondary",
+        "displayName": "Rail Navy Line",
+        "canonical": "oklch(33.6% 0.089 261)",
         "tonalRamp": [
-          "#050c10",
-          "#0b1d28",
-          "#17343f",
-          "#2e505e",
-          "#50717e",
-          "#78939e",
-          "#adc2ca",
-          "#e8eff2"
+          "#00042f",
+          "#0b2451",
+          "#294474",
+          "#496699",
+          "#6b89bf",
+          "#8eafe7",
+          "#b9d2fd",
+          "#e6effe"
         ]
       },
-      "midnight-soft": {
-        "role": "neutral",
-        "displayName": "Midnight Soft",
+      "navy-ink": {
+        "role": "secondary",
+        "displayName": "Rail Ink",
+        "canonical": "oklch(94.8% 0.019 266)",
         "tonalRamp": [
-          "#081117",
-          "#102330",
-          "#1b394a",
-          "#315466",
-          "#527383",
-          "#7a98a5",
-          "#aec2ca",
-          "#e7eef0"
+          "#080b13",
+          "#222630",
+          "#40454f",
+          "#616671",
+          "#848995",
+          "#a8aeba",
+          "#cbd1de",
+          "#e9effc"
         ]
       },
-      "indexed-rail": {
-        "role": "neutral",
-        "displayName": "Indexed Rail",
+      "navy-ink-2": {
+        "role": "secondary",
+        "displayName": "Rail Ink Secondary",
+        "canonical": "oklch(78.3% 0.045 262)",
         "tonalRamp": [
-          "#04090d",
-          "#09141d",
-          "#122733",
-          "#274451",
-          "#476573",
-          "#708b96",
-          "#a7bbc2",
-          "#e5edef"
+          "#030a1e",
+          "#1a263c",
+          "#38455d",
+          "#586680",
+          "#7b8aa5",
+          "#9fafcb",
+          "#c1d2ef",
+          "#e6effe"
         ]
       },
-      "instrument-ivory": {
-        "role": "neutral",
-        "displayName": "Instrument Ivory",
+      "navy-line": {
+        "role": "secondary",
+        "displayName": "Rail Hairline",
+        "canonical": "rgba(169, 185, 214, 0.16)",
         "tonalRamp": [
-          "#28251f",
-          "#4b463a",
-          "#706958",
-          "#978e79",
-          "#bdb5a0",
-          "#d9d2c1",
-          "#efe8d7",
-          "#fbf8ef"
+          "#030a1e",
+          "#1a263c",
+          "#38455d",
+          "#586680",
+          "#7b8aa5",
+          "#9fafcb",
+          "#c1d2ef",
+          "#e6effe"
         ]
       },
-      "paper-bright": {
+      "bg": {
         "role": "neutral",
-        "displayName": "Paper Bright",
+        "displayName": "Canvas",
+        "canonical": "oklch(96.9% 0.007 261)",
         "tonalRamp": [
-          "#29261f",
-          "#4d483c",
-          "#746c5b",
-          "#9b917b",
-          "#c1b8a3",
-          "#ddd6c5",
-          "#f7f1e3",
-          "#fdfaf2"
+          "#090b0e",
+          "#24272a",
+          "#434549",
+          "#64666a",
+          "#87898e",
+          "#abaeb3",
+          "#ced1d6",
+          "#eceff4"
         ]
       },
-      "paper-muted": {
+      "surface": {
         "role": "neutral",
-        "displayName": "Paper Muted",
+        "displayName": "Surface",
+        "canonical": "oklch(100.0% 0.000 90)",
         "tonalRamp": [
-          "#25231e",
-          "#474239",
-          "#6b6557",
-          "#908879",
-          "#b5ae9e",
-          "#d9d2c1",
-          "#ece7dc",
-          "#faf8f2"
+          "#0b0b0b",
+          "#262626",
+          "#454545",
+          "#666666",
+          "#898989",
+          "#aeaeae",
+          "#d1d1d1",
+          "#eeeeee"
         ]
       },
-      "graphite": {
+      "surface-2": {
         "role": "neutral",
-        "displayName": "Graphite",
+        "displayName": "Surface 2",
+        "canonical": "oklch(98.1% 0.005 258)",
         "tonalRamp": [
-          "#101417",
-          "#20282e",
-          "#343e45",
-          "#505c63",
-          "#707d83",
-          "#97a2a7",
-          "#c2c9cc",
-          "#edf0f1"
+          "#0a0b0d",
+          "#252629",
+          "#434547",
+          "#646669",
+          "#87898c",
+          "#acaeb1",
+          "#cfd1d4",
+          "#edeff1"
         ]
       },
-      "graphite-secondary": {
+      "surface-sunken": {
         "role": "neutral",
-        "displayName": "Graphite Secondary",
+        "displayName": "Surface Sunken",
+        "canonical": "oklch(94.8% 0.012 260)",
         "tonalRamp": [
-          "#151a1d",
-          "#293136",
-          "#46545d",
-          "#63717a",
-          "#839098",
-          "#a5afb4",
-          "#c9ced1",
-          "#eff1f2"
+          "#080b10",
+          "#23272c",
+          "#41454c",
+          "#62666d",
+          "#858991",
+          "#a9aeb6",
+          "#ccd1d9",
+          "#eaeff7"
         ]
       },
-      "graphite-muted": {
+      "ink": {
         "role": "neutral",
-        "displayName": "Graphite Muted",
+        "displayName": "Ink",
+        "canonical": "oklch(22.2% 0.046 258)",
         "tonalRamp": [
-          "#171b1d",
-          "#30373b",
-          "#4b555a",
-          "#68757c",
-          "#879399",
-          "#a8b1b5",
-          "#cbd0d2",
-          "#f0f2f2"
+          "#020a1e",
+          "#18273d",
+          "#36465e",
+          "#566781",
+          "#788aa5",
+          "#9dafcb",
+          "#bfd2f0",
+          "#e5effe"
         ]
       },
-      "municipal-blue": {
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "oklch(39.1% 0.047 259)",
+        "tonalRamp": [
+          "#010a1f",
+          "#18273d",
+          "#36465f",
+          "#566782",
+          "#788aa6",
+          "#9cafcd",
+          "#bfd2f1",
+          "#e6effe"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "oklch(50.7% 0.045 259)",
+        "tonalRamp": [
+          "#020a1d",
+          "#19273c",
+          "#37465d",
+          "#576780",
+          "#798aa5",
+          "#9dafcb",
+          "#c0d2ef",
+          "#e6effe"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "oklch(91.3% 0.017 256)",
+        "tonalRamp": [
+          "#070b12",
+          "#21272f",
+          "#3f464e",
+          "#606770",
+          "#838a94",
+          "#a7afb9",
+          "#cad2dd",
+          "#e7effa"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong",
+        "canonical": "oklch(84.7% 0.026 256)",
+        "tonalRamp": [
+          "#050b16",
+          "#1e2733",
+          "#3c4653",
+          "#5c6775",
+          "#7f8a99",
+          "#a3afbf",
+          "#c6d2e2",
+          "#e5f0fe"
+        ]
+      },
+      "cobalt": {
         "role": "primary",
-        "displayName": "Municipal Blue",
+        "displayName": "Cobalt",
+        "canonical": "oklch(49.1% 0.216 265)",
         "tonalRamp": [
-          "#0b171f",
-          "#142d3c",
-          "#244a63",
-          "#396b88",
-          "#598da8",
-          "#80afc3",
-          "#b2cfda",
-          "#e7f0f3"
+          "#000038",
+          "#01067b",
+          "#072bb5",
+          "#2456df",
+          "#4d80fb",
+          "#87acfc",
+          "#bbd1fe",
+          "#e7efff"
         ]
       },
-      "service-green": {
-        "role": "secondary",
-        "displayName": "Service Green",
-        "tonalRamp": [
-          "#102119",
-          "#214633",
-          "#3c7b62",
-          "#58a080",
-          "#78bd9d",
-          "#9dd4b9",
-          "#c3e6d5",
-          "#eaf5ef"
-        ]
-      },
-      "service-green-strong": {
-        "role": "secondary",
-        "displayName": "Service Green Strong",
-        "tonalRamp": [
-          "#0b1d15",
-          "#173c2b",
-          "#285e49",
-          "#438269",
-          "#65a58a",
-          "#8fc5ac",
-          "#b9dfcc",
-          "#e7f3ed"
-        ]
-      },
-      "signal-amber": {
-        "role": "secondary",
-        "displayName": "Signal Amber",
-        "tonalRamp": [
-          "#2b1d05",
-          "#563d0c",
-          "#875f16",
-          "#b77e21",
-          "#d59a2e",
-          "#e5b85c",
-          "#f0d493",
-          "#fbf0d5"
-        ]
-      },
-      "alert-vermilion": {
-        "role": "tertiary",
-        "displayName": "Alert Vermilion",
-        "tonalRamp": [
-          "#2b0d08",
-          "#561c13",
-          "#842b1e",
-          "#aa3a29",
-          "#c44732",
-          "#dc7565",
-          "#eba79c",
-          "#f8dcd7"
-        ]
-      },
-      "focus-amber": {
-        "role": "tertiary",
-        "displayName": "Focus Amber",
-        "tonalRamp": [
-          "#302205",
-          "#60460d",
-          "#936c18",
-          "#c4902b",
-          "#efb649",
-          "#f6cb72",
-          "#fae0a5",
-          "#fff3d7"
-        ]
-      },
-      "ruled-line": {
-        "role": "neutral",
-        "displayName": "Ruled Line",
-        "tonalRamp": [
-          "#1c201f",
-          "#373d3c",
-          "#545d5c",
-          "#737d7c",
-          "#9da7a6",
-          "#b7bfbe",
-          "#d2d7d6",
-          "#f0f2f2"
-        ]
-      },
-      "board-title-accent": {
-        "role": "neutral",
-        "displayName": "Board Title Brass",
-        "tonalRamp": [
-          "#2d2510",
-          "#53441d",
-          "#7d652b",
-          "#aa8a3b",
-          "#c6a85c",
-          "#d6c08a",
-          "#e6d8b7",
-          "#f6f1e5"
-        ]
-      },
-      "pictogram-vermilion": {
-        "role": "tertiary",
-        "displayName": "Pictogram Vermilion",
-        "tonalRamp": [
-          "#32100b",
-          "#5b1d15",
-          "#892c1f",
-          "#bb3b2b",
-          "#d65d4d",
-          "#e28a7e",
-          "#edb7b0",
-          "#f8e5e2"
-        ]
-      },
-      "pictogram-mark": {
-        "role": "neutral",
-        "displayName": "Pictogram Mark Ivory",
-        "tonalRamp": [
-          "#30250d",
-          "#584419",
-          "#836725",
-          "#b38c32",
-          "#cfa954",
-          "#dcc184",
-          "#ead9b3",
-          "#f7f1e3"
-        ]
-      },
-      "timeline-available": {
-        "role": "secondary",
-        "displayName": "Timeline Available Green",
-        "tonalRamp": [
-          "#122b1c",
-          "#215034",
-          "#31774d",
-          "#43a36a",
-          "#64bf89",
-          "#8fd1aa",
-          "#bae3cb",
-          "#e6f5ec"
-        ]
-      },
-      "timeline-assigned": {
+      "cobalt-strong": {
         "role": "primary",
-        "displayName": "Timeline Assigned Blue",
+        "displayName": "Cobalt Strong",
+        "canonical": "oklch(43.0% 0.187 265)",
         "tonalRamp": [
-          "#0c1e31",
-          "#16375a",
-          "#215387",
-          "#2d71b9",
-          "#4f90d4",
-          "#80afe0",
-          "#b1ceec",
-          "#e2edf8"
+          "#010037",
+          "#02007f",
+          "#1034a7",
+          "#2f5bcf",
+          "#4f81f9",
+          "#88acfb",
+          "#bcd1fd",
+          "#e7effe"
         ]
       },
-      "timeline-on-scene": {
-        "role": "secondary",
-        "displayName": "Timeline On-Scene Amber",
-        "tonalRamp": [
-          "#392a05",
-          "#684d08",
-          "#9c730d",
-          "#d49d11",
-          "#efba34",
-          "#f3cd6d",
-          "#f8e0a5",
-          "#fcf4de"
-        ]
-      },
-      "timeline-transport": {
-        "role": "secondary",
-        "displayName": "Timeline Transport Orange",
-        "tonalRamp": [
-          "#382005",
-          "#683b09",
-          "#9b580d",
-          "#d47812",
-          "#ee9635",
-          "#f3b46d",
-          "#f8d1a6",
-          "#fceede"
-        ]
-      },
-      "timeline-investigating": {
+      "cobalt-soft": {
         "role": "primary",
-        "displayName": "Timeline Investigating Slate",
+        "displayName": "Cobalt Soft",
+        "canonical": "oklch(95.2% 0.020 267)",
         "tonalRamp": [
-          "#151c28",
-          "#273349",
-          "#3b4d6d",
-          "#516995",
-          "#7188b2",
-          "#98a9c8",
-          "#c0cadd",
-          "#e8ecf2"
+          "#080b14",
+          "#222630",
+          "#404550",
+          "#616672",
+          "#848996",
+          "#a8aebb",
+          "#cbd1df",
+          "#e8eefc"
         ]
       },
-      "timeline-out-of-service": {
+      "cobalt-rule": {
+        "role": "primary",
+        "displayName": "Cobalt Rule",
+        "canonical": "oklch(83.5% 0.066 269)",
+        "tonalRamp": [
+          "#030726",
+          "#192446",
+          "#364369",
+          "#56658c",
+          "#7888b2",
+          "#9cadd9",
+          "#bfd0fd",
+          "#e8eeff"
+        ]
+      },
+      "cobalt-ink": {
+        "role": "primary",
+        "displayName": "Cobalt Ink",
+        "canonical": "oklch(39.5% 0.167 265)",
+        "tonalRamp": [
+          "#010038",
+          "#020e76",
+          "#16399d",
+          "#355ec4",
+          "#5683ed",
+          "#87acfc",
+          "#bcd1fd",
+          "#e7efff"
+        ]
+      },
+      "ok": {
         "role": "tertiary",
-        "displayName": "Out-of-Service Hatch Red",
+        "displayName": "Ready Green",
+        "canonical": "oklch(49.1% 0.112 158)",
         "tonalRamp": [
-          "#320e0b",
-          "#5b1a15",
-          "#89271f",
-          "#bb352b",
-          "#d6564c",
-          "#e2857e",
-          "#edb4b0",
-          "#f8e4e2"
+          "#001005",
+          "#002f1a",
+          "#095332",
+          "#17794c",
+          "#459d6e",
+          "#6cc392",
+          "#8fe7b5",
+          "#c4ffdb"
         ]
       },
-      "timeline-maintenance": {
+      "ok-soft": {
         "role": "tertiary",
-        "displayName": "Maintenance Hatch Brick",
+        "displayName": "Ready Green Soft",
+        "canonical": "oklch(95.1% 0.023 162)",
         "tonalRamp": [
-          "#2e130f",
-          "#54231c",
-          "#7e342b",
-          "#ac473a",
-          "#c8685b",
-          "#d79289",
-          "#e7bcb7",
-          "#f6e6e4"
+          "#030e08",
+          "#1c2a23",
+          "#3a4941",
+          "#5b6a62",
+          "#7d8e85",
+          "#a2b3a9",
+          "#c4d6cc",
+          "#e2f4ea"
         ]
       },
-      "timeline-no-record": {
-        "role": "neutral",
-        "displayName": "No Record Hatch",
+      "ok-rule": {
+        "role": "tertiary",
+        "displayName": "Ready Green Rule",
+        "canonical": "oklch(85.1% 0.065 162)",
         "tonalRamp": [
-          "#11232c",
-          "#204050",
-          "#306078",
-          "#4182a4",
-          "#62a0c1",
-          "#8ebbd2",
-          "#bad5e3",
-          "#e5f0f5"
+          "#001006",
+          "#002f1d",
+          "#20503a",
+          "#42725a",
+          "#65967d",
+          "#89bba1",
+          "#acdfc4",
+          "#c9fde1"
         ]
       },
-      "timeline-crew": {
-        "role": "neutral",
-        "displayName": "Crew Window Rule",
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "oklch(49.2% 0.110 66)",
         "tonalRamp": [
-          "#152228",
-          "#263f4a",
-          "#395f6f",
-          "#4e8198",
-          "#6e9fb5",
-          "#96bac9",
-          "#bfd5de",
-          "#e7eff3"
+          "#160700",
+          "#392001",
+          "#633a02",
+          "#90570b",
+          "#b67b39",
+          "#dda05f",
+          "#fdc58c",
+          "#ffebd7"
+        ]
+      },
+      "warn-soft": {
+        "role": "tertiary",
+        "displayName": "Attention Amber Soft",
+        "canonical": "oklch(96.3% 0.035 87)",
+        "tonalRamp": [
+          "#110a00",
+          "#2e2512",
+          "#4d442f",
+          "#6f654f",
+          "#928872",
+          "#b7ad95",
+          "#dbd0b8",
+          "#f9eed5"
+        ]
+      },
+      "warn-rule": {
+        "role": "tertiary",
+        "displayName": "Attention Amber Rule",
+        "canonical": "oklch(86.4% 0.094 87)",
+        "tonalRamp": [
+          "#120a00",
+          "#322400",
+          "#574204",
+          "#7d6219",
+          "#a28541",
+          "#c8aa66",
+          "#ecce89",
+          "#feedc6"
+        ]
+      },
+      "warn-solid": {
+        "role": "tertiary",
+        "displayName": "Attention Amber Solid",
+        "canonical": "oklch(72.9% 0.150 79)",
+        "tonalRamp": [
+          "#130900",
+          "#352300",
+          "#5c3f00",
+          "#855e07",
+          "#b17f16",
+          "#e0a11a",
+          "#fdc76c",
+          "#ffecce"
+        ]
+      },
+      "bad": {
+        "role": "tertiary",
+        "displayName": "Critical Red",
+        "canonical": "oklch(51.3% 0.183 29)",
+        "tonalRamp": [
+          "#210000",
+          "#500000",
+          "#840b07",
+          "#b8261c",
+          "#e25142",
+          "#fb8878",
+          "#fdc0b6",
+          "#fee9e5"
+        ]
+      },
+      "bad-soft": {
+        "role": "tertiary",
+        "displayName": "Critical Red Soft",
+        "canonical": "oklch(95.2% 0.021 25)",
+        "tonalRamp": [
+          "#130807",
+          "#302321",
+          "#50413f",
+          "#726260",
+          "#968583",
+          "#bba9a7",
+          "#dfccca",
+          "#fce9e7"
+        ]
+      },
+      "bad-rule": {
+        "role": "tertiary",
+        "displayName": "Critical Red Rule",
+        "canonical": "oklch(82.3% 0.071 25)",
+        "tonalRamp": [
+          "#200000",
+          "#431514",
+          "#663531",
+          "#8a5651",
+          "#b07973",
+          "#d79d97",
+          "#fcc0ba",
+          "#ffe9e6"
+        ]
+      },
+      "quiet-soft": {
+        "role": "tertiary",
+        "displayName": "Quiet",
+        "canonical": "oklch(95.7% 0.007 261)",
+        "tonalRamp": [
+          "#090b0e",
+          "#24272a",
+          "#434549",
+          "#64666a",
+          "#87898e",
+          "#abaeb3",
+          "#ced1d6",
+          "#eceff4"
+        ]
+      },
+      "stage": {
+        "role": "neutral",
+        "displayName": "Stage",
+        "canonical": "oklch(19.1% 0.041 258)",
+        "tonalRamp": [
+          "#020b1c",
+          "#1a273a",
+          "#37465b",
+          "#58677e",
+          "#7a8aa2",
+          "#9eafc8",
+          "#c1d2ec",
+          "#e5efff"
+        ]
+      },
+      "stage-2": {
+        "role": "neutral",
+        "displayName": "Stage 2",
+        "canonical": "oklch(23.8% 0.058 261)",
+        "tonalRamp": [
+          "#010923",
+          "#152643",
+          "#334564",
+          "#536788",
+          "#758aad",
+          "#99afd3",
+          "#bcd2f8",
+          "#e6effe"
+        ]
+      },
+      "stage-3": {
+        "role": "neutral",
+        "displayName": "Stage 3",
+        "canonical": "oklch(29.3% 0.073 261)",
+        "tonalRamp": [
+          "#000729",
+          "#102549",
+          "#2e456c",
+          "#4e6690",
+          "#708ab6",
+          "#94afdd",
+          "#b8d2ff",
+          "#e6effe"
+        ]
+      },
+      "stage-rule": {
+        "role": "neutral",
+        "displayName": "Stage Rule",
+        "canonical": "oklch(35.1% 0.078 260)",
+        "tonalRamp": [
+          "#00062b",
+          "#0e254c",
+          "#2c456e",
+          "#4c6693",
+          "#6e8ab9",
+          "#92afe0",
+          "#b7d2ff",
+          "#e6effe"
+        ]
+      },
+      "stage-ink": {
+        "role": "neutral",
+        "displayName": "Stage Ink",
+        "canonical": "oklch(94.8% 0.019 263)",
+        "tonalRamp": [
+          "#070b13",
+          "#222730",
+          "#404550",
+          "#606671",
+          "#838995",
+          "#a8aeba",
+          "#cad1de",
+          "#e8effc"
+        ]
+      },
+      "stage-ink-2": {
+        "role": "neutral",
+        "displayName": "Stage Ink Secondary",
+        "canonical": "oklch(77.0% 0.049 261)",
+        "tonalRamp": [
+          "#020a1f",
+          "#19263e",
+          "#36455f",
+          "#566783",
+          "#798aa7",
+          "#9dafce",
+          "#bfd2f2",
+          "#e6efff"
+        ]
+      },
+      "stage-ok": {
+        "role": "tertiary",
+        "displayName": "Stage Ready",
+        "canonical": "oklch(77.2% 0.150 164)",
+        "tonalRamp": [
+          "#001007",
+          "#002f1e",
+          "#075239",
+          "#007954",
+          "#10a173",
+          "#2fcb93",
+          "#5fefb6",
+          "#c3fee1"
+        ]
+      },
+      "stage-warn": {
+        "role": "tertiary",
+        "displayName": "Stage Attention",
+        "canonical": "oklch(84.9% 0.149 81)",
+        "tonalRamp": [
+          "#130900",
+          "#342300",
+          "#5b3f01",
+          "#845f08",
+          "#af8017",
+          "#dea21c",
+          "#fdc764",
+          "#ffeccc"
+        ]
+      },
+      "stage-bad": {
+        "role": "tertiary",
+        "displayName": "Stage Critical",
+        "canonical": "oklch(71.5% 0.178 28)",
+        "tonalRamp": [
+          "#200000",
+          "#4f0102",
+          "#860207",
+          "#b62923",
+          "#e15348",
+          "#fe8678",
+          "#ffbfb6",
+          "#ffe9e5"
+        ]
+      },
+      "stage-cobalt": {
+        "role": "primary",
+        "displayName": "Stage Cobalt",
+        "canonical": "oklch(72.2% 0.144 265)",
+        "tonalRamp": [
+          "#000036",
+          "#03186b",
+          "#1d3d90",
+          "#3c60b7",
+          "#5d85df",
+          "#86acfe",
+          "#bbd1ff",
+          "#e7effe"
+        ]
+      },
+      "stage-quiet": {
+        "role": "neutral",
+        "displayName": "Stage Quiet",
+        "canonical": "oklch(54.7% 0.063 262)",
+        "tonalRamp": [
+          "#010825",
+          "#152545",
+          "#334567",
+          "#53668b",
+          "#758ab0",
+          "#99afd7",
+          "#bbd2fb",
+          "#e6efff"
+        ]
+      },
+      "stage-selected": {
+        "role": "primary",
+        "displayName": "Stage Selected",
+        "canonical": "oklch(37.9% 0.130 264)",
+        "tonalRamp": [
+          "#000037",
+          "#031c64",
+          "#1f3f89",
+          "#3e62b0",
+          "#6087d8",
+          "#86adfc",
+          "#bbd1fd",
+          "#e7efff"
         ]
       }
     },
     "typographyMeta": {
-      "display": {
-        "displayName": "Instrument Display",
-        "purpose": "Large status-wall figures in Plex Sans."
-      },
       "headline": {
-        "displayName": "GIS Board Headline",
-        "purpose": "The outlined, two-tone county board title in Plex Mono."
+        "displayName": "Headline",
+        "purpose": "The page title, one per page. 1.5rem below 768px."
+      },
+      "record-title": {
+        "displayName": "Record title",
+        "purpose": "Inspector heading and dialog titles."
       },
       "title": {
-        "displayName": "Indexed Heading",
-        "purpose": "Plex Mono 600 spaced-caps instrument, register, and worksheet headings led by a 3-4px ink index bar."
+        "displayName": "Title",
+        "purpose": "Panel and stage headings, empty-state headings."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Headings inside the inspector and inside panels."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Values in the summary strip, with tabular numerals. 1.125rem below 768px."
       },
       "body": {
-        "displayName": "Operational Body",
-        "purpose": "Names, explanations, descriptions, and decision copy."
+        "displayName": "Body",
+        "purpose": "Descriptions, list titles, and prose. Page descriptions cap at 72ch."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons, inputs, tabs, table cells, menu items."
       },
       "label": {
-        "displayName": "Register Label",
-        "purpose": "Codes, statuses, timestamps, table headings, and instrument metadata."
+        "displayName": "Label",
+        "purpose": "Fact labels, table column heads, metadata, badges, navigation group labels. Sentence case, no tracking."
       },
-      "metric": {
-        "displayName": "Tabular Metric",
-        "purpose": "Large Plex Sans operational figures paired with labels and supporting register detail."
-      },
-      "figure-condensed": {
-        "displayName": "Condensed Figure",
-        "purpose": "Plex Sans Variable at 80-82% width for multi-count instruments on Units and Incidents."
-      },
-      "task-headline": {
-        "displayName": "Task Page Heading",
-        "purpose": "Measured Plex Sans page-heading variant on the seven refined task workspaces; does not redefine the status-wall hierarchy."
-      },
-      "task-metric": {
-        "displayName": "Task Register Reading",
-        "purpose": "Measured Plex Mono overview figure on the seven refined task workspaces; utility readings adapt to available width."
-      },
-      "task-title": {
-        "displayName": "Task Worksheet Heading",
-        "purpose": "Compact Plex Mono section heading on task plates and registers."
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Identifiers, clock times, ruler ticks, keyboard hints, and aligned figures only."
       }
     },
     "shadows": [
       {
-        "name": "temporary-layer",
-        "value": "8px 12px 28px rgba(0, 0, 0, .32)",
-        "purpose": "Dialogs, command search, and dropdowns only."
+        "name": "shadow-panel",
+        "value": "0 1px 2px rgba(13, 27, 48, 0.05)",
+        "purpose": "Panels and the summary strip: a hairline of lift under a bordered surface."
+      },
+      {
+        "name": "shadow-raised",
+        "value": "0 1px 2px rgba(13, 27, 48, 0.06), 0 12px 28px -14px rgba(13, 27, 48, 0.28)",
+        "purpose": "The stage, the docked inspector, and tooltips."
+      },
+      {
+        "name": "shadow-overlay",
+        "value": "0 2px 6px rgba(7, 18, 38, 0.12), 0 28px 60px -20px rgba(7, 18, 38, 0.45)",
+        "purpose": "Dialogs, the inspector drawer, the navigation drawer, command search, and menus."
+      },
+      {
+        "name": "scrim",
+        "value": "rgba(7, 18, 38, 0.52)",
+        "purpose": "Background behind dialogs and drawers. A fill, listed here because it belongs to the overlay layer."
       }
     ],
     "motion": [
       {
-        "name": "register-entry",
-        "value": "280ms cubic-bezier(.16, 1, .3, 1)",
-        "purpose": "One left-to-right reveal when a workspace page enters."
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The single curve for every transition and entrance."
+      },
+      {
+        "name": "row-feedback",
+        "value": "120ms",
+        "purpose": "Background change on table rows, list rows, chips, and selectable tiles."
+      },
+      {
+        "name": "control-feedback",
+        "value": "150ms",
+        "purpose": "Background, border, and color change on buttons, navigation items, tabs, and stage controls."
+      },
+      {
+        "name": "disclosure-chevron",
+        "value": "180ms",
+        "purpose": "Chevron rotation on the filters disclosure."
+      },
+      {
+        "name": "overlay-fade",
+        "value": "160ms",
+        "purpose": "Scrim fade; menus fade in 140ms."
+      },
+      {
+        "name": "dialog-rise",
+        "value": "200ms, 10px upward",
+        "purpose": "Dialog entrance."
+      },
+      {
+        "name": "drawer-slide",
+        "value": "240ms, 28px from the right",
+        "purpose": "Inspector drawer entrance below 1280px. The navigation drawer uses 240ms and 24px from the left."
+      },
+      {
+        "name": "command-in",
+        "value": "180ms, 8px downward",
+        "purpose": "Command search entrance."
+      },
+      {
+        "name": "inspector-swap",
+        "value": "220ms, opacity 0 to 1 and x 10px to 0",
+        "purpose": "Docked inspector re-entering on each newly selected record (motion library default transition)."
       },
       {
         "name": "map-zoom",
-        "value": "180ms steps(3,end)",
-        "purpose": "Stepped transform for the GIS zoom layer."
+        "value": "260ms",
+        "purpose": "Map zoom transform."
       },
       {
-        "name": "rail-slide",
-        "value": "170ms steps(3,end)",
-        "purpose": "Off-canvas indexed rail transition."
+        "name": "selection-pick",
+        "value": "320ms, scale from 0.5 with fade",
+        "purpose": "Halo on a newly selected station; the station disc radius eases over 160ms on hover."
       },
       {
-        "name": "state-feedback",
-        "value": "140ms ease",
-        "purpose": "Background and color feedback for rows, resources, and compact controls."
+        "name": "loading-shimmer",
+        "value": "1.4s linear infinite",
+        "purpose": "Skeleton bars. The busy spinner turns once per 900ms."
       },
       {
         "name": "reduced-motion",
-        "value": "0.01ms linear",
-        "purpose": "Collapses motion to a single effectively immediate frame and disables smooth scrolling."
+        "value": "CSS: all animation and transition durations 0.01ms, one iteration, smooth scrolling off. Motion library: reducedMotion=\"user\" drops transforms and keeps opacity.",
+        "purpose": "Applied when the user prefers reduced motion. No information depends on motion."
       }
     ],
     "breakpoints": [
       {
-        "name": "rail-to-drawer",
-        "value": "1023px"
+        "name": "compact-topbar",
+        "value": "max-width: 420px"
       },
       {
-        "name": "single-column-status-wall",
-        "value": "767px"
+        "name": "search-field",
+        "value": "640px"
       },
       {
-        "name": "compact-workspace",
-        "value": "760px"
+        "name": "touch",
+        "value": "max-width: 767px"
       },
       {
-        "name": "stacked-register",
-        "value": "639px"
+        "name": "paired-panels",
+        "value": "900px"
       },
       {
-        "name": "narrow-board-labels",
-        "value": "390px"
+        "name": "utility-split",
+        "value": "1000px"
       },
       {
-        "name": "task-compact-distribution",
-        "value": "1279px"
+        "name": "rail",
+        "value": "1024px"
       },
       {
-        "name": "utility-two-column-register",
-        "value": "980px"
+        "name": "workspace-split",
+        "value": "1100px"
       },
       {
-        "name": "utility-stacked-register",
-        "value": "720px"
+        "name": "inspector-dock",
+        "value": "1280px"
+      },
+      {
+        "name": "operational-period",
+        "value": "1360px"
+      },
+      {
+        "name": "history-events (container)",
+        "value": "1040px"
+      }
+    ],
+    "layout": [
+      {
+        "name": "rail-width",
+        "value": "248px"
+      },
+      {
+        "name": "inspector-width",
+        "value": "408px"
+      },
+      {
+        "name": "inspector-drawer-width",
+        "value": "min(460px, 100vw)"
+      },
+      {
+        "name": "navigation-drawer-width",
+        "value": "min(320px, 88vw)"
+      },
+      {
+        "name": "dialog-width",
+        "value": "min(560px, 100vw - 24px)"
+      },
+      {
+        "name": "command-width",
+        "value": "min(640px, 100vw - 24px)"
+      },
+      {
+        "name": "topbar-min-height",
+        "value": "56px"
+      },
+      {
+        "name": "touch-target",
+        "value": "44px below 768px"
+      },
+      {
+        "name": "min-page-width",
+        "value": "320px"
+      }
+    ],
+    "thresholds": [
+      {
+        "name": "ratioTone",
+        "source": "dashboard/lib/utils.ts",
+        "value": "percent >= 85: no tone; percent >= 60: warn; otherwise bad",
+        "purpose": "Tones readiness, staffing, and availability percentages in summary strips and table figures."
+      }
+    ],
+    "stageFills": [
+      {
+        "name": "assigned",
+        "value": "#2f5fe0",
+        "purpose": "Assigned, dispatched, and default lifecycle bars."
+      },
+      {
+        "name": "enroute",
+        "value": "var(--stage-cobalt)",
+        "purpose": "Enroute stage, dark text."
+      },
+      {
+        "name": "on-scene",
+        "value": "var(--stage-bad)",
+        "purpose": "On-scene stage and coverage gap, dark text."
+      },
+      {
+        "name": "transport",
+        "value": "var(--stage-warn)",
+        "purpose": "Transport stage, dark text."
+      },
+      {
+        "name": "investigating",
+        "value": "#9db0d6",
+        "purpose": "Investigating stage, dark text."
+      },
+      {
+        "name": "resolved",
+        "value": "#46597e",
+        "purpose": "Resolved stage."
+      },
+      {
+        "name": "out-of-service",
+        "value": "#c9382d",
+        "purpose": "Out-of-service time."
+      },
+      {
+        "name": "maintenance",
+        "value": "#b77a08",
+        "purpose": "Maintenance time."
+      },
+      {
+        "name": "available",
+        "value": "var(--stage-3) with inset 1px rgba(58, 210, 154, 0.4)",
+        "purpose": "Available or covered time."
+      },
+      {
+        "name": "unrecorded",
+        "value": "repeating-linear-gradient(135deg, #3a4f78 0 5px, #263857 5px 10px)",
+        "purpose": "Unrecorded, untimed, or cancelled time."
+      },
+      {
+        "name": "other-type",
+        "value": "#c2cfe6",
+        "purpose": "Incident type Other on the stage."
+      },
+      {
+        "name": "highway",
+        "value": "#a9bfe8",
+        "purpose": "Major highways and route shields on the map."
       }
     ]
   },
   "components": [
     {
-      "name": "Primary Action",
+      "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Authorized constructive action on a paper worksheet.",
-      "html": "<button class=\"ds-button-primary\" type=\"button\">ADD UNIT</button>",
-      "css": ".ds-button-primary { min-height:38px; border:1px solid #1f523e; border-radius:1px; padding:0 13px; color:#fff; background:var(--brand, #3c7b62); font:600 10px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; transition:background 140ms ease, border-color 140ms ease; } .ds-button-primary:hover { border-color:#285e49; background:#285e49; } .ds-button-primary:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-button-primary:active { transform:translateY(1px); } .ds-button-primary:disabled { opacity:.5; }"
+      "description": "The one primary action in a view, in the page header or the inspector footer.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Open incident</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; line-height: 1; white-space: nowrap; cursor: pointer; transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out); } .ds-btn:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; } .ds-btn-primary { border-color: var(--cobalt); background: var(--cobalt); color: #fff; } .ds-btn-primary:hover { border-color: var(--cobalt-strong); background: var(--cobalt-strong); } .ds-btn-primary:active { background: var(--cobalt-ink); }"
     },
     {
-      "name": "Secondary Action",
+      "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Compact shell control for navigation, export, and non-primary actions.",
-      "html": "<button class=\"ds-button-secondary\" type=\"button\">EXPORT HANDOVER BRIEF</button>",
-      "css": ".ds-button-secondary { min-height:38px; border:1px solid #486477; border-radius:1px; padding:0 13px; color:#efe8d7; background:#173044; font:600 10px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; transition:background 140ms ease, color 140ms ease; } .ds-button-secondary:hover { color:#fff; background:#244a63; } .ds-button-secondary:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-button-secondary:active { transform:translateY(1px); }"
+      "description": "The default button: white, strong rule, ink text.",
+      "html": "<button class=\"ds-btn2\">Export brief</button>",
+      "css": ".ds-btn2 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid var(--rule-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; line-height: 1; cursor: pointer; transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out); } .ds-btn2:hover { border-color: var(--ink-3); background: var(--surface-2); } .ds-btn2:active { background: var(--surface-sunken); } .ds-btn2:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }"
     },
     {
-      "name": "Worksheet Field",
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive or state-ending actions; always followed by a confirmation dialog.",
+      "html": "<button class=\"ds-btn-danger\">Resolve incident</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 14px; border: 1px solid var(--bad-rule); border-radius: var(--radius-control); background: var(--surface); color: var(--bad); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; line-height: 1; cursor: pointer; transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out); } .ds-btn-danger:hover { border-color: var(--bad); background: var(--bad-soft); } .ds-btn-danger:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet inline action in cobalt ink.",
+      "html": "<button class=\"ds-btn-ghost\">View history</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--cobalt-ink); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 500; line-height: 1; cursor: pointer; transition: background 150ms var(--ease-out); } .ds-btn-ghost:hover { background: var(--cobalt-soft); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
       "kind": "input",
       "refersTo": "field",
-      "description": "Square paper field for searches, selects, and record editing.",
-      "html": "<label class=\"ds-field-label\">UNIT SEARCH<input class=\"ds-field\" type=\"search\" placeholder=\"Search units\"></label>",
-      "css": ".ds-field-label { display:grid; gap:6px; color:#46545d; font:500 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.12em; text-transform:uppercase; } .ds-field { min-height:38px; border:1px solid #627a86; border-radius:0; padding:8px 10px; color:#20282e; background:var(--paper-bright, #f7f1e3); font:400 14px 'IBM Plex Sans', Arial, sans-serif; } .ds-field::placeholder { color:#68757c; } .ds-field:hover { border-color:#244a63; } .ds-field:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
+      "description": "Toolbar search with a leading icon; text inputs and selects share the same box.",
+      "html": "<label class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"Search by name or badge\" aria-label=\"Search personnel\"></label>",
+      "css": ".ds-search { position: relative; display: flex; align-items: center; width: 320px; max-width: 100%; } .ds-search svg { position: absolute; left: 11px; color: var(--ink-3); pointer-events: none; } .ds-search input { width: 100%; min-height: 38px; padding: 0 12px 0 35px; border: 1px solid var(--rule-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); font-family: var(--font-sans); font-size: 0.875rem; } .ds-search input::placeholder { color: var(--ink-3); opacity: 1; } .ds-search input:hover { border-color: var(--ink-3); } .ds-search input:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 0; border-color: var(--cobalt); }"
     },
     {
-      "name": "Operational Status Stamp",
+      "name": "Status Badges",
       "kind": "chip",
-      "refersTo": "status-success",
-      "description": "Text-first ready state; warning and critical variants preserve the same geometry.",
-      "html": "<span class=\"ds-status ds-status-ready\"><i aria-hidden=\"true\"></i>READY</span> <span class=\"ds-status ds-status-attention\"><i aria-hidden=\"true\"></i>ATTENTION</span> <span class=\"ds-status ds-status-critical\"><i aria-hidden=\"true\"></i>CRITICAL</span>",
-      "css": ".ds-status { display:inline-flex; min-height:23px; align-items:center; gap:6px; border:1px solid; border-radius:1px; padding:4px 7px; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.06em; text-transform:uppercase; } .ds-status i { width:5px; height:5px; background:currentColor; } .ds-status-ready { border-color:#3c7b62; color:#265c48; background:#dce8dc; } .ds-status-attention { border-color:#a87316; color:#79500a; background:#f0dfb7; } .ds-status-critical { border-color:#a13928; color:#872c20; background:#efd1c9; } .ds-status:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
+      "refersTo": "badge-success",
+      "description": "State as a word plus a color: a pill with a 6px dot. Five tones.",
+      "html": "<span class=\"ds-badges\"><span class=\"ds-badge\" data-tone=\"success\"><i></i>Available</span><span class=\"ds-badge\" data-tone=\"warning\"><i></i>Transport</span><span class=\"ds-badge\" data-tone=\"danger\"><i></i>On scene</span><span class=\"ds-badge\" data-tone=\"info\"><i></i>Enroute</span><span class=\"ds-badge\"><i></i>Off duty</span></span>",
+      "css": ".ds-badges { display: inline-flex; flex-wrap: wrap; gap: 8px; } .ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border: 1px solid var(--rule); border-radius: 999px; background: var(--quiet-soft); color: var(--ink-2); font-family: var(--font-sans); font-size: 0.8125rem; font-weight: 500; line-height: 1.5; white-space: nowrap; } .ds-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; } .ds-badge[data-tone='success'] { border-color: var(--ok-rule); background: var(--ok-soft); color: var(--ok); } .ds-badge[data-tone='warning'] { border-color: var(--warn-rule); background: var(--warn-soft); color: var(--warn); } .ds-badge[data-tone='danger'] { border-color: var(--bad-rule); background: var(--bad-soft); color: var(--bad); } .ds-badge[data-tone='info'] { border-color: var(--cobalt-rule); background: var(--cobalt-soft); color: var(--cobalt-ink); }"
     },
     {
-      "name": "Indexed Navigation Row",
-      "kind": "nav",
-      "refersTo": null,
-      "description": "One of ten indexed 47px rail destinations; active state fills blue with an ivory side rule.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-row ds-nav-active\" href=\"#\" aria-current=\"page\"><span>01</span><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M4 14a8 8 0 1 1 16 0M12 14l4-5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><b>COUNTY STATUS WALL</b></a><a class=\"ds-nav-row\" href=\"#\"><span>02</span><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path d=\"M5 18h14M7 18V9h10v9M10 5h4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><b>INCIDENTS</b></a></nav>",
-      "css": ".ds-nav { width:184px; border:1px solid #365669; background:#0a202b; } .ds-nav-row { display:grid; min-height:47px; align-items:center; grid-template-columns:17px 24px minmax(0,1fr); gap:6px; border-bottom:1px solid #3e5867; padding:0 10px; color:#a8bac2; background:transparent; font:500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.02em; text-decoration:none; } .ds-nav-row span { color:#617c8a; font-size:7px; } .ds-nav-row svg { color:#95aebb; } .ds-nav-row b { overflow:hidden; font-weight:500; white-space:nowrap; } .ds-nav-row:hover { color:#efe8d7; background:#163444; } .ds-nav-row:focus-visible { outline:2px solid #efb649; outline-offset:-2px; } .ds-nav-active { color:#efe8d7; background:#244a63; box-shadow:inset 4px 0 #efe8d7; } .ds-nav-active span, .ds-nav-active svg { color:#efe8d7; }"
-    },
-    {
-      "name": "Segmented Register",
-      "kind": "nav",
-      "refersTo": null,
-      "description": "Shared-edge tabs for mutually exclusive register views.",
-      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">ALL UNITS</button><button role=\"tab\" aria-selected=\"false\">NEEDS ATTENTION&nbsp; 12</button></div>",
-      "css": ".ds-tabs { display:inline-flex; border:1px solid #47677a; border-radius:0; background:#132a38; } .ds-tabs button { min-height:37px; border:0; border-right:1px solid #47677a; padding:0 12px; color:#b9c9cf; background:transparent; font:500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.04em; text-transform:uppercase; } .ds-tabs button:last-child { border-right:0; } .ds-tabs button:hover { color:#fff; background:#173044; } .ds-tabs button[aria-selected='true'] { color:#20282e; background:#efe8d7; box-shadow:inset 0 -4px #d59a2e; } .ds-tabs button:focus-visible { outline:2px solid #efb649; outline-offset:2px; }"
-    },
-    {
-      "name": "Status-Wall Instruments",
+      "name": "Summary Strip",
       "kind": "card",
-      "refersTo": "instrument-plate",
-      "description": "Separate 124px paper-textured instruments aligned on one row with six-pixel gutters.",
-      "html": "<section class=\"ds-instruments\" aria-label=\"Operational summary\"><article class=\"ds-instrument\"><header><i aria-hidden=\"true\"></i>OPERATIONAL READINESS</header><div><strong>97%</strong><dl><dt>TARGET</dt><dd>100%</dd><dt>AS OF</dt><dd>19:12</dd></dl></div><footer>READY UNITS <b>119 / 131</b></footer></article><article class=\"ds-instrument\"><header><i aria-hidden=\"true\"></i>ACTIVE INCIDENTS</header><div><strong>05</strong><dl><dt>FIRE</dt><dd>1</dd><dt>OTHER</dt><dd>1</dd></dl></div><footer>REQUIRING REVIEW <b>1</b></footer></article></section>",
-      "css": ".ds-instruments { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .ds-instrument { height:124px; border:1px solid #c4c1b5; padding:10px 11px 8px; color:#0b1a27; background:#efe8d7; } .ds-instrument header { display:flex; align-items:center; gap:9px; height:20px; border-bottom:1px solid #c3c0b5; font:600 13px/1 'IBM Plex Sans', Arial, sans-serif; letter-spacing:.015em; } .ds-instrument header i { width:4px; height:16px; background:#0e3348; } .ds-instrument>div { display:flex; height:70px; align-items:center; justify-content:space-between; gap:11px; } .ds-instrument strong { font:650 42px/1 'IBM Plex Sans', Arial, sans-serif; letter-spacing:-.045em; font-variant-numeric:tabular-nums; } .ds-instrument dl { display:grid; grid-template-columns:1fr auto; gap:3px 8px; font:8px 'IBM Plex Mono', ui-monospace, monospace; } .ds-instrument dt, .ds-instrument dd { margin:0; } .ds-instrument dd { font-weight:600; } .ds-instrument footer { height:20px; border-top:1px solid #cac6b8; padding-top:5px; text-align:center; font:8px 'IBM Plex Mono', ui-monospace, monospace; }"
+      "refersTo": "summary-strip",
+      "description": "One line of labeled facts under the page header. A percentage is toned only past the ratioTone limits.",
+      "html": "<dl class=\"ds-summary\"><div><dt>Operational readiness</dt><dd>97%<small>target 100%</small></dd></div><div><dt>On-duty personnel</dt><dd>351 / 363<small>12 short</small></dd></div><div data-tone=\"warn\"><dt>Trucks ready</dt><dd>10 / 14<small>71%</small></dd></div><div data-tone=\"bad\"><dt>Open alerts</dt><dd>15<small>awaiting review</small></dd></div></dl>",
+      "css": ".ds-summary { display: flex; flex-wrap: wrap; margin: 0; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow-panel); font-family: var(--font-sans); color: var(--ink); } .ds-summary > div { flex: 1 1 150px; min-width: 0; padding: 12px 16px; border-left: 1px solid var(--rule); } .ds-summary > div:first-child { border-left: 0; } .ds-summary dt { color: var(--ink-3); font-size: 0.8125rem; } .ds-summary dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 2px 0 0; font-size: 1.375rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; } .ds-summary dd small { color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; letter-spacing: 0; } .ds-summary [data-tone='warn'] dd { color: var(--warn); } .ds-summary [data-tone='bad'] dd { color: var(--bad); }"
     },
     {
-      "name": "Ruled Data Table",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "Dense report table with a municipal header and paper-row inspection state.",
-      "html": "<table class=\"ds-table\"><thead><tr><th>UNIT</th><th>STATUS</th><th>STAFFED</th></tr></thead><tbody><tr><td>E401</td><td>DEGRADED</td><td>3/4</td></tr><tr><td>E402</td><td>READY</td><td>4/4</td></tr></tbody></table>",
-      "css": ".ds-table { width:100%; border-collapse:collapse; color:#20282e; background:#efe8d7; font:400 12px 'IBM Plex Sans', Arial, sans-serif; } .ds-table th { height:38px; border:1px solid #738890; padding:0 14px; color:#f7f1e3; background:#244a63; font:600 8px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing:.06em; text-align:left; text-transform:uppercase; } .ds-table td { height:54px; border-bottom:1px solid #aeb3aa; padding:8px 14px; } .ds-table td:first-child, .ds-table td:last-child { font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; } .ds-table tr:hover td { background:#e4decf; } .ds-table tr:focus-within td { outline:2px solid #efb649; outline-offset:-2px; }"
+      "name": "Panel With Selectable Rows",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "White panel with a ruled header and list rows; the selected row is soft cobalt.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-panel-head\"><h3>Active incidents</h3><p>Updated 17:55</p></div><button class=\"ds-row\" aria-pressed=\"true\"><span class=\"ds-row-time\">16:32</span><span class=\"ds-row-main\"><strong>12000 Fair Oaks Mall</strong><small>EMS · E421, M421</small></span></button><button class=\"ds-row\"><span class=\"ds-row-time\">16:17</span><span class=\"ds-row-main\"><strong>8100 Boone Blvd</strong><small>EMS · A429, E429</small></span></button></section>",
+      "css": ".ds-panel { width: 420px; max-width: 100%; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow-panel); font-family: var(--font-sans); color: var(--ink); overflow: hidden; } .ds-panel-head { padding: 14px 16px; border-bottom: 1px solid var(--rule); } .ds-panel-head h3 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; } .ds-panel-head p { margin: 2px 0 0; color: var(--ink-3); font-size: 0.8125rem; } .ds-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background 120ms var(--ease-out); } .ds-row:last-child { border-bottom: 0; } .ds-row:hover { background: var(--surface-2); } .ds-row[aria-pressed='true'] { background: var(--cobalt-soft); } .ds-row[aria-pressed='true'] strong { color: var(--cobalt-ink); } .ds-row:focus-visible { outline: 2px solid var(--cobalt); outline-offset: -2px; } .ds-row-time { flex: 0 0 52px; font-family: var(--font-mono); font-size: 0.875rem; font-variant-numeric: tabular-nums; } .ds-row-main { flex: 1 1 0; min-width: 0; } .ds-row strong { display: block; font-size: 0.9375rem; font-weight: 600; } .ds-row small { display: block; color: var(--ink-3); font-size: 0.8125rem; }"
     },
     {
-      "name": "Incident Dispatch Register",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "Ruled read-only incident rows with time, type, location, assigned units, and text status; not a dispatch control.",
-      "html": "<section class=\"ds-dispatch\" aria-label=\"Incident review\"><h2>INCIDENT DISPATCH <span>LIVE</span></h2><table><thead><tr><th>#</th><th>TIME</th><th>TYPE</th><th>LOCATION</th><th>STATUS</th></tr></thead><tbody><tr><td>1</td><td>19:03</td><td>EMS</td><td>Reported location</td><td><b>ENROUTE</b></td></tr></tbody></table><footer>REVIEW IN OPERATIONS →</footer></section>",
-      "css": ".ds-dispatch { border:1px solid #e4dfd0; color:#0d1b28; background:#efe8d7; font-family:'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch h2 { display:flex; min-height:35px; align-items:center; justify-content:space-between; margin:0; border-bottom:1px solid #a7aaa2; padding-left:9px; font:650 13px 'IBM Plex Sans', Arial, sans-serif; } .ds-dispatch h2 span { display:grid; min-width:64px; height:26px; place-items:center; color:#fff; background:#c44732; font:9px 'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch table { width:100%; border-collapse:collapse; table-layout:fixed; font:10px/1.35 'IBM Plex Mono', ui-monospace, monospace; } .ds-dispatch th, .ds-dispatch td { border-right:1px solid #c4c2b7; border-bottom:1px solid #c4c2b7; padding:6px 7px; text-align:left; } .ds-dispatch th:last-child, .ds-dispatch td:last-child { border-right:0; } .ds-dispatch tbody tr:hover td { background:#e4decf; } .ds-dispatch b { display:block; padding:4px 3px; background:#e0a42a; text-align:center; } .ds-dispatch footer { padding:8px 9px; color:#3e5058; font-size:7px; } .ds-dispatch:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Navy rail with labeled groups; the current destination fills with cobalt.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Primary navigation\"><h4>Operations</h4><a class=\"ds-nav ds-nav-active\" href=\"#\" aria-current=\"page\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/></svg><span>County overview</span></a><a class=\"ds-nav\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg><span>Alerts</span><b>15</b></a><h4>Workforce</h4><a class=\"ds-nav\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/></svg><span>Personnel</span></a></nav>",
+      "css": ".ds-rail { width: 248px; padding: 10px 10px 16px; border-radius: 8px; background: var(--navy-900); color: var(--navy-ink); font-family: var(--font-sans); } .ds-rail h4 { margin: 14px 0 0; padding: 0 10px 6px; color: var(--navy-ink-2); font-size: 0.8125rem; font-weight: 500; } .ds-rail h4:first-child { margin-top: 4px; } .ds-nav { display: flex; align-items: center; gap: 11px; min-height: 40px; padding: 0 10px; border-radius: 7px; color: var(--navy-ink); font-size: 0.9375rem; text-decoration: none; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); } .ds-nav svg { color: var(--navy-ink-2); } .ds-nav span { flex: 1 1 auto; } .ds-nav:hover { background: var(--navy-800); color: #fff; } .ds-nav:focus-visible { outline: 2px solid var(--stage-cobalt); outline-offset: 2px; } .ds-nav-active, .ds-nav-active:hover { background: var(--cobalt); color: #fff; font-weight: 600; } .ds-nav-active svg { color: #fff; } .ds-nav b { min-width: 22px; padding: 1px 6px; border-radius: 999px; background: #fff; color: var(--bad); font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: center; }"
     },
     {
-      "name": "GIS Board Legend",
+      "name": "Stage With Timeline",
       "kind": "custom",
-      "refersTo": null,
-      "description": "Compact explicit key for station state and plotted geography; source labels remain visible on the board.",
-      "html": "<aside class=\"ds-map-key\" aria-label=\"Map legend\"><span><i class=\"ds-normal\"></i>Station Normal</span><span><i class=\"ds-attention\"></i>Staffing Attention</span><span><i class=\"ds-offline\"></i>Station Out of Service</span><hr><span><b></b>County Boundary</span></aside>",
-      "css": ".ds-map-key { display:grid; width:160px; border:1px solid #c8cabf; padding:7px 8px; color:#d9dfdb; background:rgba(8,25,35,.94); font:9px/1 'IBM Plex Mono', ui-monospace, monospace; } .ds-map-key span { display:flex; min-height:20px; align-items:center; gap:9px; white-space:nowrap; } .ds-map-key i { width:11px; height:11px; border:2px solid currentColor; border-radius:50%; } .ds-map-key .ds-normal { color:#4bd49c; } .ds-map-key .ds-attention { color:#edae19; } .ds-map-key .ds-offline { color:#ee4b36; background:#ee4b36; } .ds-map-key hr { width:100%; height:1px; margin:4px 0; border:0; background:#7a8789; } .ds-map-key b { width:28px; border-top:2px dashed #b1bcbc; } .ds-map-key:hover { border-color:#efe8d7; } .ds-map-key:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
+      "refersTo": "stage",
+      "description": "The dark surface for space and time: header with stage controls, mono ruler, solid bars, hatch for unrecorded time, white ring on the selected bar.",
+      "html": "<section class=\"ds-stage\"><header><div><h3>Unit deployment history</h3><p>Recorded service states and incident stages</p></div><div class=\"ds-stage-ctl\"><button class=\"ds-stage-btn\" aria-pressed=\"true\">Current watch</button><button class=\"ds-stage-btn\">Previous</button></div></header><div class=\"ds-tl\"><div class=\"ds-tl-row ds-tl-ruler\"><span></span><div><b style=\"left:0\">03:00</b><b style=\"left:33%\">07:00</b><b style=\"left:66%\">11:00</b></div></div><div class=\"ds-tl-row\"><span>E421</span><div class=\"ds-tl-track\"><i class=\"ds-bar ds-bar-hatch\" style=\"left:0;width:14%\">No record</i><i class=\"ds-bar ds-bar-avail\" style=\"left:15%;width:34%\">Available</i><i class=\"ds-bar ds-bar-scene ds-bar-active\" style=\"left:50%;width:22%\">On scene</i><i class=\"ds-bar ds-bar-transport\" style=\"left:73%;width:16%\">Transport</i></div></div></div><p class=\"ds-stage-note\">Bars are built from recorded facts only.</p></section>",
+      "css": ".ds-stage { width: 620px; max-width: 100%; overflow: hidden; border-radius: var(--radius-stage); background: var(--stage); color: var(--stage-ink); box-shadow: var(--shadow-raised); font-family: var(--font-sans); } .ds-stage header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--stage-rule); } .ds-stage h3 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.3; } .ds-stage header p { margin: 0; color: var(--stage-ink-2); font-size: 0.8125rem; } .ds-stage-ctl { display: flex; gap: 6px; } .ds-stage-btn { min-height: 34px; padding: 0 10px; border: 1px solid var(--stage-rule); border-radius: var(--radius-control); background: var(--stage-2); color: var(--stage-ink); font: inherit; font-size: 0.8125rem; cursor: pointer; transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out); } .ds-stage-btn:hover { background: var(--stage-3); } .ds-stage-btn[aria-pressed='true'] { border-color: var(--stage-cobalt); background: #1c3c86; color: #fff; } .ds-stage-btn:focus-visible { outline: 2px solid var(--stage-cobalt); outline-offset: 2px; } .ds-tl { padding: 0 16px 12px; } .ds-tl-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; min-height: 44px; border-bottom: 1px solid var(--stage-rule); } .ds-tl-row > span { font-family: var(--font-mono); font-size: 0.875rem; font-weight: 500; } .ds-tl-ruler { min-height: 34px; color: var(--stage-ink-2); font-size: 0.75rem; } .ds-tl-ruler div { position: relative; height: 34px; } .ds-tl-ruler b { position: absolute; bottom: 6px; font-family: var(--font-mono); font-weight: 400; } .ds-tl-track { position: relative; height: 30px; } .ds-bar { position: absolute; top: 3px; bottom: 3px; overflow: hidden; padding: 0 6px; border-radius: 4px; font-style: normal; font-size: 0.75rem; font-weight: 500; line-height: 24px; white-space: nowrap; } .ds-bar-avail { background: var(--stage-3); box-shadow: inset 0 0 0 1px rgba(58, 210, 154, 0.4); color: var(--stage-ink-2); } .ds-bar-scene { background: var(--stage-bad); color: #2a0d0a; } .ds-bar-transport { background: var(--stage-warn); color: #2e1f00; } .ds-bar-hatch { background: repeating-linear-gradient(135deg, #3a4f78 0 5px, #263857 5px 10px); color: var(--stage-ink-2); } .ds-bar-active { z-index: 1; box-shadow: 0 0 0 2px #fff; } .ds-stage-note { margin: 0; padding: 10px 16px; border-top: 1px solid var(--stage-rule); color: var(--stage-ink-2); font-size: 0.8125rem; }"
     },
     {
-      "name": "Filled Pictograms",
+      "name": "Inspector",
       "kind": "custom",
-      "refersTo": null,
-      "description": "Shared solid instrument pictograms; the warning triangle re-inks through --pictogram-fill and --pictogram-mark.",
-      "html": "<div class=\"ds-pictos\"><svg viewBox=\"0 0 48 44\" width=\"44\" height=\"40\" aria-hidden=\"true\"><path d=\"M24 2.5c1.3 0 2.5.7 3.2 1.9l19.6 34.2c1.4 2.5-.4 5.4-3.2 5.4H4.4c-2.8 0-4.6-2.9-3.2-5.4L20.8 4.4c.7-1.2 1.9-1.9 3.2-1.9Z\" fill=\"var(--pictogram-fill, #c9402e)\"/><rect x=\"21.4\" y=\"14\" width=\"5.2\" height=\"15.5\" rx=\"1.6\" fill=\"var(--pictogram-mark, #f6efdf)\"/><circle cx=\"24\" cy=\"35.4\" r=\"3\" fill=\"var(--pictogram-mark, #f6efdf)\"/></svg><svg viewBox=\"0 0 48 42\" width=\"44\" height=\"40\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M24 1 1 17.5l2.6 3.6L6 19.4V41h36V19.4l2.4 1.7 2.6-3.6L24 1Zm-3 13h6v6h-6v-6ZM10 26h11v15H10V26Zm17 0h11v15H27V26Z\"/><path fill=\"var(--pictogram-mark, #ece8d5)\" d=\"M12 29h7v1.6h-7zm0 4h7v1.6h-7zm17-4h7v1.6h-7zm0 4h7v1.6h-7z\"/></svg><strong>05</strong><span>ACTIVE</span></div>",
-      "css": ".ds-pictos { display:inline-flex; align-items:center; gap:12px; border:1px solid #c2c0b0; padding:10px 12px; color:#14212b; background:#efe8d7; } .ds-pictos strong { font:700 40px/.9 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; font-stretch:80%; font-variant-numeric:tabular-nums; } .ds-pictos span { font:500 10.5px 'IBM Plex Mono',monospace; } .ds-pictos:hover { border-color:#14212b; } .ds-pictos:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
-    },
-    {
-      "name": "Recorded Timeline",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "Unit service history reconstructed from audit facts only; unrecorded time is a dark hatch, never available green.",
-      "html": "<div class=\"ds-tl\" role=\"group\" aria-label=\"Recorded unit activity\"><span class=\"ds-tl-label\">E401</span><div class=\"ds-tl-track\"><button class=\"ds-tl-seg ds-unrec\" style=\"left:0;width:22%\">NO RECORD</button><button class=\"ds-tl-seg ds-avail\" style=\"left:22%;width:30%\">AVAILABLE</button><button class=\"ds-tl-seg ds-assigned\" style=\"left:52%;width:8%\">ENR</button><button class=\"ds-tl-seg ds-scene\" style=\"left:60%;width:16%\">ONS</button><button class=\"ds-tl-seg ds-oos\" style=\"left:76%;width:18%\">OUT OF SERVICE</button><i class=\"ds-tl-crew\" style=\"left:22%;width:72%\"></i><i class=\"ds-tl-now\" style=\"left:94%\"></i></div></div>",
-      "css": ".ds-tl { display:grid; grid-template-columns:56px 1fr; align-items:center; width:520px; background:#0a2131; color:#f2efe2; font:500 10px 'IBM Plex Mono',monospace; } .ds-tl-label { padding-left:10px; font-weight:700; } .ds-tl-track { position:relative; height:28px; border-bottom:1px solid #4c6672; } .ds-tl-seg { position:absolute; top:5px; height:18px; overflow:hidden; border:0; padding:0 6px; color:#0b1d28; font:500 10px/18px 'IBM Plex Mono',monospace; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; } .ds-avail { background:#79c899; } .ds-assigned { color:#f6f8ff; background:#2a6aad; } .ds-scene { background:#f8ca55; } .ds-oos { color:#fff4ef; background:repeating-linear-gradient(135deg,#b8342a 0 6px,#cf4a3d 6px 11px); } .ds-unrec { color:#b8c6c6; background:repeating-linear-gradient(135deg,#1b3644 0 5px,#24414f 5px 9px); box-shadow:inset 0 0 0 1px #35535f; } .ds-tl-crew { position:absolute; bottom:1px; height:3px; background:#a9c6d3; } .ds-tl-now { position:absolute; top:-1px; bottom:-1px; width:2px; background:#efb649; } .ds-tl-seg:hover { filter:brightness(1.08); } .ds-tl-seg:focus-visible { z-index:4; outline:2px solid #efb649; outline-offset:1px; }"
-    },
-    {
-      "name": "Task Register Instrument",
-      "kind": "custom",
-      "refersTo": "task-instrument",
-      "description": "Compact task overview cell with a mono reading and accountable supporting detail; the status-wall instrument remains a separate variant.",
-      "html": "<div class=\"ds-task-register\"><div class=\"ds-task-instrument\"><span>PERSONNEL IN SCOPE</span><strong>24</strong><small>Selected station · synthetic records</small></div><div class=\"ds-task-instrument\"><span>AVAILABLE</span><strong>08</strong><small>Availability is not qualification clearance</small></div></div>",
-      "css": ".ds-task-register { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--municipal-blue,#244a63); background:var(--paper,#efe8d7); color:var(--ink,#20282e); } .ds-task-instrument { min-height:104px; padding:10px 14px; } .ds-task-instrument + .ds-task-instrument { border-left:1px solid var(--rule,#9da7a6); } .ds-task-instrument > span { font:500 10px 'IBM Plex Mono',monospace; } .ds-task-instrument strong { display:block; margin-top:11px; font:600 36px/1 'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; } .ds-task-instrument small { display:block; margin-top:8px; color:#5d6a70; font:11px/1.4 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; } .ds-task-instrument:hover { background:var(--paper-muted,#d9d2c1); } .ds-task-register:focus-within { outline:2px solid #efb649; outline-offset:2px; }"
-    },
-    {
-      "name": "Qualification Expiration Selection",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "Square expiration-band control with a labeled count and selected underline; opens the corresponding credential-risk docket.",
-      "html": "<div class=\"ds-expiration\" role=\"group\" aria-label=\"Qualification expiration bands\"><button type=\"button\" aria-pressed=\"true\"><span>0–14 DAYS</span><strong>03</strong><i><b></b></i><small>credential records</small></button><button type=\"button\" aria-pressed=\"false\"><span>15–30 DAYS</span><strong>06</strong><i><b></b></i><small>credential records</small></button></div>",
-      "css": ".ds-expiration { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid #879a9f; background:var(--paper,#efe8d7); color:var(--ink,#20282e); } .ds-expiration button { border:0; border-right:1px solid var(--rule,#9da7a6); border-radius:0; padding:12px 16px; text-align:left; color:inherit; background:transparent; cursor:pointer; } .ds-expiration button:last-child { border-right:0; } .ds-expiration button[aria-pressed=true] { background:#d9d2c1; box-shadow:inset 0 -3px var(--municipal-blue,#244a63); } .ds-expiration button > span { font:10px 'IBM Plex Mono',monospace; } .ds-expiration strong { display:block; margin:4px 0 8px; font:600 30px/1 'IBM Plex Mono',monospace; } .ds-expiration i { display:block; height:6px; margin-bottom:6px; background:#c8cbbf; } .ds-expiration b { display:block; height:100%; width:30%; background:#c44732; } .ds-expiration small { color:#46545d; font:10px 'IBM Plex Sans Variable','IBM Plex Sans',Arial,sans-serif; } .ds-expiration button:hover { background:#d9d2c1; } .ds-expiration button:focus-visible { outline:2px solid #efb649; outline-offset:2px; } .ds-expiration button:active { transform:translateY(1px); } @media(max-width:767px) { .ds-expiration button { min-height:44px; } }"
+      "refersTo": "inspector",
+      "description": "The selected record: header with title, kind, and state; sectioned body; footer with the record's actions. Docked at 1280px, a full-height drawer below.",
+      "html": "<aside class=\"ds-insp\" aria-label=\"Unit details\"><header><div><h3>E421</h3><p class=\"ds-insp-kind\">Engine · Station 21</p></div><span class=\"ds-insp-badge\"><i></i>Available</span></header><div class=\"ds-insp-body\"><h4>Crew</h4><dl><div><dt>Present</dt><dd>4 / 4</dd></div><div><dt>Last change</dt><dd class=\"ds-insp-mono\">16:32</dd></div></dl></div><footer><button class=\"ds-insp-primary\">Record service state</button><button class=\"ds-insp-secondary\">Deployment history</button></footer></aside>",
+      "css": ".ds-insp { display: flex; flex-direction: column; width: 408px; max-width: 100%; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow-raised); font-family: var(--font-sans); color: var(--ink); } .ds-insp header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 14px; border-bottom: 1px solid var(--rule); } .ds-insp h3 { margin: 0; font-size: 1.1875rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; } .ds-insp-kind { margin: 3px 0 0; color: var(--ink-2); font-size: 0.8125rem; } .ds-insp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border: 1px solid var(--ok-rule); border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-size: 0.8125rem; font-weight: 500; line-height: 1.5; } .ds-insp-badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; } .ds-insp-body { padding: 16px; } .ds-insp h4 { margin: 0 0 8px; font-size: 0.875rem; font-weight: 600; } .ds-insp dl { margin: 0; } .ds-insp dl > div { display: grid; grid-template-columns: minmax(120px, 38%) 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--rule); } .ds-insp dl > div:last-child { border-bottom: 0; } .ds-insp dt { color: var(--ink-3); font-size: 0.8125rem; } .ds-insp dd { margin: 0; font-size: 0.9375rem; font-weight: 500; } .ds-insp-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; } .ds-insp footer { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--rule); background: var(--surface-2); border-radius: 0 0 var(--radius-panel) var(--radius-panel); } .ds-insp footer button { flex: 1 1 auto; min-height: 38px; padding: 0 14px; border-radius: var(--radius-control); font: inherit; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out); } .ds-insp-primary { border: 1px solid var(--cobalt); background: var(--cobalt); color: #fff; } .ds-insp-primary:hover { border-color: var(--cobalt-strong); background: var(--cobalt-strong); } .ds-insp-secondary { border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); } .ds-insp-secondary:hover { border-color: var(--ink-3); background: var(--surface-2); } .ds-insp footer button:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "The County Status Wall",
-    "overview": "Aegis is a 1970s municipal systems room made interactive: public-infrastructure manuals, dispatch worksheets, wall-board plotting, and corporate control equipment translated into a calm operating surface. The dark shell is structural and recessive; lightly textured instrument-ivory plates carry the work. Strong rules, indexed labels, tabular numbers, and stamped states make every region feel accountable rather than atmospheric.\n\nThe system is intentionally dense. Its hierarchy comes from registration, contrast, and repeated document grammar—not oversized cards or empty space. Across the eight route workspaces—County Status Wall, Operations, Workforce, Scheduling, Credentials, Analytics, Weather, and Admin—the reading sequence is exception, evidence, action, then handover. It refuses generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, oversized pills, and decorative command-center theater.",
+    "northStar": "The Operating Deck",
+    "overview": "Aegis Command is one calm operating deck. Light surfaces are for reading and deciding: registers, forms, record detail, and prose sit on white panels over a cool-white canvas, divided by hairline blue-gray rules. Dark is for space and time: the county map, the incident and deployment timelines, the duty roster, and the charts sit on a deep navy stage with luminous state marks. A navy rail at the left holds navigation; a slim white bar above the work holds station scope, connection freshness, search, alerts, and the account.\n\nEach page leads with one primary workspace, and detail arrives on selection. Selecting a record in a row, on the map, or on a timeline moves one cobalt selection through every linked view and opens the inspector beside the work. The page title is followed by a one-line description and a single strip of facts, never a row of equal metric cards. Density comes from ruled rows and tabular figures, not from stacking panels.\n\nThis system replaces the earlier \"Aegis Municipal Systems Room\" (ivory paper plates, municipal blue rules, square stamped labels, uppercase mono headings). Those references are historical evidence only. Nothing from that world carries forward as a rule, and no new surface should be matched against it.",
     "keyCharacteristics": [
-      "Midnight structural shell with lightly textured instrument-ivory working papers.",
-      "Municipal-blue rules, square plates, indexed tabs, and mono register labels.",
-      "Vermilion, amber, and service green reserved for explicit operational meaning.",
-      "High information density disciplined by alignment, dividers, and tabular numbers.",
-      "Synthetic provenance, access state, and data freshness remain visible at the point of use."
+      "Cool-white canvas, white panels, hairline blue-gray rules, deep navy rail.",
+      "One accent, cobalt, for selection, focus, and the primary action.",
+      "A dark stage for maps, timelines, rosters in time, and charts, with its own brighter state palette.",
+      "State is a word plus a color; healthy values stay quiet.",
+      "IBM Plex Sans for interface text; IBM Plex Mono only for identifiers, clock times, and tabular figures.",
+      "Three corner sizes by scale: 6px controls, 10px panels, 14px stages.",
+      "A selected record opens in an inspector: docked from 1280px, a full-height drawer below."
     ],
     "rules": [
       {
-        "name": "The Evidence Before Action Rule",
-        "body": "Every action follows the responsible metric, record, or exception; never separate a control from the evidence that explains its consequence.",
+        "name": "The Light And Dark Rule",
+        "body": "Light is for reading and deciding; dark is for space and time. A register, form, or paragraph goes on a white panel. A map, timeline, time-ruled roster, or chart goes on the stage, together with its own controls, legend, and the short readout of the selected mark.",
         "section": "overview"
       },
       {
-        "name": "The Signal Budget Rule",
-        "body": "Service green means ready or successful, amber means attention, vermilion means critical or destructive, and blue means structure or information. Never swap those meanings between routes.",
+        "name": "The One Accent Rule",
+        "body": "Cobalt is reserved for selection, focus, and the primary action. If something is cobalt, it is the thing you picked, the thing the keyboard is on, or the thing to press. Links and ghost buttons use its ink shade because they are actions. The informational tone (info badge, default meter fill, the EMS incident type, a committed unit) borrows the cobalt family; do not extend that borrowing to new categories.",
         "section": "colors"
       },
       {
-        "name": "The No Assumed Availability Rule",
-        "body": "A timeline segment exists only where an audit fact records it. Time before the first recorded fact renders as the NO RECORD hatch, never as available green; untimed lifecycle stages carry a hatch overlay or dashed edge so inferred spans never read as measured ones.",
+        "name": "The Word Plus Color Rule",
+        "body": "State is always a word plus a color. A badge carries its label and a 6px dot; a map mark has a legend entry; a timeline bar carries its stage name or a three-letter code. Color never carries state alone.",
         "section": "colors"
       },
       {
-        "name": "The Warm Paper Rule",
-        "body": "Operational content sits on warm ivory, not white and not translucent dark glass; the contrast between shell and paper is the primary depth cue.",
+        "name": "The Quiet Until It Matters Rule",
+        "body": "One threshold helper, `ratioTone` in `dashboard/lib/utils.ts`, tones readiness, staffing, and availability percentages: quiet at 85% and above, warning from 60% up to 85%, critical below 60%. In the summary strip and in table figures a healthy percentage stays in ink; only a figure past a limit takes a color. Meters and status badges use the same two breakpoints and may show green when healthy, because there the color sits beside a word or a number. Do not add a second set of breakpoints.",
         "section": "colors"
       },
       {
-        "name": "The Instrument Voice Rule",
-        "body": "Use mono for indices, codes, time, statuses, register cells, and machine-like labels; use Sans for readable names, large instrument figures, descriptions, and decisions. Do not set whole paragraphs in mono.",
+        "name": "The Two Palettes Rule",
+        "body": "Light state colors go on light surfaces and stage state colors go on the stage. Never place `ok`, `warn`, or `bad` on the stage, or a `stage-*` mark on white.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Is Data Rule",
+        "body": "Plex Mono is only for identifiers (unit and incident IDs, station numbers), clock times, timeline ruler ticks, keyboard hints, and tabular figures that must align. Names, labels, headings, states, and sentences are always Plex Sans. Never set a heading or a paragraph in mono.",
         "section": "typography"
       },
       {
-        "name": "The Index Bar Rule",
-        "body": "A section heading is mono spaced caps with a short solid ink bar at its left edge and a rule beneath. The bar marks a heading, as in an indexed manual; it is never a colored stripe on a card or plate edge.",
+        "name": "The Sentence Case Rule",
+        "body": "Interface text is sentence case with no letter-spacing. The single exception is the county name drawn on the map, which is spaced capitals as a cartographic label.",
         "section": "typography"
       },
       {
-        "name": "The Labeled Number Rule",
-        "body": "A large number is never self-explanatory: pair it with a visible label, unit where relevant, and a plain-language detail line.",
+        "name": "The Labeled Figure Rule",
+        "body": "A figure always sits under its label and beside its detail (`351 / 363`, then `12 short`). A number never stands alone.",
         "section": "typography"
       },
       {
-        "name": "The Instrument Alignment Rule",
-        "body": "Keep separate overview instruments on one exact baseline with the established narrow gutter; use shared edges and internal dividers within dockets and worksheets. Do not substitute floating metric cards.",
+        "name": "The One Workspace Rule",
+        "body": "Each page leads with a single primary workspace. Alternative views of the same records (register, map, timeline; register, coverage matrix, deployment history) are reached through a segmented view switch and replace each other; they are not shown side by side.",
         "section": "layout"
       },
       {
-        "name": "The Board First Rule",
-        "body": "On overview surfaces, geography and exceptions outrank decorative summaries; on task surfaces, the selected record remains adjacent to the list or filter that produced it.",
+        "name": "The Selection Travels Rule",
+        "body": "One selection, held in the URL, is shared by every view of the same records. Switching from register to map to timeline keeps the selected record and the inspector follows it.",
         "section": "layout"
       },
       {
-        "name": "The Flat Operations Rule",
-        "body": "Persistent surfaces never use ambient card shadows; borders and tonal registration must carry the hierarchy.",
+        "name": "The Role Not Hover Rule",
+        "body": "A shadow says what a surface is, not that the pointer is over it. Hover changes fill and border color; nothing lifts, scales, or glows on hover.",
         "section": "elevation"
-      },
-      {
-        "name": "The Board Frame Rule",
-        "body": "The two-pixel light border belongs to the plotted county board; ordinary instruments and paper registers use one-pixel rules and square corners.",
-        "section": "shapes"
       }
     ],
     "dos": [
-      "**Do** lead with the exception, then preserve the evidence-to-action relationship through inspection and handover.",
-      "**Do** use warm paper plates, strong rules, compact mono labels, tabular figures, and repeated worksheet geometry across all eight route workspaces.",
-      "**Do** preserve the 50px top register, 184px indexed rail, four aligned overview instruments, and dominant GIS board at the approved desktop composition; adapt rather than crop them on smaller screens.",
-      "**Do** pair every status color with plain-language state text, an icon, border, marker, or other non-color cue.",
-      "**Do** build history from recorded facts only: unrecorded time is a NO RECORD hatch, and untimed or inferred spans stay visibly marked.",
-      "**Do** preserve visible keyboard focus, semantic landmarks and dialogs, skip navigation, `aria-current`, live status messaging, and 44px mobile controls.",
-      "**Do** preserve synthetic-data, public-geography, unofficial-concept, access, freshness, and provenance labels wherever they constrain interpretation.",
-      "**Do** keep errors recoverable, loading states legible, destructive actions confirmed, and read-only actions visibly unavailable rather than absent."
+      "Do put registers, forms, and prose on white panels, and maps, timelines, and charts on the stage.",
+      "Do lead each page with one primary workspace under the title, description, and summary strip.",
+      "Do keep cobalt for selection, focus, and the primary action, with one primary button per view.",
+      "Do pair every state color with a word, and tone readiness, staffing, and availability percentages with `ratioTone` (quiet at 85% and above, warning from 60%, critical below).",
+      "Do set identifiers, clock times, and aligned figures in Plex Mono, and everything else in Plex Sans, sentence case.",
+      "Do use 6px corners on controls, 10px on panels, and 14px on stages.",
+      "Do open a selected record in the inspector, docked from 1280px and as a focus-returning full-height drawer below, and put the record's actions in its footer.",
+      "Do keep only search, scope, and the primary action in a toolbar, with further filters behind the labeled \"More filters\" disclosure.",
+      "Do raise touch targets to 44px below 768px and let tables, timelines, and matrices scroll inside their container.",
+      "Do keep write controls visible and disabled with a reason in read-only sessions, and confirm destructive actions in a dialog.",
+      "Do hatch time that is unrecorded, untimed, or cancelled.",
+      "Do keep provenance, connection freshness, and access mode visible: the rail note, the connection word in the top bar, the access pill beside the title."
     ],
     "donts": [
-      "**Don't** turn Aegis into generic SaaS cards, cyberpunk neon, glass panels, gradient spectacle, oversized pills, or decorative command-center theater.",
-      "**Don't** use color, animation, iconography, or a large metric as the only explanation of state.",
-      "**Don't** soften the system with broad radii, floating persistent shadows, loose card spacing, or unlabeled whitespace.",
-      "**Don't** imply dispatch authority, county endorsement, patient care, personnel decisions, or suitability for real emergency operations.",
-      "**Don't** add patient identifiers, clinical narratives, ePHI, private county-system data, invented incident facts, or claims not supported by measured evidence.",
-      "**Don't** hide access limits, stale connections, synthetic provenance, or destructive consequences to make the interface appear more capable."
+      "Don't build a wall of equal dense panels or a row of metric cards; the summary is one strip.",
+      "Don't use cobalt as decoration, or add a second accent hue.",
+      "Don't color a healthy summary figure green, or invent a second set of breakpoints beside `ratioTone`.",
+      "Don't let color, an icon, or a mark state something without a word or a legend.",
+      "Don't put light-surface state colors on the stage or stage colors on white.",
+      "Don't set headings, labels, or sentences in mono, or in spaced capitals.",
+      "Don't lift, scale, or glow a surface on hover, or add a shadow outside the three roles.",
+      "Don't add a fixed bottom navigation bar; small screens use the navigation drawer.",
+      "Don't show register, map, and timeline of the same records at once; they are views behind one switch.",
+      "Don't bring back the retired municipal systems-room look: ivory paper, municipal blue rules, square stamped labels, uppercase mono headings. It is historical evidence only.",
+      "Don't use glass effects, neon, ornamental gradients, or command-center theatrics.",
+      "Don't imply dispatch authority, county endorsement, or suitability for real emergency operations."
     ]
   }
 }

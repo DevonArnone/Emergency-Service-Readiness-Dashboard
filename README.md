@@ -2,71 +2,85 @@
 
 A map-led emergency coordination concept built with FastAPI, Next.js, normalized PostgreSQL, OIDC identity, Kafka priority channels, Redis fan-out, and a tenant-scoped Snowflake analytics deployment.
 
-The interface is organized as a municipal systems room: indexed workspaces, a county status wall, instrument-style measures, dispatch and renewal dockets, and ruled operating worksheets. It is designed for fast exception scanning by duty officers without presenting itself as a CAD, dispatch, or patient-care system. See [product context](PRODUCT.md) and [design system](DESIGN.md).
+The interface is one calm operating deck: cool-white workspaces for reading and deciding, a deep navy navigation rail, cobalt for selection and the primary action, and a dark stage for the county map and timelines. Each page leads with one primary workspace; a selected record opens in an inspector beside it, or in a full-height drawer on smaller screens. It is designed for fast exception scanning by duty officers without presenting itself as a CAD, dispatch, or patient-care system. See [product context](PRODUCT.md) and [design system](DESIGN.md).
 
 **Target:** Fairfax County Fire and Rescue Department. **Unofficial portfolio concept—not affiliated with or endorsed by Fairfax County.** Public station geography is paired with 131 synthetic units, 1,450 synthetic personnel, eight synthetic battalion assignments, and a 363-position staffing model. No real incidents, personnel records, patient data, or county-system connections are included. See [target research and provenance](docs/target-research.md).
 
 ## Product tour
 
-### Command Center
+Navigation is grouped into Operations, Workforce, Intelligence, and Administration. Station scope, connection freshness, open alerts, and command search (⌘K) stay in the top bar; search returns workspaces plus stations, units, and active incidents from loaded data.
 
-![Aegis command center with Fairfax station geography and synthetic readiness](pictures/aegis-command-desktop.png)
+### County overview
 
-The county status wall fits its complete operating picture at 1536×1024: 39 keyboard-accessible station markers on locally committed [Fairfax County iCare GIS](https://www.fairfaxcounty.gov/gisint2/rest/services/DTA/iCare/MapServer) geometry drawn at a single Web Mercator scale, so roads, water, stations, and incidents share one projection, live dispatch and notice registers, resource posture, and a downloadable duty-officer brief. Station, incident, and risk layers remain interactive. [View the mobile command center](pictures/aegis-command-mobile.png).
+![Aegis county overview with the Fairfax readiness map beside the exception queue](pictures/aegis-command-desktop.png)
+
+A compact readiness summary sits above the county map and a queue of active incidents and open alerts. The map plots 39 keyboard-accessible station markers on locally committed [Fairfax County iCare GIS](https://www.fairfaxcounty.gov/gisint2/rest/services/DTA/iCare/MapServer) geometry at a single Web Mercator scale, with station, incident, and risk layers, zoom, and fullscreen. Resource posture and the downloadable handover brief follow below. [View on mobile](pictures/aegis-command-mobile.png).
+
+### Stations and resource status
+
+![Aegis station directory linked to the county map and a station inspector](pictures/aegis-stations-desktop.png)
+
+The station directory, the map, and the station inspector share one selection, which survives a reload; the inspector opens that station's units and personnel. Resource status presents apparatus, special teams, and supply availability in tabs with comparison bars.
 
 ### Incidents
 
-![Aegis plotted incident theater with interactive Fairfax map, register, selected incident, timeline, and unit posture](pictures/aegis-incidents-desktop.png)
+![Aegis incident register with the selected incident record](pictures/aegis-incidents-desktop.png)
 
-The plotted incident theater keeps the county map, an active-and-recent incident register, the editable worksheet (type, priority, status, location, timestamped notes, unit assignment, and resolution), a lifecycle timeline, and the selected incident's unit posture in sync. Timeline stages come from timestamped audit records of each status change and unit assignment; the timeline does not claim response or travel times. [View Incidents on mobile](pictures/aegis-incidents-mobile.png).
+Incidents open on a readable register with the selected record beside it: the editable worksheet (type, priority, status, location, timestamped notes), unit assignment, confirmed resolution, unit posture, and the recorded lifecycle. Map and Timeline are alternate views of the same selection. Timeline stages come from timestamped audit records; the timeline does not claim response or travel times. [View on mobile](pictures/aegis-incidents-mobile.png).
 
 ### Units
 
-![Aegis unit switchboard with station deployment matrix, crew dossier, and assignment timeline](pictures/aegis-units-desktop.png)
+![Aegis apparatus register grouped by station with the selected unit record](pictures/aegis-units-desktop.png)
 
-The unit switchboard connects 39 station rows to every synthetic apparatus record. Cells holding several units open an accessible chooser, and the selected unit stays in sync across the matrix, dossier, timeline, and URL. The deployment timeline rebuilds recorded service states, incident lifecycle stages, and crew assignment windows from the audit history; intervals with no record are shown as such rather than assumed available. The engine image is illustrative concept imagery, not a photograph of a Fairfax unit. Authorized users can assign crew, test a non-destructive offline scenario, and record out-of-service, maintenance, or return-to-service changes after confirmation. [View Units on mobile](pictures/aegis-units-mobile.png).
+The apparatus register groups every synthetic unit under its station, with an optional coverage matrix and a deployment history that rebuilds recorded service states, incident stages, and crew windows from the audit history; intervals with no record are shown as such rather than assumed available. Authorized users can assign crew, test a non-destructive offline scenario, and record out-of-service, maintenance, or return-to-service changes after confirmation. [View on mobile](pictures/aegis-units-mobile.png).
 
-### Workforce
+### Alerts
 
-![Aegis workforce workspace with searchable roster and operational profile](pictures/aegis-personnel-desktop.png)
+![Aegis alert queue with state filters and record context](pictures/aegis-alerts-desktop.png)
 
-The station personnel register filters the fixed-column roster directly into an accountable profile sheet. Availability segments, credential dates, profile deep links, guarded archival, and current assignments retain the recorded operational context. Availability is not qualification clearance. [View Workforce on mobile](pictures/aegis-personnel-mobile.png).
+A focused exception queue with state filters. Each alert shows its unit and station context and its audit trail; acknowledgment and resolution are recorded.
+
+### Personnel
+
+![Aegis personnel roster with search, status filters, and a profile inspector](pictures/aegis-personnel-desktop.png)
+
+Search and status filters lead; the station distribution is an expandable overview that filters the roster. The profile carries availability, credential dates, current assignments, deep links, and guarded archival. Availability is not qualification clearance. [View on mobile](pictures/aegis-personnel-mobile.png).
 
 ### Scheduling
 
-![Aegis scheduling workspace with coverage metrics and live roster](pictures/aegis-shifts-desktop.png)
+![Aegis duty timeline with date controls, coverage summary, and shift details](pictures/aegis-shifts-desktop.png)
 
-The duty-roster board plots recorded shift windows against a daily time ruler, including overnight continuation. Countywide shifts are grouped by actual apparatus assignments, with a coverage ledger highlighting attendance below minimums. Operators can create shifts, validate windows, assign qualified personnel, clock crew in and out, and safely cancel shifts. [View Scheduling on mobile](pictures/aegis-shifts-mobile.png).
+The duty timeline plots recorded shift windows across the day, including overnight continuation. Countywide shifts are grouped by actual apparatus assignments, and the selected shift's coverage ledger and roster open beside it. Operators can create shifts, validate windows, assign personnel, clock crew in and out, and cancel shifts after confirmation. [View on mobile](pictures/aegis-shifts-mobile.png).
 
 ### Credentials
 
-![Aegis credentials workspace with renewal queue and qualification risk](pictures/aegis-certifications-management-desktop.png)
+![Aegis credentials workspace with the expiration horizon and renewal queue](pictures/aegis-certifications-management-desktop.png)
 
-Selectable expiration bands open the corresponding workforce-risk docket. Renewal ownership, scheduling, completion, protected definitions, and a linked apparatus qualification matrix keep requirements distinct from verified crew qualifications. [View Credentials on mobile](pictures/aegis-certifications-management-mobile.png).
+The expiration horizon and renewal queue lead; selecting a band opens the matching workforce risk. Credential definitions and unit requirements are separate tabs, keeping requirements distinct from verified crew qualifications. [View on mobile](pictures/aegis-certifications-management-mobile.png).
 
 ### Analytics
 
-![Aegis analytics workspace with readiness and staffing visualizations](pictures/aegis-analytics-desktop.png)
+![Aegis analytics showing one readiness analysis with findings](pictures/aegis-analytics-desktop.png)
 
-Station comparison instruments trace current readiness to staffing and credential exceptions, then link to the accountable apparatus or personnel record. Trend windows, baseline comparisons, station scope, five report views, and CSV exports support planning without presenting current attendance as historical data or claiming predictive response coverage. [View Analytics on mobile](pictures/aegis-analytics-mobile.png).
+One analysis at a time: a prominent chart, short findings, and expandable evidence. Station comparison traces current readiness to staffing and credential exceptions and links to the accountable record. Trend windows, baseline comparison, station scope, five report views, and CSV export support planning without presenting current attendance as history or claiming predictive response coverage. [View on mobile](pictures/aegis-analytics-mobile.png).
 
 ### Plans & Hazards
 
-![Aegis contingency workbench with apparatus and crew dependencies, baseline, projected readiness, and recovery worksheet](pictures/aegis-plans-desktop.png)
+![Aegis contingency workbench with scenario inputs, baseline versus result, and recovery actions](pictures/aegis-plans-desktop.png)
 
-Select an apparatus outage or recorded crew callout to calculate hypothetical qualification and staffing consequences. The dependency register, baseline comparison, projected issues, and recovery worksheet use the existing simulation API without changing live records. Calculation remains permission-gated. [View Plans & Hazards on mobile](pictures/aegis-plans-mobile.png).
+Choose an apparatus outage or recorded crew callout, compare the recorded baseline with the hypothetical result, and read the returned recovery actions. Changing an input clears the result; nothing changes live records, and calculation remains permission-gated. [View on mobile](pictures/aegis-plans-mobile.png).
 
 ### Weather
 
-![Aegis Fairfax weather register with forecast, wind, hazards, and source freshness](pictures/aegis-weather-desktop.png)
+![Aegis weather with the selected forecast, active alerts, and temperature by period](pictures/aegis-weather-desktop.png)
 
-The selectable forecast plot connects each [National Weather Service](https://www.weather.gov/documentation/services-web-api) period to its detailed outlook, wind instrument, and precipitation probability. The ledger and hazard docket retain source time, cached/stale status, missing readings, and a clear unavailable state. Forecasts are not observed weather and do not replace official warning or dispatch channels. [View Weather on mobile](pictures/aegis-weather-mobile.png).
+The selected [National Weather Service](https://www.weather.gov/documentation/services-web-api) forecast period and active alerts lead, followed by temperature and wind instruments. Source time, stale and unavailable states, and missing readings stay explicit. Forecasts are not observed weather and do not replace official warning or dispatch channels. [View on mobile](pictures/aegis-weather-mobile.png).
 
-### Admin
+### Administration
 
-![Aegis access and service register showing identity, rights, and system provenance](pictures/aegis-admin-desktop.png)
+![Aegis administration with identity and access, response checks, audit history, and demo maintenance](pictures/aegis-admin-desktop.png)
 
-Selectable identity, operations, and audit checks explain precisely what each verified browser response establishes—not independent infrastructure health. A filterable recent-change register exposes tenant-scoped event summaries and actors without secrets. The existing synthetic demo reset remains permission-gated and requires confirmation. [View Admin on mobile](pictures/aegis-admin-mobile.png).
+Four sections: identity and effective access, response checks that state what each verified browser response establishes (not independent infrastructure health), a filterable audit history, and the permission-gated, confirmed demo reset. [View on mobile](pictures/aegis-admin-mobile.png).
 
 ---
 

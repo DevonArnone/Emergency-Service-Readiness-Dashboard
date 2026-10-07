@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ChevronDown, Edit3, Plus } from 'lucide-react'
+import { Archive, Edit3, Plus } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useMemo, useState, type FormEvent } from 'react'
 import ConfirmAction from '@/components/ConfirmAction'
@@ -129,12 +129,7 @@ function WorkforcePage() {
         </div>
         <Filters activeCount={Number(rosterStation !== 'all')}>
           <label className="ui-inline-field"><span>Roster station</span><select className="ui-select" aria-label="Roster station" value={rosterStation} onChange={event => setRosterStation(event.target.value)}><option value="all">All in scope</option>{stations.data?.filter(station => stationId === 'all' || station.station_id === stationId).map(station => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></label>
-        </Filters>
-      </div>
-
-      <details className="ui-disclosure" data-ui="station-distribution">
-        <summary>Station distribution<ChevronDown className="ui-chevron" aria-hidden="true" /></summary>
-        <Panel title="Personnel by station" description="Select a station to filter the roster. Availability is not qualification clearance." className={styles.distributionPanel}>
+          <div className={styles.distributionPanel} data-ui="station-distribution"><p className="ui-provenance">Personnel by station. Select a station to filter the roster; availability is not qualification clearance.</p>
           <div className={styles.distribution}>
             {distribution.map(station => {
               const roster = scopedPeople.filter(person => person.station_id === station.station_id)
@@ -147,8 +142,9 @@ function WorkforcePage() {
             })}
           </div>
           <ul className={styles.stateLegend}>{STATES.map(state => <li key={state}><i data-state={state.toLowerCase()} />{titleCase(state)}</li>)}</ul>
-        </Panel>
-      </details>
+        </div>
+        </Filters>
+      </div>
 
       <div className="ui-workspace" data-inspector="true">
         <Panel title="Roster" description={`${filteredPeople.length.toLocaleString()} of ${scopedPeople.length.toLocaleString()} personnel${rosterStation !== 'all' ? ` · ${stationName(rosterStation) || rosterStation}` : ''}`} flush>
@@ -178,10 +174,10 @@ function WorkforcePage() {
               <dl className="ui-facts">
                 <div><dt>Station</dt><dd>{selectedStation?.name || 'Unassigned'}</dd></div>
                 <div><dt>Current unit</dt><dd>{selectedUnit?.unit_name || 'No active unit'}</dd></div>
-                <div><dt>Last check-in</dt><dd>{formatDate(selected.last_check_in, 'MMM d, yyyy · h:mm a')}</dd></div>
+                <div><dt>Last check-in</dt><dd>{formatDate(selected.last_check_in, 'MMM d, yyyy · HH:mm')}</dd></div>
               </dl>
               <label className="ui-field"><span>Availability</span>
-                <select className="ui-select" disabled={!access.data?.can_write || updateAvailability.isPending} value={selected.availability_status} onChange={(event) => updateAvailability.mutate({ person: selected, status: event.target.value as Personnel['availability_status'] })}><option>AVAILABLE</option><option>ON_CALL</option><option>DEPLOYED</option><option>IN_TRAINING</option><option>OFF</option></select>
+                <select className="ui-select" disabled={!access.data?.can_write || updateAvailability.isPending} value={selected.availability_status} onChange={(event) => updateAvailability.mutate({ person: selected, status: event.target.value as Personnel['availability_status'] })}>{(['AVAILABLE', 'ON_CALL', 'DEPLOYED', 'IN_TRAINING', 'OFF'] as const).map((value) => <option key={value} value={value}>{titleCase(value)}</option>)}</select>
                 {!access.data?.can_write && <small>Read-only access. An operator account is required to change availability.</small>}
               </label>
               <InlineError message={updateAvailability.error?.message} />
@@ -193,7 +189,7 @@ function WorkforcePage() {
               </Section>
               <Section title="Current assignments" meta="live and pending">
                 <ul className="ui-list" style={{ border: selectedAssignments.length ? '1px solid var(--rule)' : 0, borderRadius: 'var(--radius-control)' }}>
-                  {selectedAssignments.map((assignment) => <li key={assignment.assignment_id} className="ui-list-row" style={{ minHeight: 48 }}><span className="ui-list-main"><strong>{units.data?.find((unit) => unit.unit_id === assignment.unit_id)?.unit_name || 'Response unit'}</strong><small>{formatDate(assignment.shift_start, 'MMM d · h:mm a')} – {formatDate(assignment.shift_end, 'h:mm a')}</small></span><StatusBadge tone={assignment.assignment_status === 'ON_SHIFT' ? 'success' : 'warning'}>{titleCase(assignment.assignment_status)}</StatusBadge></li>)}
+                  {selectedAssignments.map((assignment) => <li key={assignment.assignment_id} className="ui-list-row" style={{ minHeight: 48 }}><span className="ui-list-main"><strong>{units.data?.find((unit) => unit.unit_id === assignment.unit_id)?.unit_name || 'Response unit'}</strong><small>{formatDate(assignment.shift_start, 'MMM d · HH:mm')} – {formatDate(assignment.shift_end, 'HH:mm')}</small></span><StatusBadge tone={assignment.assignment_status === 'ON_SHIFT' ? 'success' : 'warning'}>{titleCase(assignment.assignment_status)}</StatusBadge></li>)}
                 </ul>
                 {!selectedAssignments.length && <p className="ui-empty-inline" style={{ padding: 0 }}>No current unit assignments.</p>}
               </Section>
@@ -215,7 +211,7 @@ function WorkforcePage() {
           <Field label="Rank"><input className="ui-input" name="rank" defaultValue={editing === 'new' ? '' : editing?.rank || ''} /></Field>
           <Field label="Operational role"><input className="ui-input" name="role" defaultValue={editing === 'new' ? '' : editing?.role} required /></Field>
           <Field label="Station"><select className="ui-select" name="station_id" defaultValue={editing === 'new' ? (stationId === 'all' ? '' : stationId) : editing?.station_id || ''}><option value="">Unassigned</option>{stations.data?.map((station) => <option key={station.station_id} value={station.station_id}>{station.name}</option>)}</select></Field>
-          <Field label="Availability"><select className="ui-select" name="availability_status" defaultValue={editing === 'new' ? 'AVAILABLE' : editing?.availability_status}><option>AVAILABLE</option><option>ON_CALL</option><option>DEPLOYED</option><option>IN_TRAINING</option><option>OFF</option></select></Field>
+          <Field label="Availability"><select className="ui-select" name="availability_status" defaultValue={editing === 'new' ? 'AVAILABLE' : editing?.availability_status}>{(['AVAILABLE', 'ON_CALL', 'DEPLOYED', 'IN_TRAINING', 'OFF'] as const).map((value) => <option key={value} value={value}>{titleCase(value)}</option>)}</select></Field>
           <Field label="Credentials" hint="Comma-separated credential codes; no validity is inferred"><input className="ui-input" name="certifications" list="credential-options" defaultValue={editing === 'new' ? '' : editing?.certifications.join(', ')} /><datalist id="credential-options">{certifications.data?.map((cert) => <option key={cert.certification_id}>{cert.name}</option>)}</datalist></Field>
           <Field label="Verified credential expiration" hint="Required for new credentials. If supplied, applies to all listed credentials. Leave blank to retain existing dates."><input className="ui-input" type="date" name="credential_expiry" /></Field>
         </div>

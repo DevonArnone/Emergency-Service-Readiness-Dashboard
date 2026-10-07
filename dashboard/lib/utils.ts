@@ -20,3 +20,9 @@ export function formatRelativeTime(value?: string | null) {
 export function titleCase(value: string) {
   return value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
+
+/** One threshold for every readiness, staffing, and availability percentage: quiet when healthy, toned only past a limit. */
+export function ratioTone(percent: number): 'warn' | 'bad' | undefined {
+  if (percent >= 85) return undefined
+  return percent >= 60 ? 'warn' : 'bad'
+}
