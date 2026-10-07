@@ -2,25 +2,27 @@
 version: 1
 slug: "dashboard-app-readiness-page-tsx"
 primary_target: "dashboard/app/readiness/page.tsx"
-related_targets: ["dashboard/components/UnitsSwitchboard.tsx"]
+related_targets: ["dashboard/components/IncidentsTheater.tsx","dashboard/components/UnitsSwitchboard.tsx","dashboard/components/ContingencyWorkbench.tsx"]
 ---
 
-# Aegis Units — Coverage and Crew Switchboard
+# Aegis Command renewal: Units, Incidents, Alerts, Plans & Hazards
 
-Mode: Operate. Duty officers and battalion chiefs use this page to find station/unit coverage gaps, inspect the responsible crew and qualifications, and make an authorized assignment or status change.
+Mode: Operate. Scope: the four views of `/readiness`. The system-wide direction contract lives in the brief for `dashboard/app/page.tsx`; this brief adds what is specific here.
 
 ## Direction contract
 
-**THESIS:** A county apparatus switchboard makes coverage legible station by station. It refuses another generic card grid or a second dominant county map.
+**THESIS:** A register you can read, with space and time one click away. It refuses showing map, register, worksheet, timeline, and posture all at once.
 
-**OWN-WORLD:** Inherit the municipal systems room: midnight structural shell, ivory ruled worksheets, municipal-blue selection, IBM Plex Sans and Mono, compact stamps, tabular figures, square controls, and visible synthetic provenance.
+**OWN-WORLD:** Same deck as the rest of Aegis: white registers with hairline rules, cobalt selection, and a navy stage for the incident map and both timelines. Apparatus state is a small filled mark plus a word; lifecycle stages are solid bars on the stage with a hatched fill for unrecorded time.
 
-**STORY:** Filter the deployment matrix, select a station or apparatus, inspect staffing and blockers, then assign personnel, test a contingency, or change service status with explicit confirmation.
+**STORY:** Find the incident or unit in the register, select it, read its inspector, act there. Switch to Map or Timeline when the question is where or when; the selection comes along.
 
-**FIRST VIEWPORT:** At 1536×1024, four narrow instruments sit over a dominant station-by-apparatus matrix on the left and selected-unit dossier on the right. A dark assignment-window time ruler spans the lower width with linked incident ticks and a compact event docket. On mobile, stack the same functions as indexed worksheets without cutting fields or actions.
+**FIRST VIEWPORT:** Title and summary line; a view switch (Incidents: Register, Map, Timeline; Units: Register, Coverage matrix, Deployment history); search plus one filter; the register at full width with the inspector docked right at 1280px and above. Primary action (Open incident, Add unit) sits in the page header.
 
-**FORM:** User-selected option C, Coverage and Crew Switchboard, from `.impeccable/mocks/decision/units-options.json`; seed key: user-pinned approved direction. Approved comp: `.impeccable/mocks/decision/units-coverage-switchboard.png`.
+**FORM:** Brief-pinned by the owner; code-led; no concept roll and no seed key. Signature interaction: one selection carried by the URL across register, map, and timeline, with the inspector following it.
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-Truth boundary: Use actual station/unit relationships, readiness, assignments, incident links, and timestamps. The approved comp's labels and imagery are illustrative, not operational facts. An assignment window is not travel time, a historical unit-state trace, or a live vehicle position. Retain OIDC/write gating, errors, empty states, keyboard access, reduced-motion behavior, and 44px mobile actions.
+## Constraints
+
+Keep `?view=`, `?incident=`, and `?unit=` semantics, the default selections, every dialog, confirmation, and permission gate. Alerts is a focused queue with state filters and record context. Plans & Hazards reads left to right: scenario inputs, baseline versus result, recovery actions; changing an input clears the result.
