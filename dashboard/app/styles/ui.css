@@ -5,7 +5,8 @@
 .ui-muted { color: var(--ink-3); }
 
 /* Page frame */
-.ui-page { display: grid; gap: 20px; padding: 24px 28px 40px; min-width: 0; }
+.ui-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 24px 28px 40px; min-width: 0; }
+.ui-page > * { min-width: 0; }
 .ui-page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
 .ui-page-header h1 { font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.02em; }
 .ui-page-header p { max-width: 72ch; margin-top: 4px; color: var(--ink-2); font-size: 0.9375rem; }
@@ -104,8 +105,8 @@ textarea.ui-input { min-height: 96px; padding: 10px 12px; line-height: 1.45; res
 .ui-filters-body { display: flex; flex-wrap: wrap; gap: 12px 16px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface-2); }
 
 /* Segmented control and tabs */
-.ui-segmented { display: inline-flex; padding: 3px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-sunken); }
-.ui-segmented button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-2); font-size: 0.875rem; font-weight: 500; white-space: nowrap; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
+.ui-segmented { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 3px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-sunken); }
+.ui-segmented button { flex: 0 0 auto; min-height: 32px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-2); font-size: 0.875rem; font-weight: 500; white-space: nowrap; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
 .ui-segmented button:hover { color: var(--ink); }
 .ui-segmented button[aria-pressed='true'], .ui-segmented button[aria-selected='true'], .ui-segmented button[data-state='active'] { background: var(--surface); color: var(--cobalt-ink); box-shadow: 0 1px 2px rgba(13, 27, 48, 0.14); }
 

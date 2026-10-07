@@ -286,7 +286,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Dialog.Portal>
       </Dialog.Root>
 
-      <ConfirmDialog open={resetOpen} onOpenChange={setResetOpen} title="Restore demo data?" description="All synthetic demonstration records are replaced with the baseline dataset." detail="Current demo edits will be permanently removed. This cannot be undone." confirmLabel="Restore demo data" onConfirm={async () => { await api.resetDemo(); await queryClient.invalidateQueries() }} />
+      <ConfirmDialog open={resetOpen} onOpenChange={setResetOpen} title="Restore demo data?" description="All synthetic demonstration records are replaced with the baseline dataset." detail="Current demo edits will be permanently removed. This cannot be undone." confirmLabel="Restore demo data" guarded={false} onConfirm={async () => { await api.resetDemo(); await queryClient.invalidateQueries() }} />
     </div>
   )
 }

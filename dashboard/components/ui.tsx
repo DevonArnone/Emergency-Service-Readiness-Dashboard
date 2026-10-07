@@ -269,18 +269,3 @@ export function InspectorBody({ children }: { children: ReactNode }) {
 export function InspectorFooter({ children }: { children: ReactNode }) {
   return <footer className="ui-inspector-footer">{children}</footer>
 }
-
-/** Transitional exports used by workspaces that have not been renewed yet. */
-export function SectionHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return (
-    <div className="ui-panel-header" style={{ padding: '0 0 10px', borderBottom: 0 }}>
-      <div><h2>{title}</h2>{description && <p>{description}</p>}</div>
-      {action}
-    </div>
-  )
-}
-
-export function StatCard({ label, value, detail, href }: { label: string; value: ReactNode; detail: ReactNode; icon?: LucideIcon; tone?: StatusTone; href?: string }) {
-  const content = <><dt>{label}</dt><dd>{value}<small>{detail}</small></dd></>
-  return <dl className="ui-summary">{href ? <Link href={href} style={{ display: 'block', padding: '12px 16px', color: 'inherit', textDecoration: 'none' }}>{content}</Link> : <div>{content}</div>}</dl>
-}

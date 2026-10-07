@@ -5,14 +5,14 @@ import FormDialog from './FormDialog'
 import { WriteButton } from './ui'
 
 /** Controlled confirmation for actions launched from menus or other controls. */
-export function ConfirmDialog({ open, onOpenChange, title, description, detail, confirmLabel = 'Confirm action', tone = 'danger', onConfirm }: {
+export function ConfirmDialog({ open, onOpenChange, title, description, detail, confirmLabel = 'Confirm action', tone = 'danger', guarded = true, onConfirm }: {
   open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string; detail?: ReactNode
-  confirmLabel?: string; tone?: 'primary' | 'danger'; onConfirm: () => Promise<unknown>
+  confirmLabel?: string; tone?: 'primary' | 'danger'; guarded?: boolean; onConfirm: () => Promise<unknown>
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   return (
-    <FormDialog open={open} onOpenChange={(next) => { if (next) setError(undefined); onOpenChange(next) }} title={title} description={description} submitLabel={confirmLabel} submitVariant={tone} submitting={busy} error={error} onSubmit={async (event) => {
+    <FormDialog open={open} onOpenChange={(next) => { if (next) setError(undefined); onOpenChange(next) }} title={title} description={description} submitLabel={confirmLabel} submitVariant={tone} guarded={guarded} submitting={busy} error={error} onSubmit={async (event) => {
       event.preventDefault()
       setBusy(true)
       setError(undefined)

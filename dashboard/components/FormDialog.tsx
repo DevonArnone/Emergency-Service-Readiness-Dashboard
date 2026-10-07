@@ -13,6 +13,7 @@ export default function FormDialog({
   submitLabel,
   submitVariant = 'primary',
   submitting = false,
+  guarded = true,
   error,
   onSubmit,
   children,
@@ -24,6 +25,8 @@ export default function FormDialog({
   submitLabel: string
   submitVariant?: 'primary' | 'danger'
   submitting?: boolean
+  /** Write-gated by default; pass false when the action has its own permission check. */
+  guarded?: boolean
   error?: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>
   children: ReactNode
@@ -32,7 +35,7 @@ export default function FormDialog({
     <Dialog.Root open={open} onOpenChange={(next) => { if (!submitting) onOpenChange(next) }}>
       <Dialog.Portal>
         <Dialog.Overlay className="ui-overlay" />
-        <Dialog.Content className="ui-dialog" aria-describedby={description ? undefined : undefined}>
+        <Dialog.Content className="ui-dialog">
           <div className="ui-dialog-header">
             <div className="min-w-0">
               <Dialog.Title asChild><h2>{title}</h2></Dialog.Title>
@@ -48,7 +51,7 @@ export default function FormDialog({
             </div>
             <div className="ui-dialog-footer">
               <Dialog.Close asChild><Button disabled={submitting}>Cancel</Button></Dialog.Close>
-              <WriteButton type="submit" variant={submitVariant} busy={submitting}>{submitLabel}</WriteButton>
+              {guarded ? <WriteButton type="submit" variant={submitVariant} busy={submitting}>{submitLabel}</WriteButton> : <Button type="submit" variant={submitVariant} busy={submitting}>{submitLabel}</Button>}
             </div>
           </form>
         </Dialog.Content>
