@@ -133,7 +133,8 @@ def validate_markdown_links(errors: list[str]) -> None:
         and "venv" not in path.parts
         and ".venv" not in path.parts
         and "test-results" not in path.parts
-        and ".claude" not in path.parts
+        # Hidden directories hold local tooling state, not maintained documentation.
+        and not any(part.startswith(".") for part in path.relative_to(ROOT).parts[:-1])
     ]
     link_pattern = re.compile(r"\[[^\]]+\]\((?!https?://|mailto:|#)([^)]+)\)")
 

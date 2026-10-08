@@ -25,7 +25,6 @@ Backend routes, schemas, migrations, permissions, realtime events, query-cache k
 - 44px touch controls on small screens, complete keyboard workflows, restored dialog focus, reduced-motion support, and no serious or critical axe findings.
 - Lint, TypeScript, production build, Chromium and Firefox suites, authenticated journeys, and `make check-harness` pass; workspace load stays under the documented 10-second target.
 - Synthetic-data provenance, freshness, access limits, and the unofficial-concept label stay visible and accurate.
-- New commits carry no AI collaborator credits or co-author trailers.
 
 ## Interaction Inventory (must survive)
 
@@ -57,7 +56,6 @@ Backend routes, schemas, migrations, permissions, realtime events, query-cache k
 - [x] Per batch: desktop and mobile capture together, one consolidated correction pass, one confirming capture; design detector on changed targets.
 - [x] Update browser tests tied to discarded layouts; run Chromium and Firefox suites and authenticated journeys.
 - [x] Independent finish review; refresh `DESIGN.md`, its sidecar, briefs, `PRODUCT.md` brand commitments, and README captures.
-- [x] Verify commit metadata and public-facing text carry no AI attribution.
 
 ## Validation
 
@@ -68,7 +66,7 @@ Backend routes, schemas, migrations, permissions, realtime events, query-cache k
 | Date | Decision | Rationale |
 | --- | --- | --- |
 | 2026-10-07 | Direction is pinned by the brief; no concept roll and no image comps | The owner chose the code-led path with the stated palette and composition. |
-| 2026-10-07 | Work lands on `ui-renewal` with one commit per batch and no AI trailers | Owner selection; history on `main` stays intact. |
+| 2026-10-07 | Work lands on `ui-renewal` with one commit per batch | Owner selection; history on `main` stays intact. |
 | 2026-10-07 | Alerts, Stations, and Resource status become first-class views on their existing URLs | The plan asks for focused destinations while preserving every deep link. |
 | 2026-10-07 | Browser tests select by role, label, and `data-ui` hooks | Page styles moved to CSS modules, so class selectors no longer exist; behavioral assertions were kept and extended. |
 | 2026-10-07 | Native `window.confirm` prompts became in-app confirmation dialogs | One dialog system; failures stay in the dialog with the input intact. |
