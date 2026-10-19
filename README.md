@@ -1,6 +1,6 @@
 # Aegis Command
 
-[![A 45-second tour: county overview, incidents on the register, map, and timeline, units, scheduling, analytics, command search, and the mobile layout](pictures/aegis-tour.gif)](pictures/aegis-tour.webm)
+[![A 43-second tour: county overview, incidents on the register, map, and timeline, units, scheduling, analytics, command search, and the mobile layout](pictures/aegis-tour.webp)](pictures/aegis-tour.webm)
 
 A readiness coordination tool for a county fire and rescue department: who is on duty, which apparatus can respond, what is open, and what needs attention. FastAPI and PostgreSQL behind a Next.js interface, with an outbox-to-Kafka event pipeline, Redis fan-out to WebSockets, and OIDC roles.
 
