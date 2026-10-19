@@ -1,10 +1,10 @@
 // Records the README tour from the running application.
 //   node scripts/record-tour.mjs            (expects the dashboard at REVIEW_BASE, default http://127.0.0.1:3010)
-// Writes ../pictures/aegis-tour.webm and ../pictures/aegis-tour.gif. The GIF step needs python3 with Pillow and NumPy.
-//   node scripts/record-tour.mjs --gif-only  rebuilds the GIF from the existing WebM.
+// Writes ../pictures/aegis-tour.webp (the README animation) and ../pictures/aegis-tour.webm. The WebP step needs python3 with Pillow.
 import { chromium } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, renameSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -101,18 +101,17 @@ const overlay = () => {
   }
 }
 
-const webm = join(out, 'aegis-tour.webm')
-if (!process.argv.includes('--gif-only')) await record()
+await record()
 
-// Frames for the GIF come out of the WebM through the ffmpeg build Playwright already ships.
+// Lossless frames become a full-size animated WebP for the README and a constant-rate WebM for the full-resolution link.
+execFileSync('python3', [resolve(import.meta.dirname, 'tour_webp.py'), work, join(out, 'aegis-tour.webp')], { stdio: 'inherit' })
+// The WebM is encoded with the ffmpeg build Playwright already ships; it has libvpx but no filters or PNG input.
 const cache = join(homedir(), process.platform === 'darwin' ? 'Library/Caches/ms-playwright' : '.cache/ms-playwright')
 const ffmpegDir = readdirSync(cache).filter((name) => name.startsWith('ffmpeg-')).sort().at(-1)
 const ffmpeg = join(cache, ffmpegDir, readdirSync(join(cache, ffmpegDir)).find((name) => name.startsWith('ffmpeg')))
-// The bundled build has no fps or scale filters, so rate and size are output options.
-execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-i', webm, '-r', '8', '-s', '720x405', join(work, 'f-%04d.png')])
-execFileSync('python3', [resolve(import.meta.dirname, 'tour_gif.py'), work, join(out, 'aegis-tour.gif')], { stdio: 'inherit' })
+execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', '30', '-i', join(work, 'seq.mjpeg'), '-c:v', 'libvpx', '-b:v', '5M', '-crf', '6', '-qmin', '0', '-qmax', '24', '-auto-alt-ref', '0', '-pix_fmt', 'yuv420p', join(out, 'aegis-tour.webm')])
 rmSync(work, { recursive: true, force: true })
-console.log('wrote', webm, 'and aegis-tour.gif')
+console.log('wrote aegis-tour.webp and aegis-tour.webm in', out)
 
 async function record() {
   const browser = await chromium.launch()
@@ -124,7 +123,7 @@ async function record() {
   }
   await warm.context().close()
 
-  const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1, recordVideo: { dir: work, size } })
+  const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1 })
   // Hide the dev indicator in every frame, and keep the top page covered until the title card is up.
   await context.addInitScript(() => {
     // A constructed stylesheet is not a DOM node, so hydration cannot remove it.
@@ -158,6 +157,17 @@ async function record() {
 
   await page.goto(base + '/', { waitUntil: 'networkidle' })
   await page.evaluate(overlay)
+
+  // Playwright's recordVideo is a low-bitrate VP8 stream, so frames come straight from the compositor as PNGs instead.
+  const cdp = await context.newCDPSession(page)
+  const frames = [], writes = []
+  cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
+    cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {})
+    const file = `f-${String(frames.length).padStart(5, '0')}.png`
+    frames.push({ file, t: metadata.timestamp })
+    writes.push(writeFile(join(work, file), Buffer.from(data, 'base64')))
+  })
+  await cdp.send('Page.startScreencast', { format: 'png', maxWidth: size.width, maxHeight: size.height, everyNthFrame: 1 })
   await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Unofficial concept · synthetic data')
   await page.evaluate(() => window.tourCover.replaceSync('nextjs-portal { display: none !important; }'))
   await page.locator('[data-map-station]').first().waitFor()
@@ -237,8 +247,9 @@ async function record() {
   await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Unofficial concept · synthetic data · not for dispatch')
   await wait(2400)
 
-  const video = page.video()
+  await cdp.send('Page.stopScreencast')
+  await Promise.all(writes)
+  writeFileSync(join(work, 'frames.json'), JSON.stringify({ frames, end: Date.now() / 1000 }))
   await context.close()
   await browser.close()
-  renameSync(await video.path(), webm)
 }
