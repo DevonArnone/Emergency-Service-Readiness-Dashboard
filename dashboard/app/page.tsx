@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import MapView from '@/components/MapView'
+import TimeScrubber, { type ActivityEvent, type TimeWindow } from '@/components/TimeScrubber'
+import { useDockedInspector } from '@/hooks/useMediaQuery'
 import { CONDITION_LABEL, defaultLayers, stationNumber, stationRows, type MapLayer } from '@/lib/map/stations'
 import { useStationScope } from '@/components/ScopeContext'
 import StationInspector, { readinessTone } from '@/components/StationInspector'
@@ -69,7 +71,20 @@ export default function CommandCenterPage() {
   const units = useMemo(() => snapshot?.units || [], [snapshot?.units])
   const incidents = useMemo(() => [...(snapshot?.incidents || [])].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()), [snapshot?.incidents])
   const alerts = snapshot?.alerts || []
+  const [timeWindow, setTimeWindow] = useState<TimeWindow | null>(null)
+  const history = useQuery({ queryKey: queryKeys.incidents, queryFn: api.incidents, enabled: view === 'overview' })
+  const docked = useDockedInspector()
+  const within = (value?: string | null) => { if (!timeWindow) return true; const at = value ? Date.parse(value) : NaN; return at >= timeWindow[0] && at < timeWindow[1] }
+  // A time window filters the map and the queue together; with a window, the map also shows incidents closed inside it.
+  const scopedHistory = (history.data || []).filter((incident) => stationId === 'all' || incident.station_id === stationId || incident.assigned_unit_ids.some((id) => units.some((unit) => unit.unit_id === id)))
+  const mapIncidents = timeWindow ? scopedHistory.filter((incident) => within(incident.created_at)) : incidents
+  const queueIncidents = incidents.filter((incident) => within(incident.created_at))
+  const activity: ActivityEvent[] = [
+    ...scopedHistory.flatMap((incident) => incident.created_at ? [{ at: Date.parse(incident.created_at), kind: 'incident' as const }] : []),
+    ...alerts.flatMap((alert) => alert.created_at ? [{ at: Date.parse(alert.created_at), kind: 'alert' as const }] : []),
+  ]
   const openAlerts = alerts.filter((alert) => alert.state === 'OPEN')
+  const queueAlerts = openAlerts.filter((alert) => within(alert.created_at))
   const readiness = units.length ? Math.round(units.reduce((sum, unit) => sum + unit.readiness_score, 0) / units.length) : 0
   const rows = useMemo(() => stationRows(stations.data || [], units), [stations.data, units])
   const selectedStation = rows.find((station) => station.station_id === selectedStationId)
@@ -115,7 +130,7 @@ export default function CommandCenterPage() {
   )
 
   const map = (
-    <MapView title={view === 'stations' ? 'Station map' : 'County readiness map'} stations={stations.data || []} units={units} incidents={incidents} scope={stationId} layers={layers}
+    <MapView title="Station map" stations={stations.data || []} units={units} incidents={incidents} scope={stationId} layers={layers}
       onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))}
       selectedStationId={selectedStationId} onStationSelect={selectStation} onReset={() => selectStation(null)} />
   )
@@ -210,14 +225,8 @@ export default function CommandCenterPage() {
     )
   }
 
-  return (
-    <div className="ui-page" data-view="overview">
-      <PageHeader title="Fairfax County readiness board" description="Countywide readiness, active incidents, and open exceptions for the current operational period." actions={<Button onClick={exportBrief} disabled={!snapshot} aria-label="Export duty officer brief"><Download aria-hidden="true" />Export brief</Button>} />
-      {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
-      {summary}
-
-      <div className={styles.situation}>
-        {map}
+  const attention = (
+    <>
         {selectedStation && inspectorOpen
           ? <StationInspector station={selectedStation} open={inspectorOpen} onClose={() => selectStation(null)} dismissible />
           : (
@@ -226,7 +235,7 @@ export default function CommandCenterPage() {
                 <div className={styles.queueHead}><h3 id="queue-incidents">Active incidents</h3><TextLink href="/readiness?view=incidents">All incidents</TextLink></div>
                 {operations.isLoading ? <LoadingState rows={5} /> : (
                   <ul className="ui-list" data-ui="incident-queue">
-                    {incidents.slice(0, 5).map((incident) => (
+                    {queueIncidents.slice(0, 5).map((incident) => (
                       <li key={incident.incident_id}>
                         <Link className="ui-list-row" href={`/readiness?view=incidents&incident=${encodeURIComponent(incident.incident_id)}`}>
                           <span className={styles.queueTime}><span className="ui-mono">{clock(incident.created_at)}</span><small>{incidentRef(incident)}</small></span>
@@ -237,13 +246,13 @@ export default function CommandCenterPage() {
                     ))}
                   </ul>
                 )}
-                {!operations.isLoading && !incidents.length && <p className="ui-empty-inline">No active incidents in the current scope.</p>}
-                {incidents.length > 5 && <p className={styles.queueMore}>Showing 5 of {incidents.length} active incidents.</p>}
+                {!operations.isLoading && !queueIncidents.length && <p className="ui-empty-inline">{timeWindow ? 'No active incidents opened in the selected window.' : 'No active incidents in the current scope.'}</p>}
+                {queueIncidents.length > 5 && <p className={styles.queueMore}>Showing 5 of {queueIncidents.length} active incidents.</p>}
               </section>
               <section aria-labelledby="queue-alerts" className={styles.queueSection}>
-                <div className={styles.queueHead}><h3 id="queue-alerts">Open alerts <span className="ui-num">{openAlerts.length}</span></h3><TextLink href="/readiness?view=alerts">Alert queue</TextLink></div>
+                <div className={styles.queueHead}><h3 id="queue-alerts">Open alerts <span className="ui-num">{queueAlerts.length}</span></h3><TextLink href="/readiness?view=alerts">Alert queue</TextLink></div>
                 <ul className="ui-list" data-ui="alert-queue">
-                  {openAlerts.slice(0, 4).map((alert) => (
+                  {queueAlerts.slice(0, 4).map((alert) => (
                     <li key={alert.alert_id}>
                       <Link className="ui-list-row" href={`/readiness?view=alerts&alert=${encodeURIComponent(alert.alert_id)}`}>
                         <span className={styles.queueTime}><span className="ui-mono">{clock(alert.created_at)}</span><small>{alertCategory(alert.alert_type)}</small></span>
@@ -252,11 +261,28 @@ export default function CommandCenterPage() {
                     </li>
                   ))}
                 </ul>
-                {!openAlerts.length && <p className="ui-empty-inline">No open operational alerts.</p>}
+                {!queueAlerts.length && <p className="ui-empty-inline">{timeWindow ? 'No open alerts raised in the selected window.' : 'No open operational alerts.'}</p>}
               </section>
               <p className={styles.queueFoot}>{weather.data?.active_alerts.length ? <Link href="/weather">{weather.data.active_alerts.length} active weather {weather.data.active_alerts.length === 1 ? 'alert' : 'alerts'}</Link> : weather.isError ? 'Weather alerts unavailable' : 'No active weather alerts returned'}</p>
             </Panel>
           )}
+    </>
+  )
+
+  return (
+    <div className="ui-page" data-view="overview">
+      <PageHeader title="Fairfax County readiness board" description="Countywide readiness, active incidents, and open exceptions for the current operational period." actions={<Button onClick={exportBrief} disabled={!snapshot} aria-label="Export duty officer brief"><Download aria-hidden="true" />Export brief</Button>} />
+      {operations.isError && <ErrorState message={operations.error.message} retry={() => operations.refetch()} />}
+      {summary}
+
+      <div className={styles.command}>
+        <MapView title="County readiness map" stations={stations.data || []} units={units} incidents={mapIncidents} scope={stationId} layers={layers}
+          onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))}
+          selectedStationId={selectedStationId} onStationSelect={selectStation} onReset={() => selectStation(null)}
+          className={styles.commandMap} fill insetRight={docked ? 392 : 0} layersOpenDefault={docked}
+          overlay={docked ? <div className={styles.dock}>{attention}</div> : undefined} />
+        {!docked && <div className={styles.dockFlow}>{attention}</div>}
+        {snapshot && <TimeScrubber className={styles.scrubber} events={activity} now={Date.parse(snapshot.timestamp)} value={timeWindow} onChange={setTimeWindow} />}
       </div>
 
       <div className={styles.lower}>

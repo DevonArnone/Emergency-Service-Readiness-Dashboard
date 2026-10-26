@@ -1,5 +1,12 @@
-.situation { display: grid; gap: 20px; align-items: start; min-width: 0; }
-.situation > * { min-width: 0; }
+/* Map-first command view: the map, a docked attention column over its right edge, and the activity strip beneath. */
+.command { --map-h: clamp(520px, calc(100dvh - 300px), 880px); display: grid; min-width: 0; }
+.command > * { min-width: 0; }
+.commandMap { height: var(--map-h); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.scrubber { border-top: 1px solid var(--stage-rule); border-top-left-radius: 0; border-top-right-radius: 0; }
+.dock { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 7; display: flex; width: 380px; }
+.dock > * { flex: 1 1 auto; min-height: 0; overflow-y: auto; box-shadow: var(--shadow-float); }
+.dock :global(.ui-inspector) { position: static; max-height: none; overflow: hidden; }
+.dockFlow { margin-top: 16px; }
 .queue { display: flex; flex-direction: column; }
 .queueHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 6px; }
 .queueHead h3 { font-size: 0.875rem; font-weight: 600; }
@@ -33,7 +40,6 @@
 .readinessCell { display: grid; grid-template-columns: minmax(48px, 96px) 44px; align-items: center; gap: 10px; }
 
 @media (min-width: 1100px) {
-  .situation { grid-template-columns: minmax(0, 1.85fr) minmax(340px, 1fr); align-items: stretch; }
   .lower { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 }
 @media (max-width: 640px) {

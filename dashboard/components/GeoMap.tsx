@@ -34,6 +34,10 @@ export type GeoMapProps = {
   overlay?: ReactNode
   /** Called when WebGL is unavailable so the caller can fall back to the SVG map. */
   onUnavailable?: () => void
+  /** Width in px covered by a panel docked over the map's right edge; controls and framing keep clear of it. */
+  insetRight?: number
+  /** Start with the layer panel open (map-first layouts). */
+  layersOpenDefault?: boolean
 }
 
 type RGBA = [number, number, number, number]
@@ -78,7 +82,7 @@ const coordsOf = (item: { latitude?: number | null; longitude?: number | null })
 const formatLat = (lat: number) => `${Math.abs(lat).toFixed(5)}° ${lat >= 0 ? 'N' : 'S'}`
 const formatLon = (lon: number) => `${Math.abs(lon).toFixed(5)}° ${lon >= 0 ? 'E' : 'W'}`
 
-export default function GeoMap({ title, stations, units, incidents, scope, mode = 'readiness', layers, onToggleLayer, selectedStationId, onStationSelect, selectedIncidentId, onIncidentSelect, onReset, className, fill = false, overlay, onUnavailable }: GeoMapProps) {
+export default function GeoMap({ title, stations, units, incidents, scope, mode = 'readiness', layers, onToggleLayer, selectedStationId, onStationSelect, selectedIncidentId, onIncidentSelect, onReset, className, fill = false, overlay, onUnavailable, insetRight = 0, layersOpenDefault = false }: GeoMapProps) {
   const stageRef = useRef<HTMLElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -96,7 +100,10 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
   const [cursor, setCursor] = useState<[number, number] | null>(null)
   const [center, setCenter] = useState<[number, number] | null>(null)
   const [county, setCounty] = useState<CountyCollection | null>(null)
-  const [layersOpen, setLayersOpen] = useState(false)
+  const [layersOpen, setLayersOpen] = useState(layersOpenDefault)
+  const framing = useRef({ insetRight, layersOpen })
+  useEffect(() => { framing.current = { insetRight, layersOpen } }, [insetRight, layersOpen])
+  const padding = () => ({ top: 28, bottom: 28, left: framing.current.layersOpen ? 236 : 28, right: 64 + framing.current.insetRight })
 
   useEffect(() => { handlers.current = { onStationSelect, onIncidentSelect } }, [onStationSelect, onIncidentSelect])
 
@@ -121,7 +128,7 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
           container,
           style: buildStyle(readPalette(), county, { buildings: true, terrain: true }),
           bounds: countyBounds(county),
-          fitBoundsOptions: { padding: { top: 28, bottom: 28, left: 28, right: 64 } },
+          fitBoundsOptions: { padding: padding() },
           minZoom: 8.5,
           maxZoom: 17.5,
           maxPitch: 70,
@@ -145,6 +152,7 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
       map.on('load', () => {
         if (disposed) return
         setStyleReady(true)
+        const point = map!.getCenter(); setCenter([point.lng, point.lat])
         // Start collapsed; the info button expands it.
         container.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       })
@@ -347,12 +355,12 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
     const center = target && coordsOf(target)
     if (!center) return
     const tilted = map.getPitch() > 10
-    map.flyTo({ center, zoom: Math.max(map.getZoom(), tilted ? 14.2 : 11.4), duration: 1400, essential: false, padding: fill ? { left: 260, right: 380, top: 60, bottom: 120 } : undefined })
-  }, [ready, selectedStationId, selectedIncidentId, stations, incidents, fill])
+    map.flyTo({ center, zoom: Math.max(map.getZoom(), tilted ? 14.2 : 11.4), duration: 1400, essential: false, padding: padding() })
+  }, [ready, selectedStationId, selectedIncidentId, stations, incidents])
 
   const resetView = () => {
     const map = mapRef.current
-    if (map && countyRef.current) map.fitBounds(countyBounds(countyRef.current), { padding: { top: 28, bottom: 28, left: 28, right: 64 }, pitch: threeD ? 50 : 0, bearing: threeD ? -18 : 0, duration: 900 })
+    if (map && countyRef.current) map.fitBounds(countyBounds(countyRef.current), { padding: padding(), pitch: threeD ? 50 : 0, bearing: threeD ? -18 : 0, duration: 900 })
     onReset?.()
   }
   const toggle3D = () => {
@@ -368,7 +376,7 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
   const readout = cursor ?? center
 
   return (
-    <section ref={stageRef} className={cn('ui-stage', styles.map, styles.geo, fill && styles.geoFill, className)} aria-label={title} data-map={mode} data-engine="webgl">
+    <section ref={stageRef} className={cn('ui-stage', styles.map, styles.geo, fill && styles.geoFill, className)} aria-label={title} data-map={mode} data-engine="webgl" style={{ ['--map-inset-right' as string]: `${insetRight}px` }}>
       <header className="ui-stage-header">
         <div><h2>{title}</h2><p>{scope !== 'all' ? 'Filtered to the selected station scope' : threeD ? '3D view · columns show assigned units per station' : 'County basemap with live station and incident layers'}</p></div>
         <div className={styles.layers} role="group" aria-label="Map layers">
@@ -383,9 +391,9 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
           <div id="map-layer-panel" className={styles.layerPanel} role="group" aria-label="All map layers">
             <p className="ui-label">Layers</p>
             {order.map((layer) => (
-              <button key={layer} type="button" aria-pressed={layers[layer]} onClick={() => onToggleLayer(layer)}>
+              <button key={layer} type="button" aria-pressed={layers[layer]} onClick={() => onToggleLayer(layer)} title={LAYER_NOTE[layer]} aria-describedby={LAYER_NOTE[layer] ? `layer-note-${layer}` : undefined}>
                 <i aria-hidden="true" data-layer={layer} />
-                <span>{LAYER_LABEL[layer]}{LAYER_NOTE[layer] && <small>{LAYER_NOTE[layer]}</small>}</span>
+                <span>{LAYER_LABEL[layer]}{LAYER_NOTE[layer] && <small id={`layer-note-${layer}`} className="sr-only">{LAYER_NOTE[layer]}</small>}</span>
                 {counts[layer] !== undefined && <b aria-hidden="true">{counts[layer]}</b>}
               </button>
             ))}
