@@ -5,6 +5,13 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
+  Bell,
+  Building2,
+  CalendarClock,
+  Siren,
+  Truck,
+  UserRound,
   CheckCircle2,
   ChevronDown,
   Eye,
@@ -286,11 +293,21 @@ export function Inspector({ label, open, onClose, recordKey, dismissible = false
   )
 }
 
-export function InspectorHeader({ kind, title, subtitle, badge, headingId, children }: { kind?: string; title: ReactNode; subtitle?: ReactNode; badge?: ReactNode; headingId?: string; children?: ReactNode }) {
+export type ObjectType = 'incident' | 'apparatus' | 'person' | 'station' | 'shift' | 'credential' | 'alert'
+const OBJECT_ICON: Record<ObjectType, LucideIcon> = { incident: Siren, apparatus: Truck, person: UserRound, station: Building2, shift: CalendarClock, credential: Award, alert: Bell }
+
+/** Names a record the same way everywhere: type chip, then its identifier. */
+export function ObjectChip({ type, id }: { type: ObjectType; id?: ReactNode }) {
+  const Icon = OBJECT_ICON[type]
+  return <span className="inline-flex items-center gap-2"><span className="ui-object-chip" data-type={type}><Icon aria-hidden="true" />{type}</span>{id && <span className="ui-object-id">{id}</span>}</span>
+}
+
+export function InspectorHeader({ kind, objectType, objectId, title, subtitle, badge, headingId, children }: { kind?: string; objectType?: ObjectType; objectId?: ReactNode; title: ReactNode; subtitle?: ReactNode; badge?: ReactNode; headingId?: string; children?: ReactNode }) {
   const { drawer, dismiss, closeLabel } = useContext(InspectorContext)
   return (
     <header className="ui-inspector-header">
       <div className="min-w-0">
+        {objectType && <div className="ui-inspector-object"><ObjectChip type={objectType} id={objectId} /></div>}
         <h2 id={headingId}>{title}</h2>
         {kind && <p className="ui-inspector-kind">{kind}</p>}
         {subtitle && <p>{subtitle}</p>}

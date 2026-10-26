@@ -169,7 +169,7 @@ function WorkforcePage() {
 
         <Inspector label="Personnel profile" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.personnel_id}>
           {selected ? <>
-            <InspectorHeader kind={`${selected.rank || 'Personnel'} · ${stationCode(selectedStation?.name) === '—' ? 'Unassigned' : stationCode(selectedStation?.name)}`} title={selected.name} headingId="person-heading" subtitle={selected.role} badge={<StatusBadge tone={availabilityTone(selected.availability_status)}>{titleCase(selected.availability_status)}</StatusBadge>} />
+            <InspectorHeader objectType="person" objectId={selected.personnel_id} kind={`${selected.rank || 'Personnel'} · ${stationCode(selectedStation?.name) === '—' ? 'Unassigned' : stationCode(selectedStation?.name)}`} title={selected.name} headingId="person-heading" subtitle={selected.role} badge={<StatusBadge tone={availabilityTone(selected.availability_status)}>{titleCase(selected.availability_status)}</StatusBadge>} />
             <InspectorBody>
               <dl className="ui-facts">
                 <div><dt>Station</dt><dd>{selectedStation?.name || 'Unassigned'}</dd></div>

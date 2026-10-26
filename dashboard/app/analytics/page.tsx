@@ -272,7 +272,7 @@ function AnalyticsWorkspace() {
             evidence={coverageRows.length ? <div className="ui-table-wrap" tabIndex={0} role="region" aria-label="Coverage by shift"><table className="ui-table"><thead><tr><th scope="col">Shift</th><th scope="col" className="ui-num">Clocked in</th><th scope="col" className="ui-num">Assigned</th><th scope="col" className="ui-num">Required</th><th scope="col" className="ui-num">Coverage</th><th scope="col">Status</th></tr></thead><tbody>{coverageRows.map((row) => <tr key={row.name}><th scope="row">{row.name}</th><td className="ui-num">{row.clockedIn}</td><td className="ui-num">{row.assigned}</td><td className="ui-num">{row.required}</td><td className="ui-num">{row.coverage}%</td><td><StatusBadge tone={row.coverage >= 100 ? 'success' : 'danger'}>{titleCase(row.status)}</StatusBadge></td></tr>)}</tbody></table></div> : <EmptyState title="No live shifts" description="There are no active shifts in this station scope." icon={Clock3} />} />
         </Tabs.Content>
       </Tabs.Root>
-      <p className="ui-provenance">Synthetic planning report · trend window and credential horizon: {days} days. Current comparison is not a predictive coverage model.</p>
+      <p className="ui-provenance">Trend window and credential horizon: {days} days. Station comparison describes current state; it does not predict coverage.</p>
     </div>
   )
 }

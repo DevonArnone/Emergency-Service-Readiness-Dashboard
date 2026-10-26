@@ -233,7 +233,7 @@ export default function SchedulingPage() {
 
         <Inspector label="Shift details" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.shift_id}>
           {selected ? <>
-            <InspectorHeader kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'HH:mm')} → ${formatDate(selected.end_time, 'HH:mm')}${new Date(selected.end_time).toDateString() !== new Date(selected.start_time).toDateString() ? ' +1' : ''}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
+            <InspectorHeader objectType="shift" objectId={selected.shift_id} kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'HH:mm')} → ${formatDate(selected.end_time, 'HH:mm')}${new Date(selected.end_time).toDateString() !== new Date(selected.start_time).toDateString() ? ' +1' : ''}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
             <InspectorBody>
               <dl className="ui-facts">
                 <div><dt>Clocked in</dt><dd className="ui-num">{liveSelected?.clocked_in_count ?? 0}</dd></div>

@@ -26,7 +26,7 @@ for (const [width, height] of widths) {
     await page.getByText('Operations connected').first().waitFor({ timeout: width >= 1024 ? 15_000 : 1 }).catch(() => {})
     await page.waitForTimeout(900)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-    const file = `${outDir}/${name}-${width}${theme === 'dark' ? '-dark' : ''}.png`
+    const file = `${outDir}/${name}-${width}${theme ? `-${theme}` : ''}.png`
     await page.screenshot({ path: file, fullPage: full })
     console.log(file, overflow > 0 ? `HORIZONTAL OVERFLOW ${overflow}px` : 'ok')
   }

@@ -79,7 +79,7 @@ export default function AlertsQueue({ alerts, loading, error, retry, stations, u
 
         <Inspector label="Alert record" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.alert_id}>
           {selected ? <>
-            <InspectorHeader kind={titleCase(selected.alert_type)} title={selected.message} subtitle={`Created ${formatRelativeTime(selected.created_at)}`} badge={<StatusBadge tone={STATE_TONE[selected.state]}>{titleCase(selected.state)}</StatusBadge>} />
+            <InspectorHeader objectType="alert" objectId={selected.alert_id.slice(0, 8).toUpperCase()} kind={titleCase(selected.alert_type)} title={selected.message} subtitle={`Created ${formatRelativeTime(selected.created_at)}`} badge={<StatusBadge tone={STATE_TONE[selected.state]}>{titleCase(selected.state)}</StatusBadge>} />
             <InspectorBody>
               <Section title="Record context">
                 <dl className="ui-facts ui-facts-rows">

@@ -80,7 +80,7 @@ export default function ContingencyWorkbench({ units, definitions, selected, res
           {selected && <div className="ui-link-row" style={{ marginTop: 16 }}><TextLink href={`/readiness?view=units&unit=${encodeURIComponent(selected.unit_id)}`}>Inspect live apparatus</TextLink><TextLink href="/weather">Public hazard register</TextLink></div>}
         </Panel>
       </div>
-      <p className="ui-provenance">Hypothetical planning only. Staffing and qualification dependencies come from synthetic operational records; no emergency plan is issued.</p>
+      <p className="ui-provenance">Hypothetical planning only. Results use current staffing and qualification records; nothing is assigned or changed.</p>
     </div>
   )
 }

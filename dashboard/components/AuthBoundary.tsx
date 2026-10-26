@@ -64,7 +64,7 @@ export default function AuthBoundary({ children }: { children: React.ReactNode }
         <InlineError message={error} />
       </div>}
       {status === 'loading' && <InlineError message={error} />}
-      <p className={styles.fine}>Synthetic operational data. Not authorized for dispatch, patient care, or real emergency operations.</p>
+      <p className={styles.fine}>Access is logged. Contact your administrator if your role is missing.</p>
     </section>
   </main>
 }

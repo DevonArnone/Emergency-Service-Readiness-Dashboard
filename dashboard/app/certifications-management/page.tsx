@@ -220,7 +220,7 @@ export default function CredentialsPage() {
             </Panel>
             <Inspector label="Credential definition" open={inspectorOpen && Boolean(selectedCert)} onClose={() => setInspectorOpen(false)} recordKey={selectedCert?.certification_id}>
               {selectedCert ? <>
-                <InspectorHeader kind={selectedCert.category || 'Credential'} title={selectedCert.name} headingId="credential-heading" />
+                <InspectorHeader objectType="credential" objectId={String(selectedCert.code ?? "")} kind={selectedCert.category || 'Credential'} title={selectedCert.name} headingId="credential-heading" />
                 <InspectorBody>
                   <p style={{ color: 'var(--ink-2)', fontSize: '0.9375rem' }}>{selectedCert.description || 'No description has been added.'}</p>
                   <dl className="ui-facts">

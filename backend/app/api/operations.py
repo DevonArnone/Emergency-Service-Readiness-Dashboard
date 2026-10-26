@@ -624,5 +624,5 @@ async def simulate_staffing_gap(body: SimulationRequest):
 @router.post("/api/demo/reset")
 async def demo_reset():
     counts = seed_demo()
-    record_audit("RESET", "demo", "fcfrd-demo", "Reset synthetic Fairfax concept data")
+    record_audit("RESET", "demo", "fcfrd-demo", "Restored baseline operational data")
     return {"status": "ok", "seeded": counts}

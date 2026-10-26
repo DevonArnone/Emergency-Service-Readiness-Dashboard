@@ -71,7 +71,7 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
   return (
     <section ref={stageRef} className={cn('ui-stage', styles.map, className)} aria-label={title} data-map={mode}>
       <header className="ui-stage-header">
-        <div><h2>{title}</h2><p>{scope !== 'all' ? 'Filtered to the selected station scope' : layers.risk ? 'Risk layer marks stations with staffing or readiness attention' : 'Public station geography with synthetic operations'}</p></div>
+        <div><h2>{title}</h2><p>{scope !== 'all' ? 'Filtered to the selected station scope' : layers.risk ? 'Risk layer marks stations with staffing or readiness attention' : 'Station readiness and active incidents'}</p></div>
         <div className={styles.layers} role="group" aria-label="Map layers">
           {order.map((layer) => <button key={layer} type="button" className="ui-stage-button" aria-pressed={layers[layer]} onClick={() => onToggleLayer(layer)}>{layerName[layer]}</button>)}
         </div>
@@ -168,7 +168,7 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
           : <><li><i data-kind="station" data-condition="normal" />Station normal</li><li><i data-kind="station" data-condition="attention" />Staffing attention</li><li><i data-kind="station" data-condition="offline" />No active resources</li><li><i data-kind="incident" data-type="fire" />Active incident</li></>}
         <li><i data-kind="boundary" />County boundary</li>
         <li><i data-kind="highway" />Major highway</li>
-        <li className={styles.source}>Public GIS geometry · synthetic operations · not for navigation or dispatch</li>
+        <li className={styles.source}>County GIS geometry · not for navigation</li>
       </ul>
     </section>
   )

@@ -5,14 +5,14 @@ import { useCallback, useSyncExternalStore } from 'react'
 export type Theme = 'light' | 'dark'
 export const THEME_KEY = 'aegis-theme'
 
-/** Runs before first paint (inlined in the root layout) so a stored or system dark preference never flashes light. */
-export const themeBootScript = `try{var t=localStorage.getItem('${THEME_KEY}');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}`
+/** Runs before first paint (inlined in the root layout). Dark is the default; a stored choice wins. */
+export const themeBootScript = `try{var t=localStorage.getItem('${THEME_KEY}');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}`
 
 const listeners = new Set<() => void>()
-const read = (): Theme => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+const read = (): Theme => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
 
 export function useTheme() {
-  const theme = useSyncExternalStore((listener) => { listeners.add(listener); return () => listeners.delete(listener) }, read, () => 'light' as Theme)
+  const theme = useSyncExternalStore((listener) => { listeners.add(listener); return () => listeners.delete(listener) }, read, () => 'dark' as Theme)
   const setTheme = useCallback((next: Theme) => {
     document.documentElement.dataset.theme = next
     try { localStorage.setItem(THEME_KEY, next) } catch {}

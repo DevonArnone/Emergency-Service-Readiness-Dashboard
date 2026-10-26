@@ -125,7 +125,7 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
             <Panel title="Incident register" description={`${register.length} of ${records.length} incidents · active and closed in the last 24 hours`} flush>
               <div className="ui-table-wrap" tabIndex={0} role="region" aria-label="Incident register">
                 <table className="ui-table" data-ui="incident-register">
-                  <caption className="sr-only">Active and recently closed synthetic incidents. Choose a row to open its record.</caption>
+                  <caption className="sr-only">Active and recently closed incidents. Choose a row to open its record.</caption>
                   <thead><tr><th scope="col">Incident</th><th scope="col">Opened</th><th scope="col">Type</th><th scope="col">Location</th><th scope="col">Units</th><th scope="col">Status</th></tr></thead>
                   <tbody>{register.map((incident) => {
                     const isSelected = selected?.incident_id === incident.incident_id
@@ -226,7 +226,7 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
   }
 
   return <>
-    <InspectorHeader kind={`Incident ${incidentRef(incident)} · ${TYPE_LABEL[incident.incident_type]}`} title={street(incident)} subtitle={`${incident.title} · ${closed ? `closed ${clock(incident.resolved_at)}` : `updated ${clock(lastEvent)}`}`} badge={<StatusBadge tone={incidentStatusTone(incident)}>{statusLabel(incident)}</StatusBadge>} />
+    <InspectorHeader objectType="incident" objectId={incidentRef(incident)} kind={`Incident ${incidentRef(incident)} · ${TYPE_LABEL[incident.incident_type]}`} title={street(incident)} subtitle={`${incident.title} · ${closed ? `closed ${clock(incident.resolved_at)}` : `updated ${clock(lastEvent)}`}`} badge={<StatusBadge tone={incidentStatusTone(incident)}>{statusLabel(incident)}</StatusBadge>} />
     <form onSubmit={save} style={{ display: 'contents' }} aria-label="Incident worksheet">
       <InspectorBody>
         <fieldset disabled={closed || readOnly} className={styles.worksheet}>

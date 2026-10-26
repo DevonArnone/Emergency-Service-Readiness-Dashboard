@@ -90,7 +90,7 @@ def _build_local_coverage_summary(target_date: date, include_demo: bool = False)
         return rows
     return [
         CoverageSummary(
-            location="Synthetic command reserve",
+            location="Command reserve",
             hour=hour,
             scheduled_headcount=12,
             actual_headcount=11 if hour in {7, 8, 18} else 12,

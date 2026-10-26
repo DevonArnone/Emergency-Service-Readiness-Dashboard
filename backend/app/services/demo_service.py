@@ -30,9 +30,7 @@ from app.db.store import clear_operational_data
 
 STATION_DATA = Path(__file__).parents[2] / "data" / "fairfax_fire_stations.geojson"
 ORGANIZATION_NAME = "Fairfax County Fire and Rescue Department"
-DATASET_DISCLAIMER = (
-    "Synthetic operational data for a portfolio concept. Not affiliated with or endorsed by Fairfax County."
-)
+DATASET_DISCLAIMER = None  # seeded records carry no notes; the README states the data is synthetic
 
 
 CERTIFICATIONS = (
@@ -57,65 +55,65 @@ INCIDENT_HISTORY = (
     {"incident_id": "inc-01", "title": "Medical emergency", "type": "EMS", "priority": "HIGH",
      "location": "12000 Fair Oaks Mall, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-001",
      "units": ["E421", "M421"], "opened": 9, "stages": [(8, "ENROUTE")],
-     "note": "Synthetic medical response at a commercial centre."},
+     "note": "Fall injury at a retail concourse; patient conscious and alert, mall security on scene."},
     {"incident_id": "inc-02", "title": "Structure fire", "type": "FIRE", "priority": "CRITICAL",
      "location": "4500 Stringfellow Rd, Chantilly, VA", "station_id": "fs-15", "reference": "DEMO-002",
      "units": ["E415", "T415", "R415", "BC-3"], "added": {"BC-3": 38}, "opened": 48,
-     "stages": [(47, "ENROUTE"), (41, "ON_SCENE")], "commander": "BC-3 (synthetic)",
-     "note": "Synthetic commercial structure fire; command established.", "offset": (-0.008, 0.005)},
+     "stages": [(47, "ENROUTE"), (41, "ON_SCENE")], "commander": "BC-3",
+     "note": "Smoke showing from a single-story commercial building; command established, primary search under way.", "offset": (-0.008, 0.005)},
     {"incident_id": "inc-03", "title": "Medical emergency", "type": "EMS", "priority": "HIGH",
      "location": "8100 Boone Blvd, Tysons, VA", "station_id": "fs-29", "reference": "DEMO-003",
      "units": ["A429", "E429"], "opened": 24, "stages": [(23, "ENROUTE"), (17, "ON_SCENE")],
-     "note": "Synthetic medical response in an office tower."},
+     "note": "Difficulty breathing reported on an upper floor; building engineer holding an elevator."},
     {"incident_id": "inc-04", "title": "Medical transport", "type": "EMS", "priority": "MEDIUM",
      "location": "6001 Burke Centre Pkwy, Burke, VA", "station_id": "fs-14", "reference": "DEMO-004",
      "units": ["M414"], "opened": 71, "stages": [(70, "ENROUTE"), (62, "ON_SCENE"), (38, "TRANSPORT")],
-     "note": "Synthetic transport to a receiving facility.", "offset": (0.004, -0.006)},
+     "note": "Patient packaged and transporting to the receiving facility; stable vitals.", "offset": (0.004, -0.006)},
     {"incident_id": "inc-05", "title": "Roadway investigation", "type": "OTHER", "priority": "LOW",
      "location": "I-495 NB at Braddock Rd, Springfield, VA", "station_id": "fs-22", "reference": "DEMO-005",
      "units": ["E422"], "opened": 96, "stages": [(95, "ENROUTE"), (86, "ON_SCENE"), (80, "INVESTIGATING")],
-     "note": "Synthetic roadway hazard investigation.", "offset": (0.009, 0.007)},
+     "note": "Debris and fluid in the travel lanes; state police notified for traffic control.", "offset": (0.009, 0.007)},
     {"incident_id": "inc-06", "title": "Fall with injury", "type": "EMS", "priority": "MEDIUM",
      "location": "11900 Lee Jackson Memorial Hwy, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-006",
      "units": ["M421"], "opened": 300,
      "stages": [(299, "ENROUTE"), (291, "ON_SCENE"), (262, "TRANSPORT"), (205, "RESOLVED")],
-     "note": "Synthetic resolved medical response.", "offset": (-0.006, -0.003)},
+     "note": "Patient evaluated and refused transport; signed release obtained.", "offset": (-0.006, -0.003)},
     {"incident_id": "inc-07", "title": "Vehicle fire", "type": "FIRE", "priority": "HIGH",
      "location": "I-66 EB at Route 28, Centreville, VA", "station_id": "fs-17", "reference": "DEMO-007",
      "units": ["E417"], "opened": 310, "stages": [(309, "ENROUTE"), (302, "ON_SCENE"), (270, "RESOLVED")],
-     "note": "Synthetic resolved vehicle fire.", "offset": (-0.006, -0.004)},
+     "note": "Vehicle fire extinguished in the engine compartment; no exposures.", "offset": (-0.006, -0.004)},
     {"incident_id": "inc-08", "title": "Fire alarm activation", "type": "OTHER", "priority": "MEDIUM",
      "location": "1750 Tysons Blvd, Tysons, VA", "station_id": "fs-29", "reference": "DEMO-008",
      "units": ["E429"], "opened": 360,
      "stages": [(359, "ENROUTE"), (353, "ON_SCENE"), (348, "INVESTIGATING"), (325, "RESOLVED")],
-     "note": "Synthetic resolved alarm investigation.", "offset": (-0.005, 0.006)},
+     "note": "Alarm activation traced to cooking smoke; system reset with the keyholder.", "offset": (-0.005, 0.006)},
     {"incident_id": "inc-09", "title": "Natural gas odor", "type": "HAZMAT", "priority": "HIGH",
      "location": "4100 Monument Corner Dr, Fairfax, VA", "station_id": "fs-40", "reference": "DEMO-009",
      "units": ["E440", "HazMat-440"], "added": {"HazMat-440": 436}, "opened": 450,
      "stages": [(449, "ENROUTE"), (441, "ON_SCENE"), (430, "INVESTIGATING"), (370, "RESOLVED")],
-     "note": "Synthetic resolved hazardous-materials investigation."},
+     "note": "Odor investigation at a loading dock; readings normal, released to the property manager."},
     {"incident_id": "inc-10", "title": "Cardiac arrest", "type": "EMS", "priority": "CRITICAL",
      "location": "2700 Gallows Rd, Dunn Loring, VA", "station_id": "fs-13", "reference": "DEMO-010",
      "units": ["M413", "E413"], "opened": 160,
      "stages": [(159, "ENROUTE"), (152, "ON_SCENE"), (130, "TRANSPORT"), (105, "RESOLVED")],
-     "note": "Synthetic resolved cardiac response.", "offset": (0.005, 0.005)},
+     "note": "Cardiac arrest with return of circulation; transported to the cardiac center.", "offset": (0.005, 0.005)},
     {"incident_id": "inc-11", "title": "Lift assist", "type": "OTHER", "priority": "LOW",
      "location": "4100 Legato Rd, Fairfax, VA", "station_id": "fs-21", "reference": "DEMO-011",
      "units": ["E421"], "opened": 250, "stages": [(249, "ENROUTE"), (241, "ON_SCENE"), (178, "RESOLVED")],
-     "note": "Synthetic resolved public assist.", "offset": (0.007, 0.004)},
+     "note": "Lift assist for a resident; no injuries reported.", "offset": (0.007, 0.004)},
     {"incident_id": "inc-12", "title": "Brush fire", "type": "FIRE", "priority": "MEDIUM",
      "location": "12700 Popes Head Rd, Clifton, VA", "station_id": "fs-16", "reference": "DEMO-012",
      "units": ["E416", "TN416"], "opened": 540,
      "stages": [(538, "ENROUTE"), (528, "ON_SCENE"), (460, "RESOLVED")],
-     "note": "Synthetic resolved brush fire.", "offset": (-0.007, -0.006)},
+     "note": "Brush fire about a quarter acre, contained; mop-up complete.", "offset": (-0.007, -0.006)},
 )
 
 # Recorded service-state exceptions, kept away from active incident assignments.
 SERVICE_EXCEPTIONS = (
-    ("E425", "MAINTENANCE", 205, "Scheduled preventive maintenance (synthetic)"),
-    ("A436", "MAINTENANCE", 140, "Equipment inspection (synthetic)"),
-    ("T409", "OUT_OF_SERVICE", 320, "Mechanical defect reported (synthetic)"),
-    ("R430", "OUT_OF_SERVICE", 65, "Apparatus fault reported (synthetic)"),
+    ("E425", "MAINTENANCE", 205, "Scheduled preventive maintenance"),
+    ("A436", "MAINTENANCE", 140, "Equipment inspection"),
+    ("T409", "OUT_OF_SERVICE", 320, "Mechanical defect reported"),
+    ("R430", "OUT_OF_SERVICE", 65, "Apparatus fault reported"),
 )
 
 
@@ -263,7 +261,7 @@ def seed_demo() -> dict:
         session.add_all([
             Battalion(
                 battalion_id=f"battalion-{index}", organization_id=organization_id,
-                code=f"B{index}", name=f"Battalion {index}", division="Synthetic concept assignment",
+                code=f"B{index}", name=f"Battalion {index}", division="Operations",
             )
             for index in range(1, 9)
         ])
@@ -278,7 +276,7 @@ def seed_demo() -> dict:
                 station_id=properties["station_id"], organization_id=organization_id,
                 battalion_id=f"battalion-{battalion_number}", station_number=properties["station_number"],
                 name=f"Station {properties['station_number']} — {properties['name']}",
-                district=f"Battalion {battalion_number} · synthetic assignment",
+                district=f"Battalion {battalion_number}",
                 address=properties["address"], latitude=latitude, longitude=longitude,
             ))
         session.add_all(stations)
@@ -355,7 +353,7 @@ def seed_demo() -> dict:
                     shift_start=watch_start, shift_end=watch_end,
                     assignment_status="ABSENT" if absent else "ON_SHIFT",
                     clocked_in_at=None if absent else watch_start + timedelta(minutes=person_index % 20),
-                    notes="Synthetic staffing gap" if absent else DATASET_DISCLAIMER,
+                    notes="Below minimum staffing" if absent else DATASET_DISCLAIMER,
                 ))
 
         station_ids = [feature["properties"]["station_id"] for feature in station_features]
@@ -440,9 +438,9 @@ def seed_demo() -> dict:
             incidents.append(Incident(
                 incident_id=spec["incident_id"], organization_id=organization_id, station_id=station.station_id,
                 primary_unit_id=unit_ids[0], title=spec["title"],
-                description=f"{spec['note']} {DATASET_DISCLAIMER}",
+                description=spec["note"],
                 priority=spec["priority"], incident_type=spec["type"], display_location=spec["location"],
-                status=final_status, commander=spec.get("commander", "Duty Command (synthetic)"),
+                status=final_status, commander=spec.get("commander", "Duty Command"),
                 latitude=(station.latitude or 0) + latitude_offset, longitude=(station.longitude or 0) + longitude_offset,
                 source="SYNTHETIC_DEMO", source_reference=spec["reference"], created_at=created_at,
                 resolved_at=stages[-1][0] if resolved else None, is_active=not resolved,
@@ -519,7 +517,7 @@ def seed_demo() -> dict:
                 renewal_id=f"renewal-{offset:02d}", organization_id=organization_id,
                 personnel_id=f"person-{index:04d}", certification_code="ACLS" if index == 500 else "EMT",
                 due_date=now + timedelta(days=14), status="SCHEDULED",
-                owner="Training Division (synthetic)", scheduled_for=now + timedelta(days=7 + offset),
+                owner="Training Division", scheduled_for=now + timedelta(days=7 + offset),
                 notes=DATASET_DISCLAIMER,
             )
             for offset, index in enumerate(expiring_people, start=1)
@@ -534,17 +532,17 @@ def seed_demo() -> dict:
             if entity_type == "unit" and created_at <= watch_start:
                 watch_baseline["unit_service_states"][entity_id] = details["after_status"]
         audit_specs = (
-            ("DATASET_LOADED", "organization", organization_id, "Loaded Fairfax-scale synthetic concept data",
+            ("DATASET_LOADED", "organization", organization_id, "Loaded baseline operational data",
              now - timedelta(minutes=24), {"dataset": "synthetic"}),
-            ("WATCH_OPENED", "shift", "shift-a", "Opened synthetic A Watch operational period",
+            ("WATCH_OPENED", "shift", "shift-a", "Opened A Watch operational period",
              watch_start, watch_baseline),
-            ("READINESS_EVALUATED", "unit", gap_units[0].unit_id, "Detected synthetic minimum-staffing gap",
+            ("READINESS_EVALUATED", "unit", gap_units[0].unit_id, "Detected minimum-staffing gap",
              now - timedelta(minutes=16), {"dataset": "synthetic"}),
-            ("INCIDENT_CREATED", "incident", "inc-01", "Opened synthetic medical emergency incident",
+            ("INCIDENT_CREATED", "incident", "inc-01", "Opened medical emergency incident",
              now - timedelta(minutes=9), {"dataset": "synthetic"}),
-            ("UNIT_ASSIGNED", "incident", "inc-02", "Assigned synthetic battalion command to structure fire",
+            ("UNIT_ASSIGNED", "incident", "inc-02", "Assigned battalion command to structure fire",
              now - timedelta(minutes=38), {"dataset": "synthetic"}),
-            ("ALERT_CREATED", "alert", "alert-cert-01", "Created synthetic credential renewal alert",
+            ("ALERT_CREATED", "alert", "alert-cert-01", "Created credential renewal alert",
              now - timedelta(minutes=4), {"dataset": "synthetic"}),
         )
         records = [
@@ -566,7 +564,7 @@ def seed_demo() -> dict:
             audit_events.append(AuditEvent(
                 audit_id=audit_id, organization_id=organization_id,
                 action=action, entity_type=entity_type, entity_id=entity_id,
-                actor_subject="synthetic-demo-seeder", actor_display="Aegis Demo Controller",
+                actor_subject="synthetic-demo-seeder", actor_display="System",
                 summary=summary, details=details, previous_hash=previous_hash,
                 event_hash=event_hash, created_at=created_at,
             ))

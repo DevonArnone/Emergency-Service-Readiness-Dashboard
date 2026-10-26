@@ -38,8 +38,8 @@ The interface is desktop-first for a continuously monitored command environment 
 - Product name: Aegis Command.
 - Target context: Fairfax County Fire and Rescue Department. The interface presents the product without concept labeling; its unofficial, synthetic-data status is stated in the README disclaimer.
 - Voice: calm, accountable, concise, operational, and specific.
-- Visual world: a calm operating deck. Cool-white workspaces, deep navy navigation, cobalt for selection and the primary action, and a dark stage for maps and timelines. The earlier municipal systems-room look is historical reference only.
-- Avoid walls of equal dense panels, generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, and decorative command-center theatrics.
+- Visual world: an operator's workstation in the spirit of Palantir Gotham. Dark graphite by default with a light option, precise 1px hairlines, uppercase micro-labels, mono identifiers, and records named by object type. The map is the centerpiece: full-bleed, layered, and three-dimensional where depth carries information. Cobalt marks selection and the primary action.
+- Motion and depth must carry meaning: fly-to on selection, halos on what is selected, arcs for real assignments, columns for real counts. Avoid neon, fake HUD decoration, ornamental gradients, and anything that implies prediction the data cannot support.
 
 ## Task Workflows
 

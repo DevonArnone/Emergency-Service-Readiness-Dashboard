@@ -297,7 +297,7 @@ export default function UnitsWorkspace({ snapshot, stations, definitions, assign
 
         <Inspector label="Unit record" open={inspectorOpen && Boolean(selectedDefinition)} onClose={() => setInspectorOpen(false)} recordKey={selectedDefinition?.unit_id}>
           {selectedDefinition && selectedUnit ? <>
-            <InspectorHeader kind={`${typeName(selectedDefinition)} · Station ${stationNumber(selectedStation) || '—'} ${stationArea(selectedStation)} · Battalion ${battalion(selectedStation)}`} title={recordTitle(selectedDefinition)} headingId="unit-record-heading" badge={<span data-ui="unit-service"><StatusBadge tone={TONE[selectedState]}>{serviceWord(selectedDefinition.operational_status)}</StatusBadge></span>}>
+            <InspectorHeader objectType="apparatus" objectId={selectedDefinition.unit_name} kind={`${typeName(selectedDefinition)} · Station ${stationNumber(selectedStation) || '—'} ${stationArea(selectedStation)} · Battalion ${battalion(selectedStation)}`} title={recordTitle(selectedDefinition)} headingId="unit-record-heading" badge={<span data-ui="unit-service"><StatusBadge tone={TONE[selectedState]}>{serviceWord(selectedDefinition.operational_status)}</StatusBadge></span>}>
               <DropdownMenu.Root modal={false}>
                 <DropdownMenu.Trigger asChild><button type="button" className={styles.switcher} aria-label={`${selectedDefinition.unit_name}, ${serviceWord(selectedDefinition.operational_status)}. Choose another unit at this station`}>Other units at this station<ChevronDown aria-hidden="true" /></button></DropdownMenu.Trigger>
                 <DropdownMenu.Portal><DropdownMenu.Content className="ui-menu" align="start" sideOffset={4}>
