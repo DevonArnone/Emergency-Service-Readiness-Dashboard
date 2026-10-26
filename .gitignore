@@ -49,3 +49,6 @@ AGENTS.md
 **/AGENTS.md
 CLAUDE.md
 **/CLAUDE.md
+
+# Copied from node_modules by scripts/copy-map-worker.mjs
+dashboard/public/vendor/

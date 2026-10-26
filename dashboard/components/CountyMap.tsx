@@ -7,9 +7,10 @@ import type { Incident, Station, UnitReadiness } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import styles from './map.module.css'
 
-export type MapLayer = 'stations' | 'incidents' | 'risk'
-export type StationCondition = 'normal' | 'attention' | 'offline'
-export type StationRow = Station & { assigned: UnitReadiness[]; score: number | null; condition: StationCondition }
+import { CONDITION_LABEL, INCIDENT_TYPE_LABEL as TYPE_LABEL, stationNumber, stationRows, type MapLayer } from '@/lib/map/stations'
+
+export { CONDITION_LABEL, stationNumber, stationRows }
+export type { MapLayer, StationCondition, StationRow } from '@/lib/map/stations'
 
 const EARTH_RADIUS = 6378137
 
@@ -21,24 +22,9 @@ export function project(lon: number, lat: number): [number, number] {
   return [translateX + x * scale, translateY - y * scale]
 }
 
-/** Station readiness derived from its units in the current snapshot. */
-export function stationRows(stations: Station[], units: UnitReadiness[]): StationRow[] {
-  const readiness = new Map(units.map((unit) => [unit.unit_id, unit]))
-  return stations.map((station) => {
-    const assigned = station.unit_ids.map((id) => readiness.get(id)).filter((unit): unit is UnitReadiness => Boolean(unit))
-    const score = assigned.length ? assigned.reduce((sum, unit) => sum + unit.readiness_score, 0) / assigned.length : null
-    const attention = assigned.some((unit) => unit.is_understaffed || unit.readiness_score < 85)
-    return { ...station, assigned, score, condition: assigned.length === 0 ? 'offline' : attention ? 'attention' : 'normal' }
-  })
-}
-
-export const stationNumber = (station: Pick<Station, 'name' | 'station_id'>) => station.name.match(/Station (\d+)/)?.[1] || station.station_id.replace(/\D/g, '')
-export const CONDITION_LABEL: Record<StationCondition, string> = { normal: 'Normal', attention: 'Staffing attention', offline: 'No active resources' }
-
 const place = (lon: number, lat: number) => { const [x, y] = project(lon, lat); return { x: Math.round(x), y: Math.round(y) } }
 const DULLES = place(-77.4558, 38.9531)
 const FALLS_CHURCH = place(-77.1711, 38.8823)
-const TYPE_LABEL: Record<Incident['incident_type'], string> = { FIRE: 'Fire', EMS: 'EMS', HAZMAT: 'HazMat', OTHER: 'Other' }
 
 type Props = {
   title: string
@@ -65,7 +51,7 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
   const stationByUnit = new Map(stations.flatMap((station) => station.unit_ids.map((id) => [id, station] as const)))
   const stationPoints = stations.filter((station) => station.latitude && station.longitude).map((station) => project(station.longitude!, station.latitude!))
   const order: MapLayer[] = mode === 'readiness' ? ['stations', 'incidents', 'risk'] : ['incidents', 'stations', 'risk']
-  const layerName: Record<MapLayer, string> = { stations: 'Stations', incidents: 'Incidents', risk: 'Risk layers' }
+  const layerName: Partial<Record<MapLayer, string>> = { stations: 'Stations', incidents: 'Incidents', risk: 'Risk layers' }
   const activate = (action: () => void) => (event: React.KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action() } }
 
   return (

@@ -2,7 +2,7 @@
 
 import { Truck, Users } from 'lucide-react'
 import Link from 'next/link'
-import { CONDITION_LABEL, stationNumber, type StationRow } from './CountyMap'
+import { CONDITION_LABEL, stationNumber, type StationRow } from '@/lib/map/stations'
 import { useStationScope } from './ScopeContext'
 import { EmptyState, Inspector, InspectorBody, InspectorFooter, InspectorHeader, Meter, Section, StatusBadge, type StatusTone } from './ui'
 

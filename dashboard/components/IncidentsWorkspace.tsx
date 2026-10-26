@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
 import { ConfirmDialog } from './ConfirmAction'
-import CountyMap, { type MapLayer } from './CountyMap'
+import MapView from './MapView'
+import { defaultLayers, type MapLayer } from '@/lib/map/stations'
 import FormDialog from './FormDialog'
 import { EmptyState, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, PageHeader, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type StatusTone } from './ui'
 import { clip, clock, duration, incidentHistory, incidentRef, LIFECYCLE_LABEL, ticks, type IncidentHistory } from '@/lib/history'
@@ -53,7 +54,7 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
   const now = snapshot?.timestamp ? new Date(snapshot.timestamp).getTime() : 0
   const [registerView, setRegisterView] = useState<RegisterView>('ALL')
   const [search, setSearch] = useState('')
-  const [layers, setLayers] = useState<Record<MapLayer, boolean>>({ stations: false, incidents: true, risk: false })
+  const [layers, setLayers] = useState<Record<MapLayer, boolean>>(() => defaultLayers('incidents'))
   const [inspectorOpen, setInspectorOpen] = useState(Boolean(params.get('incident')))
   const pane: Pane = PANES.some(([value]) => value === params.get('pane')) ? params.get('pane') as Pane : 'register'
 
@@ -146,7 +147,7 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
             </Panel>
           )}
           {pane === 'map' && (
-            <CountyMap title="County incident plot" mode="incidents" stations={stations} units={snapshot?.units || []} incidents={register} scope={scope} layers={layers}
+            <MapView title="County incident plot" mode="incidents" stations={stations} units={snapshot?.units || []} incidents={register} scope={scope} layers={layers}
               onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} selectedIncidentId={selected?.incident_id} onIncidentSelect={select} />
           )}
           {pane === 'timeline' && <IncidentTimeline records={records} histories={histories} selectedId={selected?.incident_id} onSelect={select} now={now} unitName={unitName} />}

@@ -6,7 +6,8 @@ import { Download } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import CountyMap, { CONDITION_LABEL, stationNumber, stationRows, type MapLayer } from '@/components/CountyMap'
+import MapView from '@/components/MapView'
+import { CONDITION_LABEL, defaultLayers, stationNumber, stationRows, type MapLayer } from '@/lib/map/stations'
 import { useStationScope } from '@/components/ScopeContext'
 import StationInspector, { readinessTone } from '@/components/StationInspector'
 import { Button, ErrorState, LoadingState, Meter, PageHeader, Panel, SearchInput, StatusBadge, SummaryStrip, TextLink, type StatusTone } from '@/components/ui'
@@ -53,13 +54,13 @@ export default function CommandCenterPage() {
   const definitions = useQuery({ queryKey: queryKeys.units, queryFn: api.units, enabled: view === 'resources' })
   const scopedStation = stationId === 'all' ? undefined : stationId
   const trend = useQuery({ queryKey: queryKeys.analytics.trends(14, scopedStation), queryFn: () => api.readinessTrends(14, scopedStation), enabled: view !== 'stations' })
-  const [layers, setLayers] = useState<Record<MapLayer, boolean>>({ stations: true, incidents: view !== 'stations', risk: false })
+  const [layers, setLayers] = useState<Record<MapLayer, boolean>>(() => defaultLayers(view === 'stations' ? 'stations' : 'readiness'))
   const [selectedStationId, setSelectedStationId] = useState<string | null>(params.get('station'))
   const [inspectorOpen, setInspectorOpen] = useState(Boolean(params.get('station')))
   const [directorySearch, setDirectorySearch] = useState('')
   const [resourceTab, setResourceTab] = useState('apparatus')
 
-  useEffect(() => { setLayers({ stations: true, incidents: view !== 'stations', risk: false }) }, [view])
+  useEffect(() => { setLayers(defaultLayers(view === 'stations' ? 'stations' : 'readiness')) }, [view])
   useEffect(() => { const requested = params.get('station'); if (requested) { setSelectedStationId(requested); setInspectorOpen(true) } }, [params])
 
   const snapshot = operations.data
@@ -114,7 +115,7 @@ export default function CommandCenterPage() {
   )
 
   const map = (
-    <CountyMap title={view === 'stations' ? 'Station map' : 'County readiness map'} stations={stations.data || []} units={units} incidents={incidents} scope={stationId} layers={layers}
+    <MapView title={view === 'stations' ? 'Station map' : 'County readiness map'} stations={stations.data || []} units={units} incidents={incidents} scope={stationId} layers={layers}
       onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))}
       selectedStationId={selectedStationId} onStationSelect={selectStation} onReset={() => selectStation(null)} />
   )

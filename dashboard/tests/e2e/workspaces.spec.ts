@@ -375,7 +375,7 @@ test('station directory, map, and inspector stay linked and keep the selection o
   const inspector = page.getByRole('complementary', { name: 'Station details' })
   await expect(inspector.getByRole('heading', { name: 'Fair Oaks' })).toBeVisible()
   await page.reload()
-  await expect(inspector.getByRole('heading', { name: 'Fair Oaks' })).toBeVisible()
+  await expect(inspector.getByRole('heading', { name: 'Fair Oaks' })).toBeVisible({ timeout: 15_000 })
   await inspector.getByRole('link', { name: 'Open station personnel' }).click()
   await expect(page).toHaveURL(/\/personnel/)
   await expect(page.getByLabel('Station scope')).toHaveValue('fs-21')

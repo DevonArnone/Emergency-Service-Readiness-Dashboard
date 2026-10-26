@@ -93,3 +93,68 @@
   .layers { width: 100%; }
   .layers button { flex: 1 1 auto; }
 }
+
+/* ── WebGL map (GeoMap) ─────────────────────────────────────────── */
+.geo .canvas { background: var(--map-bg); }
+.geoFill { height: 100%; }
+.geoFill .canvas { aspect-ratio: auto; min-height: 360px; }
+/* Beats maplibregl-map's position: relative so the map fills the canvas box. */
+.canvas > .geoCanvas { position: absolute; inset: 0; }
+.geoLoading { position: absolute; inset: 0; background: radial-gradient(60% 70% at 50% 50%, var(--stage-2), var(--map-bg)); }
+.geoLoading::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid var(--stage-rule); border-top-color: var(--stage-cobalt); border-radius: 50%; animation: geo-spin 900ms linear infinite; }
+@keyframes geo-spin { to { transform: rotate(360deg); } }
+
+/* Markers are buttons positioned by MapLibre */
+/* The button is the disc's hit area only; the number label hangs beside it and ignores the pointer, so nearby markers stay clickable. */
+.geoStation { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; background: none; color: var(--stage-ink); cursor: pointer; }
+.geoDisc { width: 12px; height: 12px; border-radius: 50%; border: 2.2px solid var(--stage-ok); background: var(--map-bg); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.5); transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out); }
+.geoStation[data-condition='attention'] .geoDisc { border-color: var(--map-bg); background: var(--stage-warn); }
+.geoStation[data-condition='offline'] .geoDisc { border-color: var(--map-bg); background: var(--stage-bad); }
+.geoLabel { position: absolute; left: 20px; top: 4px; padding: 0 3px; border-radius: 2px; background: rgba(11, 13, 16, 0.72); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; line-height: 14px; pointer-events: none; }
+.geoStation:hover .geoDisc { transform: scale(1.25); }
+.geoStation:focus-visible { outline: none; }
+.geoStation:focus-visible .geoDisc, .geoStation[data-selected] .geoDisc { box-shadow: 0 0 0 2px var(--stage-ink), 0 0 0 6px var(--stage-glow); }
+.geoStation[data-selected] .geoLabel { background: var(--stage-cobalt); color: var(--stage); }
+
+.geoIncident { position: relative; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: default; }
+button.geoIncident { cursor: pointer; }
+.geoDiamond { display: grid; place-items: center; width: 15px; height: 15px; border: 1.5px solid var(--map-bg); border-radius: 3px; background: var(--stage-bad); transform: rotate(45deg); box-shadow: 0 0 10px -1px var(--stage-bad); }
+.geoDiamond b { color: var(--map-bg); font-size: 10px; font-weight: 800; line-height: 1; transform: rotate(-45deg); }
+.geoIncident[data-type='ems'] .geoDiamond { background: var(--stage-cobalt); box-shadow: 0 0 10px -1px var(--stage-cobalt); }
+.geoIncident[data-type='hazmat'] .geoDiamond { background: var(--stage-warn); box-shadow: 0 0 10px -1px var(--stage-warn); }
+.geoIncident[data-type='other'] .geoDiamond { background: var(--stage-incident-other); box-shadow: none; }
+.geoIncident[data-active='false'] { opacity: 0.45; }
+.geoIncident[data-active='false'] .geoPulse { display: none; }
+.geoIncident[data-selected] .geoDiamond, .geoIncident:focus-visible .geoDiamond { border-color: var(--stage-ink); box-shadow: 0 0 0 4px var(--stage-glow); }
+.geoIncident:focus-visible { outline: none; }
+.geoPulse { position: absolute; inset: 7px; border: 1.5px solid var(--stage-bad); border-radius: 50%; animation: geo-pulse 2.8s var(--ease-out) infinite; pointer-events: none; }
+.geoIncident[data-type='ems'] .geoPulse { border-color: var(--stage-cobalt); }
+.geoIncident[data-type='hazmat'] .geoPulse { border-color: var(--stage-warn); }
+.geoIncident[data-type='other'] .geoPulse { border-color: var(--stage-incident-other); }
+@keyframes geo-pulse { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .geoPulse { animation: none; opacity: 0.3; transform: scale(1.8); } }
+
+/* Layer panel, docked top-left over the canvas */
+.layerPanel { position: absolute; top: 12px; left: 12px; z-index: 6; display: grid; gap: 2px; width: 264px; max-height: calc(100% - 24px); overflow-y: auto; padding: 10px; border: 1px solid var(--stage-rule); border-radius: var(--radius-panel); background: rgba(14, 17, 21, 0.94); box-shadow: var(--shadow-float); backdrop-filter: blur(6px); }
+.layerPanel > p { padding: 2px 6px 6px; color: var(--stage-ink-2); }
+.layerPanel button { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 10px; min-height: 38px; padding: 4px 6px; border: 0; border-radius: 3px; background: none; color: var(--stage-ink-2); font-size: 0.8125rem; text-align: left; }
+.layerPanel button:hover { background: var(--stage-2); color: var(--stage-ink); }
+.layerPanel button[aria-pressed='true'] { color: var(--stage-ink); }
+.layerPanel button i { width: 12px; height: 12px; border: 1.5px solid var(--stage-quiet); border-radius: 2px; }
+.layerPanel button[aria-pressed='true'] i { border-color: var(--stage-cobalt); background: var(--stage-cobalt); box-shadow: inset 0 0 0 2px var(--stage); }
+.layerPanel button small { display: block; color: var(--stage-quiet); font-size: 0.6875rem; }
+.layerPanel button b { color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; }
+
+.readout { position: absolute; left: 12px; bottom: 36px; z-index: 4; display: flex; gap: 10px; margin: 0; padding: 3px 8px; border: 1px solid var(--stage-rule); border-radius: 3px; background: rgba(11, 13, 16, 0.82); color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.02em; pointer-events: none; }
+.offline { position: absolute; top: 12px; left: 50%; z-index: 6; margin: 0; padding: 4px 10px; border: 1px solid var(--warn-rule); border-radius: 3px; background: rgba(42, 31, 16, 0.92); color: var(--stage-warn); font-size: 0.75rem; transform: translateX(-50%); }
+.legend i[data-kind='arc'] { width: 18px; height: 8px; border-top: 2px solid var(--stage-cobalt); border-radius: 50% 50% 0 0; }
+.legend i[data-kind='ring'] { width: 12px; height: 12px; border: 1.5px solid var(--stage-cobalt); border-radius: 50%; }
+
+/* MapLibre controls in the stage vocabulary */
+.geo :global(.maplibregl-ctrl-scale) { margin: 0 0 10px 12px; border: 1px solid var(--stage-ink-2); border-top: 0; background: rgba(11, 13, 16, 0.7); color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 10px; }
+.geo :global(.maplibregl-ctrl-attrib) { background: rgba(11, 13, 16, 0.72) !important; color: var(--stage-ink-2); font-size: 10px; }
+.geo :global(.maplibregl-ctrl-attrib a) { color: var(--stage-ink-2); }
+.geo :global(.maplibregl-ctrl-attrib-button) { filter: invert(1); opacity: 0.6; }
+.geo :global(.maplibregl-canvas:focus-visible) { outline: 2px solid var(--stage-cobalt); outline-offset: -2px; }
+.geo :global(.deck-tooltip) { z-index: 7; }
+.geo .tools { z-index: 5; }
