@@ -26,13 +26,13 @@ test('personnel station distribution, roster, and profile deep link agree', asyn
 test('duty timeline shows recorded apparatus groups, coverage, and overnight continuation', async ({ page }) => {
   await page.goto('/shifts')
   await expect.poll(() => page.locator('[data-ui="duty-row"]').count()).toBeGreaterThan(30)
-  await expect(page.locator('[data-ui="duty-window"]').first()).toContainText('+1D')
+  await expect(page.locator('[data-ui="duty-window"]').first()).toContainText('+1')
   await page.locator('[data-ui="duty-row"]').first().click()
   await expect(page.locator('[data-ui="coverage-ledger"] tbody tr').first()).toBeVisible()
   await expect(page.locator('#shift-heading')).toHaveText('Fairfax County')
   await page.getByRole('button', { name: 'Next day', exact: true }).click()
   await expect(page.locator('[data-ui="duty-row"]').first()).toBeVisible()
-  await expect(page.locator('[data-ui="duty-window"]').first()).toContainText('+1D')
+  await expect(page.locator('[data-ui="duty-window"]').first()).toContainText('+1')
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Add to roster' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Cancel shift' })).toBeDisabled()
@@ -56,8 +56,12 @@ test('expiration bands filter risk and requirements stay linked to apparatus', a
 
 test('analysis comparison selects station evidence and exports the current report', async ({ page }) => {
   await page.goto('/analytics')
+  // Stations below full readiness lead; the toggle restores the complete comparison.
+  await expect.poll(() => page.locator('[data-ui="station-comparison"]').count(), { timeout: 15_000 }).toBeGreaterThan(0)
+  expect(await page.locator('[data-ui="station-comparison"][data-full]').count()).toBe(0)
+  await page.getByRole('button', { name: 'Show all 39 stations' }).click()
   await expect(page.locator('[data-ui="station-comparison"]')).toHaveCount(39)
-  await page.locator('[data-ui="station-comparison"]').first().click()
+  await page.locator('[data-ui="station-comparison"]').filter({ has: page.getByText('St. 1', { exact: true }) }).click()
   await expect(page.locator('[data-ui="analysis-evidence"] h3')).toHaveText('Station 1 — McLean')
   await expect(page.locator('[data-ui="analysis-evidence"]')).toContainText('Staffing deficit')
   await expect(page.locator('[data-ui="analysis-evidence"] [data-ui="evidence-link"]').first()).toHaveAttribute('href', /view=units&unit=/)
@@ -109,21 +113,23 @@ test('weather handles selection, missing readings, stale and unavailable reports
   await expect(page.locator('[data-ui="forecast-periods"] button')).toHaveCount(0)
 })
 
-test('administration separates access, response checks, audit history, and demo maintenance', async ({ page }) => {
+test('administration separates overview, roles, system status, audit log, and maintenance', async ({ page }) => {
   await page.goto('/admin')
-  await expect(page.getByRole('heading', { name: 'Identity and permissions' })).toBeVisible()
-  await page.getByRole('tab', { name: 'Response checks' }).click()
+  await expect(page.getByRole('heading', { name: 'Organization' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Roles and permissions' }).click()
+  await expect(page.locator('[data-ui="role-matrix"] tbody tr')).toHaveCount(6)
+  await page.getByRole('tab', { name: 'System status' }).click()
   await expect(page.locator('[data-ui="assurance-checks"] button')).toHaveCount(3)
-  await page.locator('[data-ui="assurance-checks"] button').filter({ hasText: 'Recorded changes' }).click()
-  await expect(page.locator('[data-ui="assurance-detail"] h3')).toHaveText('Recorded changes')
-  await expect(page.locator('[data-ui="assurance"]')).toContainText('not performed')
-  await page.getByRole('tab', { name: /Audit history/ }).click()
+  await page.locator('[data-ui="assurance-checks"] button').filter({ hasText: 'Audit log' }).click()
+  await expect(page.locator('[data-ui="assurance-detail"] h3')).toHaveText('Audit log')
+  await expect(page.locator('[data-ui="assurance"]')).toContainText('Checked from this browser session')
+  await page.getByRole('tab', { name: /Audit log/ }).click()
   await page.getByLabel('Audit record type').selectOption('incident')
   await expect(page.locator('[data-ui="audit-register"] tbody tr').first()).toBeVisible()
   await page.locator('[data-ui="audit-register"] tbody button').nth(1).click()
   await expect(page.locator('[data-ui="audit-detail"]')).toContainText('incident')
-  await page.getByRole('tab', { name: 'Demo maintenance' }).click()
-  await expect(page.getByRole('button', { name: 'Restore demo data' })).toBeDisabled()
+  await page.getByRole('tab', { name: 'Maintenance' }).click()
+  await expect(page.getByRole('button', { name: 'Restore baseline data' })).toBeDisabled()
 })
 
 test('workspaces fit all target widths and preserve accessible controls', async ({ page, browserName }) => {

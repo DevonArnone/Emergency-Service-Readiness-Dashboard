@@ -6,10 +6,12 @@ import { LazyMotion, MotionConfig } from 'motion/react'
 import { useState } from 'react'
 import { ScopeProvider } from './ScopeContext'
 import AuthBoundary from './AuthBoundary'
+import { useThemeGuard } from '@/hooks/useTheme'
 
 const loadMotionFeatures = () => import('./motion-features').then((module) => module.default)
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
+  useThemeGuard()
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {

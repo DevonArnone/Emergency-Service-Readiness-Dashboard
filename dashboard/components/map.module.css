@@ -1,33 +1,70 @@
 .map { display: flex; flex-direction: column; }
+.map > header { flex: 0 0 auto; }
 .map:fullscreen { border-radius: 0; }
-.map:fullscreen .canvas { flex: 1 1 auto; }
-.map:fullscreen .svg { height: 100%; }
+.map:fullscreen .canvas { flex: 1 1 auto; aspect-ratio: auto; }
 .layers { display: flex; flex-wrap: wrap; gap: 6px; }
-.canvas { position: relative; min-height: 0; }
-.svg { display: block; width: 100%; height: auto; }
+.canvas { position: relative; flex: 1 1 auto; aspect-ratio: 920 / 600; background: var(--stage); }
+/* Slice keeps the county filling the canvas; the county spans x 220–700 of 920, so side crops lose only context. */
+.svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.backdrop { fill: var(--stage); }
+.gridLine { fill: none; stroke: var(--map-grid); stroke-width: .5; }
+.land { fill: var(--map-land); }
+.reliefShade { flood-color: var(--map-relief); }
+.boundary { fill: none; stroke: var(--stage-cobalt); stroke-width: 1.8; stroke-linejoin: round; }
+.outside path, .inside path { fill: none; }
+.outside .arterial { stroke: var(--map-road-faint); stroke-width: .6; opacity: .5; }
+.outside .major { stroke: var(--map-road-arterial); stroke-width: 1; opacity: .4; }
+.outside .freeway { stroke: var(--map-road-major); stroke-width: 1.8; opacity: .5; }
+.outside .stream { stroke: var(--map-stream); stroke-width: 1.2; opacity: .5; }
+.outside .water { fill: var(--map-water-outside); }
+.inside .local { stroke: var(--map-road-local); stroke-width: .3; opacity: .45; }
+.inside .collector { stroke: var(--map-road-collector); stroke-width: .5; opacity: .6; }
+.inside .arterial { stroke: var(--map-road-arterial); stroke-width: .75; opacity: .7; }
+.inside .major { stroke: var(--map-road-major); stroke-width: 1.15; opacity: .8; }
+.inside .stream { stroke: var(--map-stream); stroke-width: 1.1; opacity: .85; }
+.inside .water { fill: var(--map-water); }
+.inside .freewayCasing { stroke: var(--stage); stroke-width: 3.4; opacity: .6; }
+.inside .freeway { stroke: var(--map-road-freeway); stroke-width: 1.9; opacity: .95; }
+
+/* Response links: assigned units' home stations to the incident they are working */
+.links line { stroke: var(--stage-bad); stroke-width: 1.2; stroke-dasharray: 2 4; stroke-linecap: round; opacity: .7; animation: march 1.6s linear infinite; }
+.links line[data-type='ems'] { stroke: var(--stage-cobalt); }
+.links line[data-type='hazmat'] { stroke: var(--stage-warn); }
+.links line[data-type='other'] { stroke: var(--stage-incident-other); }
+@keyframes march { to { stroke-dashoffset: -12; } }
+
+.pulse { fill: none; stroke: var(--stage-bad); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: pulse 2.8s var(--ease-out) infinite; pointer-events: none; }
+.incident[data-type='ems'] .pulse { stroke: var(--stage-cobalt); }
+.incident[data-type='hazmat'] .pulse { stroke: var(--stage-warn); }
+.incident[data-type='other'] .pulse { stroke: var(--stage-incident-other); }
+@keyframes pulse { 0% { transform: scale(.8); opacity: .85; } 100% { transform: scale(3.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; opacity: .35; transform: scale(1.8); }
+  .links line { animation: none; }
+}
 .zoom { transition: transform 260ms var(--ease-out); }
-.context text { fill: #7a8fb5; font-size: 11px; font-family: var(--font-sans); letter-spacing: 0.02em; }
-.countyLabel { fill: #c9d8f6; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; paint-order: stroke; stroke: #112445; stroke-width: 4px; pointer-events: none; }
-.shields rect { fill: #0e1e3a; stroke: #a9bfe8; stroke-width: 1; }
-.shields text { fill: #e7eefb; font-size: 9px; font-weight: 600; font-family: var(--font-mono); }
-.risk circle { fill: rgba(255, 194, 74, 0.16); stroke: rgba(255, 194, 74, 0.5); stroke-width: 0.8; stroke-dasharray: 3 3; }
+.context text { fill: var(--map-context); font-size: 11px; font-family: var(--font-sans); letter-spacing: 0.02em; }
+.countyLabel { fill: var(--map-label); font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; paint-order: stroke; stroke: var(--map-land); stroke-width: 4px; pointer-events: none; }
+.shields rect { fill: var(--stage-2); stroke: var(--map-road-freeway); stroke-width: 1; }
+.shields text { fill: var(--stage-ink); font-size: 9px; font-weight: 600; font-family: var(--font-mono); }
+.risk circle { fill: var(--map-risk-fill); stroke: var(--map-risk-rule); stroke-width: 0.8; stroke-dasharray: 3 3; }
 
 .station, .incident { cursor: pointer; outline: none; }
-.station text { fill: var(--stage-ink); font-size: 10px; font-weight: 600; font-family: var(--font-mono); paint-order: stroke; stroke: #0b1a33; stroke-width: 3px; }
-.stationDisc { fill: #0b1a33; stroke: var(--stage-ok); stroke-width: 2.4; transition: r 160ms var(--ease-out); }
-.station[data-condition='attention'] .stationDisc { fill: var(--stage-warn); stroke: #0b1a33; stroke-width: 1.6; }
-.station[data-condition='offline'] .stationDisc { fill: var(--stage-bad); stroke: #0b1a33; stroke-width: 1.6; }
+.station text { fill: var(--stage-ink); font-size: 10px; font-weight: 600; font-family: var(--font-mono); paint-order: stroke; stroke: var(--navy-900); stroke-width: 3px; }
+.stationDisc { fill: var(--navy-900); stroke: var(--stage-ok); stroke-width: 2.4; transition: r 160ms var(--ease-out); }
+.station[data-condition='attention'] .stationDisc { fill: var(--stage-warn); stroke: var(--navy-900); stroke-width: 1.6; }
+.station[data-condition='offline'] .stationDisc { fill: var(--stage-bad); stroke: var(--navy-900); stroke-width: 1.6; }
 .station:hover .stationDisc { r: 8; }
 .station:focus-visible .stationDisc, .incident:focus-visible .incidentMark { stroke: #fff; stroke-width: 2.6; }
-.selection { fill: rgba(120, 162, 255, 0.2); stroke: var(--stage-cobalt); stroke-width: 2; animation: pick 320ms var(--ease-out); }
+.selection { fill: var(--chart-cursor); stroke: var(--stage-cobalt); stroke-width: 2; animation: pick 320ms var(--ease-out); }
 @keyframes pick { from { transform: scale(0.5); opacity: 0; } }
 .station[data-selected] .stationDisc { stroke: #fff; stroke-width: 2.4; }
 
-.incidentMark { fill: var(--stage-bad); stroke: #0b1a33; stroke-width: 1.4; }
+.incidentMark { fill: var(--stage-bad); stroke: var(--navy-900); stroke-width: 1.4; }
 .incident[data-type='ems'] .incidentMark { fill: var(--stage-cobalt); }
 .incident[data-type='hazmat'] .incidentMark { fill: var(--stage-warn); }
-.incident[data-type='other'] .incidentMark { fill: #c2cfe6; }
-.incidentBang { fill: #0b1a33; }
+.incident[data-type='other'] .incidentMark { fill: var(--stage-incident-other); }
+.incidentBang { fill: var(--navy-900); }
 .incidentClosed { opacity: 0.5; }
 .incident[data-selected] .incidentMark { stroke: #fff; stroke-width: 2; }
 
@@ -37,21 +74,88 @@
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--stage-rule); color: var(--stage-ink-2); font-size: 0.8125rem; }
 .legend li { display: inline-flex; align-items: center; gap: 7px; }
 .legend i { display: inline-block; flex: 0 0 auto; }
-.legend i[data-kind='station'] { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--stage-ok); background: #0b1a33; }
+.legend i[data-kind='station'] { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--stage-ok); background: var(--navy-900); }
 .legend i[data-condition='attention'] { border-color: var(--stage-warn); background: var(--stage-warn); }
 .legend i[data-condition='offline'] { border-color: var(--stage-bad); background: var(--stage-bad); }
 .legend i[data-kind='incident'] { width: 10px; height: 10px; border-radius: 2px; background: var(--stage-bad); transform: rotate(45deg); }
 .legend i[data-type='ems'] { background: var(--stage-cobalt); }
 .legend i[data-type='hazmat'] { background: var(--stage-warn); }
-.legend i[data-type='other'] { background: #c2cfe6; }
+.legend i[data-type='other'] { background: var(--stage-incident-other); }
 .legend i[data-kind='boundary'] { width: 18px; height: 2px; background: var(--stage-cobalt); }
-.legend i[data-kind='highway'] { width: 18px; height: 3px; background: #a9bfe8; }
+.legend i[data-kind='highway'] { width: 18px; height: 3px; background: var(--map-road-freeway); }
 .source { margin-left: auto; }
 
 @media (max-width: 767px) {
+  .canvas { aspect-ratio: 1 / 1; }
   .tools button { width: 44px; height: 44px; }
   .tools { gap: 4px; top: 8px; right: 8px; }
   .source { margin-left: 0; flex-basis: 100%; }
   .layers { width: 100%; }
   .layers button { flex: 1 1 auto; }
 }
+
+/* ── WebGL map (GeoMap) ─────────────────────────────────────────── */
+.geo .canvas { background: var(--map-bg); }
+.geoFill { height: 100%; }
+.geoFill .canvas { aspect-ratio: auto; min-height: 360px; }
+/* Beats maplibregl-map's position: relative so the map fills the canvas box. */
+.canvas > .geoCanvas { position: absolute; inset: 0; }
+.geoLoading { position: absolute; inset: 0; background: radial-gradient(60% 70% at 50% 50%, var(--stage-2), var(--map-bg)); }
+.geoLoading::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid var(--stage-rule); border-top-color: var(--stage-cobalt); border-radius: 50%; animation: geo-spin 900ms linear infinite; }
+@keyframes geo-spin { to { transform: rotate(360deg); } }
+
+/* Markers are buttons positioned by MapLibre */
+/* The button is the disc's hit area only; the number label hangs beside it and ignores the pointer, so nearby markers stay clickable. */
+.geoStation { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; background: none; color: var(--stage-ink); cursor: pointer; }
+.geoDisc { width: 12px; height: 12px; border-radius: 50%; border: 2.2px solid var(--stage-ok); background: var(--map-bg); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.5); transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out); }
+.geoStation[data-condition='attention'] .geoDisc { border-color: var(--map-bg); background: var(--stage-warn); }
+.geoStation[data-condition='offline'] .geoDisc { border-color: var(--map-bg); background: var(--stage-bad); }
+.geoLabel { position: absolute; left: 20px; top: 4px; padding: 0 3px; border-radius: 2px; background: rgba(11, 13, 16, 0.72); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; line-height: 14px; pointer-events: none; }
+.geoStation:hover .geoDisc { transform: scale(1.25); }
+.geoStation:focus-visible { outline: none; }
+.geoStation:focus-visible .geoDisc, .geoStation[data-selected] .geoDisc { box-shadow: 0 0 0 2px var(--stage-ink), 0 0 0 6px var(--stage-glow); }
+.geoStation[data-selected] .geoLabel { background: var(--stage-cobalt); color: var(--stage); }
+
+.geoIncident { position: relative; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: default; }
+button.geoIncident { cursor: pointer; }
+.geoDiamond { display: grid; place-items: center; width: 15px; height: 15px; border: 1.5px solid var(--map-bg); border-radius: 3px; background: var(--stage-bad); transform: rotate(45deg); box-shadow: 0 0 10px -1px var(--stage-bad); }
+.geoDiamond b { color: var(--map-bg); font-size: 10px; font-weight: 800; line-height: 1; transform: rotate(-45deg); }
+.geoIncident[data-type='ems'] .geoDiamond { background: var(--stage-cobalt); box-shadow: 0 0 10px -1px var(--stage-cobalt); }
+.geoIncident[data-type='hazmat'] .geoDiamond { background: var(--stage-warn); box-shadow: 0 0 10px -1px var(--stage-warn); }
+.geoIncident[data-type='other'] .geoDiamond { background: var(--stage-incident-other); box-shadow: none; }
+.geoIncident[data-active='false'] { opacity: 0.45; }
+.geoIncident[data-active='false'] .geoPulse { display: none; }
+.geoIncident[data-selected] .geoDiamond, .geoIncident:focus-visible .geoDiamond { border-color: var(--stage-ink); box-shadow: 0 0 0 4px var(--stage-glow); }
+.geoIncident:focus-visible { outline: none; }
+.geoPulse { position: absolute; inset: 7px; border: 1.5px solid var(--stage-bad); border-radius: 50%; animation: geo-pulse 2.8s var(--ease-out) infinite; pointer-events: none; }
+.geoIncident[data-type='ems'] .geoPulse { border-color: var(--stage-cobalt); }
+.geoIncident[data-type='hazmat'] .geoPulse { border-color: var(--stage-warn); }
+.geoIncident[data-type='other'] .geoPulse { border-color: var(--stage-incident-other); }
+@keyframes geo-pulse { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .geoPulse { animation: none; opacity: 0.3; transform: scale(1.8); } }
+
+/* Layer panel, docked top-left over the canvas */
+.layerPanel { position: absolute; top: 12px; left: 12px; z-index: 6; display: grid; gap: 0; width: 212px; max-height: calc(100% - 24px); overflow-y: auto; padding: 10px; border: 1px solid var(--stage-rule); border-radius: var(--radius-panel); background: rgba(14, 17, 21, 0.94); box-shadow: var(--shadow-float); backdrop-filter: blur(6px); }
+.layerPanel > p { padding: 2px 6px 6px; color: var(--stage-ink-2); }
+.layerPanel button { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 10px; min-height: 30px; padding: 4px 6px; border: 0; border-radius: 3px; background: none; color: var(--stage-ink-2); font-size: 0.8125rem; text-align: left; }
+.layerPanel button:hover { background: var(--stage-2); color: var(--stage-ink); }
+.layerPanel button[aria-pressed='true'] { color: var(--stage-ink); }
+.layerPanel button i { width: 12px; height: 12px; border: 1.5px solid var(--stage-quiet); border-radius: 2px; }
+.layerPanel button[aria-pressed='true'] i { border-color: var(--stage-cobalt); background: var(--stage-cobalt); box-shadow: inset 0 0 0 2px var(--stage); }
+.layerPanel button small { display: block; color: var(--stage-ink-2); font-size: 0.6875rem; }
+.layerPanel button b { color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; }
+
+.readout { position: absolute; left: 12px; bottom: 36px; z-index: 4; display: flex; gap: 10px; margin: 0; padding: 3px 8px; border: 1px solid var(--stage-rule); border-radius: 3px; background: rgba(11, 13, 16, 0.82); color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.02em; pointer-events: none; }
+.offline { position: absolute; top: 12px; left: 50%; z-index: 6; margin: 0; padding: 4px 10px; border: 1px solid var(--warn-rule); border-radius: 3px; background: rgba(42, 31, 16, 0.92); color: var(--stage-warn); font-size: 0.75rem; transform: translateX(-50%); }
+.legend i[data-kind='arc'] { width: 18px; height: 8px; border-top: 2px solid var(--stage-cobalt); border-radius: 50% 50% 0 0; }
+.legend i[data-kind='ring'] { width: 12px; height: 12px; border: 1.5px solid var(--stage-cobalt); border-radius: 50%; }
+
+/* MapLibre controls in the stage vocabulary */
+.geo :global(.maplibregl-ctrl-scale) { margin: 0 0 10px 12px; border: 1px solid var(--stage-ink-2); border-top: 0; background: rgba(11, 13, 16, 0.7); color: var(--stage-ink-2); font-family: var(--font-mono); font-size: 10px; }
+.geo :global(.maplibregl-ctrl-attrib) { background: rgba(11, 13, 16, 0.72) !important; color: var(--stage-ink-2); font-size: 10px; }
+.geo :global(.maplibregl-ctrl-attrib a) { color: var(--stage-ink-2); }
+.geo :global(.maplibregl-ctrl-attrib-button) { filter: invert(1); opacity: 0.6; }
+.geo :global(.maplibregl-canvas:focus-visible) { outline: 2px solid var(--stage-cobalt); outline-offset: -2px; }
+.geo :global(.deck-tooltip) { z-index: 7; }
+.geo .tools { right: calc(12px + var(--map-inset-right, 0px)); z-index: 5; transition: right 240ms var(--ease-out); }
+.geo :global(.maplibregl-ctrl-bottom-right) { right: var(--map-inset-right, 0px); }

@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type FormEvent } from 'react'
 import { ConfirmDialog } from './ConfirmAction'
-import CountyMap, { type MapLayer } from './CountyMap'
+import LinkGraph from './LinkGraph'
+import MapView from './MapView'
+import { useTimeCrosshair } from './useTimeCrosshair'
+import { defaultLayers, type MapLayer } from '@/lib/map/stations'
 import FormDialog from './FormDialog'
 import { EmptyState, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, PageHeader, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type StatusTone } from './ui'
 import { clip, clock, duration, incidentHistory, incidentRef, LIFECYCLE_LABEL, ticks, type IncidentHistory } from '@/lib/history'
@@ -31,7 +34,7 @@ type Props = {
 }
 type RegisterView = 'ALL' | 'ACTIVE' | 'RECENT' | Incident['status']
 type IncidentType = Incident['incident_type']
-type Pane = 'register' | 'map' | 'timeline'
+type Pane = 'register' | 'map' | 'timeline' | 'graph'
 
 const HOUR = 3600000
 const TYPES: IncidentType[] = ['FIRE', 'EMS', 'HAZMAT', 'OTHER']
@@ -39,7 +42,7 @@ const TYPE_LABEL: Record<IncidentType, string> = { FIRE: 'Fire', EMS: 'EMS', HAZ
 const PRIORITY_LABEL: Record<Incident['priority'], string> = { CRITICAL: 'P1 – Critical', HIGH: 'P2 – High', MEDIUM: 'P3 – Medium', LOW: 'P4 – Low' }
 const STATUS_WORD: Record<Incident['status'], string> = { ACTIVE: 'Dispatched', ENROUTE: 'Enroute', ON_SCENE: 'On scene', TRANSPORT: 'Transport', INVESTIGATING: 'Investigating', RESOLVED: 'Closed' }
 const UNIT_TYPE: Record<string, string> = { ENGINE: 'Engine', LADDER: 'Ladder', TRUCK: 'Truck', MEDIC: 'Medic', AMBULANCE: 'Ambulance', RESCUE: 'Rescue', TANKER: 'Tanker', COMMAND: 'Command', SAFETY: 'Safety', HAZMAT: 'HazMat', SAR_TEAM: 'SAR Team' }
-const PANES: Array<[Pane, string]> = [['register', 'Register'], ['map', 'Map'], ['timeline', 'Timeline']]
+const PANES: Array<[Pane, string]> = [['register', 'Register'], ['map', 'Map'], ['timeline', 'Timeline'], ['graph', 'Graph']]
 
 const street = (incident: Incident) => (incident.display_location || incident.title).split(',')[0]
 const city = (incident: Incident) => (incident.display_location || '').split(',').slice(1).join(',').trim()
@@ -53,7 +56,7 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
   const now = snapshot?.timestamp ? new Date(snapshot.timestamp).getTime() : 0
   const [registerView, setRegisterView] = useState<RegisterView>('ALL')
   const [search, setSearch] = useState('')
-  const [layers, setLayers] = useState<Record<MapLayer, boolean>>({ stations: false, incidents: true, risk: false })
+  const [layers, setLayers] = useState<Record<MapLayer, boolean>>(() => defaultLayers('incidents'))
   const [inspectorOpen, setInspectorOpen] = useState(Boolean(params.get('incident')))
   const pane: Pane = PANES.some(([value]) => value === params.get('pane')) ? params.get('pane') as Pane : 'register'
 
@@ -125,7 +128,7 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
             <Panel title="Incident register" description={`${register.length} of ${records.length} incidents · active and closed in the last 24 hours`} flush>
               <div className="ui-table-wrap" tabIndex={0} role="region" aria-label="Incident register">
                 <table className="ui-table" data-ui="incident-register">
-                  <caption className="sr-only">Active and recently closed synthetic incidents. Choose a row to open its record.</caption>
+                  <caption className="sr-only">Active and recently closed incidents. Choose a row to open its record.</caption>
                   <thead><tr><th scope="col">Incident</th><th scope="col">Opened</th><th scope="col">Type</th><th scope="col">Location</th><th scope="col">Units</th><th scope="col">Status</th></tr></thead>
                   <tbody>{register.map((incident) => {
                     const isSelected = selected?.incident_id === incident.incident_id
@@ -146,27 +149,27 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
             </Panel>
           )}
           {pane === 'map' && (
-            <CountyMap title="County incident plot" mode="incidents" stations={stations} units={snapshot?.units || []} incidents={register} scope={scope} layers={layers}
+            <MapView title="County incident plot" mode="incidents" stations={stations} units={snapshot?.units || []} incidents={register} scope={scope} layers={layers}
               onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} selectedIncidentId={selected?.incident_id} onIncidentSelect={select} />
           )}
+          {pane === 'graph' && <LinkGraph incidents={records} units={definitions} stations={stations} selectedId={selected?.incident_id} onSelect={select} />}
           {pane === 'timeline' && <IncidentTimeline records={records} histories={histories} selectedId={selected?.incident_id} onSelect={select} now={now} unitName={unitName} />}
         </div>
 
         <Inspector label="Incident record" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.incident_id}>
           {selected
-            ? <IncidentRecord key={selected.incident_id} incident={selected} record={histories.get(selected.incident_id)} active={active} histories={histories} units={snapshot?.units || []} unitById={unitById} readiness={readiness} unitName={unitName} now={now} updating={updating} resolving={resolving} actionError={actionError?.key === selected.incident_id ? actionError.message : undefined} onUpdate={onUpdate} onResolve={onResolve} onLocate={() => { replace({ pane: 'map' }); setInspectorOpen(false) }} />
+            ? <IncidentRecord key={selected.incident_id} stations={stations} incident={selected} record={histories.get(selected.incident_id)} active={active} histories={histories} units={snapshot?.units || []} unitById={unitById} readiness={readiness} unitName={unitName} now={now} updating={updating} resolving={resolving} actionError={actionError?.key === selected.incident_id ? actionError.message : undefined} onUpdate={onUpdate} onResolve={onResolve} onLocate={() => { replace({ pane: 'map' }); setInspectorOpen(false) }} />
             : <EmptyState title={loading ? 'Loading incidents' : 'No incident selected'} description={loading ? 'Incident records are loading.' : 'Select an incident in the register, on the map, or on the timeline to review its record.'} />}
         </Inspector>
       </div>
-      <p className="ui-provenance">Unofficial concept · synthetic incidents · public station geography. Not a dispatch record.</p>
     </div>
   )
 }
 
 type PostureTab = 'APPARATUS' | 'STAFF' | 'COMMITTED'
 
-function IncidentRecord({ incident, record, active, histories, units, unitById, readiness, unitName, now, updating, resolving, actionError, onUpdate, onResolve, onLocate }: {
-  incident: Incident; record?: IncidentHistory; active: Incident[]; histories: Map<string, IncidentHistory>; units: UnitReadiness[]; unitById: Map<string, Unit>; readiness: Map<string, UnitReadiness>
+function IncidentRecord({ incident, record, active, histories, units, unitById, readiness, unitName, now, updating, resolving, actionError, onUpdate, onResolve, onLocate, stations }: {
+  incident: Incident; record?: IncidentHistory; active: Incident[]; histories: Map<string, IncidentHistory>; units: UnitReadiness[]; unitById: Map<string, Unit>; readiness: Map<string, UnitReadiness>; stations: Station[]
   unitName: (id: string) => string; now: number; updating: boolean; resolving: boolean; actionError?: string; onUpdate: Props['onUpdate']; onResolve: Props['onResolve']; onLocate: () => void
 }) {
   const [draft, setDraft] = useState({ incident_type: incident.incident_type, priority: incident.priority, status: incident.status, display_location: incident.display_location || '', description: incident.description || '' })
@@ -227,7 +230,7 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
   }
 
   return <>
-    <InspectorHeader kind={`Incident ${incidentRef(incident)} · ${TYPE_LABEL[incident.incident_type]}`} title={street(incident)} subtitle={`${incident.title} · ${closed ? `closed ${clock(incident.resolved_at)}` : `updated ${clock(lastEvent)}`}`} badge={<StatusBadge tone={incidentStatusTone(incident)}>{statusLabel(incident)}</StatusBadge>} />
+    <InspectorHeader objectType="incident" objectId={incidentRef(incident)} kind={`Incident ${incidentRef(incident)} · ${TYPE_LABEL[incident.incident_type]}`} title={street(incident)} subtitle={`${incident.title} · ${closed ? `closed ${clock(incident.resolved_at)}` : `updated ${clock(lastEvent)}`}`} badge={<StatusBadge tone={incidentStatusTone(incident)}>{statusLabel(incident)}</StatusBadge>} />
     <form onSubmit={save} style={{ display: 'contents' }} aria-label="Incident worksheet">
       <InspectorBody>
         <fieldset disabled={closed || readOnly} className={styles.worksheet}>
@@ -257,6 +260,7 @@ function IncidentRecord({ incident, record, active, histories, units, unitById, 
           </div>
         </Section>
 
+        {incident.assigned_unit_ids.length > 0 && <Section title="Linked objects" meta="one hop · drag to explore"><LinkGraph compact incidents={[incident]} focusId={incident.incident_id} units={Array.from(unitById.values())} stations={stations} selectedId={incident.incident_id} onSelect={() => undefined} /></Section>}
         <Section title="Recorded lifecycle" meta={record?.recorded ? `${record.stages.length} ${record.stages.length === 1 ? 'stage' : 'stages'}` : 'times not recorded'}>
           <ol className={styles.lifecycle}>
             {(record?.stages || []).map((stage) => (
@@ -318,6 +322,7 @@ function IncidentTimeline({ records, histories, selectedId, onSelect, now, unitN
   const detail = segments.find((item) => item.key === detailKey)
   const unitDetail = unitSegments.find((item) => item.key === detailKey)
   const dateLabel = new Date(start).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(start, end, `.${styles.track}`)
 
   return (
     <section className={cn('ui-stage', styles.timeline)} aria-labelledby="incident-timeline-heading" data-ui="incident-timeline">
@@ -335,7 +340,8 @@ function IncidentTimeline({ records, histories, selectedId, onSelect, now, unitN
         <label className={styles.unitToggle}><input type="checkbox" checked={showUnits} onChange={(event) => setShowUnits(event.target.checked)} />Unit activity</label>
       </fieldset>
       <div className={styles.timeScroll} tabIndex={0} role="region" aria-label="Recorded incident lifecycle stages by time">
-        <div className={styles.timeCanvas}>
+        <div className={styles.timeCanvas} {...crosshairHandlers}>
+          {crosshair}
           <div className={styles.ruler} aria-hidden="true"><span />{<div>{hourTicks.map((tick) => <b key={tick} style={{ left: `${pct(tick)}%` }}>{pct(tick) > 1.5 && pct(tick) < 98.5 ? clock(tick) : ''}</b>)}</div>}</div>
           {rows.map((record) => {
             const incident = record.incident

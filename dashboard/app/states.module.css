@@ -1,9 +1,8 @@
 /* Sign-in, loading, error, and not-found share one vocabulary. */
 .screen { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: var(--navy-900); color: var(--navy-ink); }
 .card { width: min(440px, 100%); padding: 32px; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow-overlay); }
-.mark { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
-.mark img { width: 30px; height: auto; }
-.mark strong { display: block; font-size: 1.0625rem; }
+.mark { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 28px; }
+.mark img { width: 196px; height: auto; }
 .mark span { display: block; color: var(--ink-3); font-size: 0.8125rem; }
 .card h1 { font-size: 1.625rem; line-height: 1.2; letter-spacing: -0.02em; }
 .card p { margin-top: 8px; color: var(--ink-2); font-size: 0.9375rem; }

@@ -8,6 +8,11 @@ const sessionSchema = z.object({
   display_name: z.string().nullable(),
   can_write: z.boolean(),
   can_reset_demo: z.boolean(),
+  subject_id: z.string().optional(),
+  organization_id: z.string().optional(),
+  email: z.string().nullable().optional(),
+  roles: z.array(z.string()).default([]),
+  is_public_demo: z.boolean().optional(),
 })
 
 export function useAccess() {

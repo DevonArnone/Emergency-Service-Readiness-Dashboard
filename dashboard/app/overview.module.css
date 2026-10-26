@@ -1,5 +1,12 @@
-.situation { display: grid; gap: 20px; align-items: start; min-width: 0; }
-.situation > * { min-width: 0; }
+/* Map-first command view: the map, a docked attention column over its right edge, and the activity strip beneath. */
+.command { --map-h: clamp(520px, calc(100dvh - 300px), 880px); display: grid; min-width: 0; }
+.command > * { min-width: 0; }
+.commandMap { height: var(--map-h); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.scrubber { border-top: 1px solid var(--stage-rule); border-top-left-radius: 0; border-top-right-radius: 0; }
+.dock { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 7; display: flex; width: 380px; color: var(--ink); }
+.dock > * { flex: 1 1 auto; min-height: 0; overflow-y: auto; box-shadow: var(--shadow-float); }
+.dock :global(.ui-inspector) { position: static; max-height: none; overflow: hidden; }
+.dockFlow { margin-top: 16px; }
 .queue { display: flex; flex-direction: column; }
 .queueHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 6px; }
 .queueHead h3 { font-size: 0.875rem; font-weight: 600; }
@@ -12,11 +19,20 @@
 
 .lower { display: grid; gap: 20px; align-items: start; }
 .lower > * { min-width: 0; }
-.barColumn { width: 28%; min-width: 96px; }
+/* Four fluid columns so the table always fits its card: availability carries its own bar. */
+.resourceTable { table-layout: fixed; }
+.resourceTable th:first-child { width: 34%; }
+.resourceTable th:nth-child(2) { width: 22%; }
+.resourceTable th:nth-child(3) { width: 12%; }
+.availColumn { width: 32%; }
+.availCell { display: grid; grid-template-columns: minmax(24px, 1fr) 40px; align-items: center; gap: 10px; }
+.availCell > span:last-child { text-align: right; }
+.availCell [data-tone='bad'] { color: var(--bad); font-weight: 600; }
+.availCell [data-tone='warn'] { color: var(--warn); font-weight: 600; }
+.ofTotal { color: var(--ink-3); }
 .brief { display: grid; gap: 8px; }
 .brief li { position: relative; padding-left: 16px; color: var(--ink); font-size: 0.9375rem; }
 .brief li::before { content: ''; position: absolute; top: 0.62em; left: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--cobalt); }
-.footnote { color: var(--ink-3); font-size: 0.8125rem; }
 
 .stationsMain { display: grid; gap: 20px; min-width: 0; }
 .stationsMain > * { min-width: 0; }
@@ -24,9 +40,11 @@
 .readinessCell { display: grid; grid-template-columns: minmax(48px, 96px) 44px; align-items: center; gap: 10px; }
 
 @media (min-width: 1100px) {
-  .situation { grid-template-columns: minmax(0, 1.85fr) minmax(340px, 1fr); }
   .lower { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .barColumn { display: none; }
+  .wideOnly { display: none; }
+  .resourceTable th:first-child { width: 40%; }
+  .availColumn { width: 36%; }
+  :global(.ui-table-wrap) > .resourceTable { min-width: 0; }
 }

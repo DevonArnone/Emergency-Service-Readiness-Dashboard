@@ -53,8 +53,9 @@ export default function AuthBoundary({ children }: { children: React.ReactNode }
   return <main className={styles.screen}>
     <section className={styles.card}>
       <div className={styles.mark}>
-        <Image src="/brand/aegis-command-seal-v2.png" alt="" width={30} height={44} priority />
-        <div><strong>Aegis Command</strong><span>Fairfax County Fire and Rescue · unofficial concept</span></div>
+        <Image className="ui-on-light" src="/brand/aegis-logo.png" alt="Aegis Command" width={726} height={240} priority />
+        <Image className="ui-on-dark" src="/brand/aegis-logo-on-dark.png" alt="" width={726} height={240} priority />
+        <span>Fairfax County Fire and Rescue</span>
       </div>
       <h1>Sign in to the operating picture</h1>
       <p>Access follows your department role. Operators can change records; analysts and observers read them.</p>
@@ -63,7 +64,7 @@ export default function AuthBoundary({ children }: { children: React.ReactNode }
         <InlineError message={error} />
       </div>}
       {status === 'loading' && <InlineError message={error} />}
-      <p className={styles.fine}>Synthetic operational data. Not authorized for dispatch, patient care, or real emergency operations.</p>
+      <p className={styles.fine}>Access is logged. Contact your administrator if your role is missing.</p>
     </section>
   </main>
 }

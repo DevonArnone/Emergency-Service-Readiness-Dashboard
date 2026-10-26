@@ -21,36 +21,37 @@ const overlay = () => {
     body { transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1); transform-origin: var(--tour-ox, 50%) var(--tour-oy, 50%); }
     #tour { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; font-family: 'IBM Plex Sans Variable', system-ui, sans-serif; }
     #tour * { box-sizing: border-box; }
-    #tour .card { position: absolute; inset: 0; display: grid; place-content: center; gap: 14px; padding: 80px; background: #0b1a33; color: #fff; text-align: center; clip-path: inset(0 0 0 0); transition: clip-path 900ms cubic-bezier(0.7, 0, 0.2, 1); }
+    #tour .card { position: absolute; inset: 0; display: grid; place-content: center; gap: 14px; padding: 80px; background: #0d1013; color: #fff; text-align: center; clip-path: inset(0 0 0 0); transition: clip-path 900ms cubic-bezier(0.7, 0, 0.2, 1); }
     #tour .card[data-hidden] { clip-path: inset(0 0 100% 0); }
     #tour .card h1 { margin: 0; font-size: 76px; font-weight: 600; letter-spacing: -0.03em; }
+    #tour .card img { display: block; width: 420px; height: auto; margin: 0 auto 6px; opacity: 0; animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     #tour .card h1 span { display: inline-block; opacity: 0; transform: translateY(26px); filter: blur(10px); animation: rise 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card p { margin: 0; color: #a9b9d6; font-size: 24px; opacity: 0; animation: rise 800ms 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card small { color: #78a2ff; font-size: 16px; letter-spacing: 0.02em; opacity: 0; animation: rise 800ms 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card i { display: block; width: 0; height: 3px; margin: 6px auto; border-radius: 2px; background: #1f4fd8; animation: rule 900ms 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #tour .card p { margin: 0; color: #a3adba; font-size: 24px; opacity: 0; animation: rise 800ms 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #tour .card small { color: #6f97ff; font-size: 16px; letter-spacing: 0.02em; opacity: 0; animation: rise 800ms 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #tour .card i { display: block; width: 0; height: 3px; margin: 6px auto; border-radius: 2px; background: #3e6ef0; animation: rule 900ms 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes rise { to { opacity: 1; transform: none; filter: none; } }
     @keyframes rule { to { width: 180px; } }
-    #tour .wipe { position: absolute; inset: 0; background: #1f4fd8; transform: translateX(-101%); }
+    #tour .wipe { position: absolute; inset: 0; background: #3e6ef0; transform: translateX(-101%); }
     #tour .wipe[data-run] { animation: wipe 760ms cubic-bezier(0.7, 0, 0.2, 1); }
     @keyframes wipe { 0% { transform: translateX(-101%); } 45%, 55% { transform: none; } 100% { transform: translateX(101%); } }
-    #tour .caption { position: absolute; left: 36px; bottom: 34px; display: grid; gap: 2px; max-width: 620px; padding: 14px 20px 15px; border-radius: 12px; background: #0b1a33; color: #fff; box-shadow: 0 2px 6px rgba(7, 18, 38, 0.2), 0 24px 50px -18px rgba(7, 18, 38, 0.6); opacity: 0; transform: translateY(18px); filter: blur(6px); transition: opacity 420ms, transform 520ms cubic-bezier(0.16, 1, 0.3, 1), filter 420ms; }
+    #tour .caption { position: absolute; left: 36px; bottom: 34px; display: grid; gap: 2px; max-width: 620px; padding: 14px 20px 15px; border-radius: 12px; background: #0d1013; color: #fff; box-shadow: 0 2px 6px rgba(4, 6, 9, 0.2), 0 24px 50px -18px rgba(4, 6, 9, 0.6); opacity: 0; transform: translateY(18px); filter: blur(6px); transition: opacity 420ms, transform 520ms cubic-bezier(0.16, 1, 0.3, 1), filter 420ms; }
     #tour .caption[data-on] { opacity: 1; transform: none; filter: none; }
     #tour .caption strong { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
-    #tour .caption span { color: #a9b9d6; font-size: 15px; }
-    #tour .spot { position: absolute; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(7, 18, 38, 0.56), 0 0 0 2px #78a2ff; opacity: 0; transition: opacity 380ms, left 700ms cubic-bezier(0.16, 1, 0.3, 1), top 700ms cubic-bezier(0.16, 1, 0.3, 1), width 700ms cubic-bezier(0.16, 1, 0.3, 1), height 700ms cubic-bezier(0.16, 1, 0.3, 1); }
+    #tour .caption span { color: #a3adba; font-size: 15px; }
+    #tour .spot { position: absolute; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(4, 6, 9, 0.56), 0 0 0 2px #6f97ff; opacity: 0; transition: opacity 380ms, left 700ms cubic-bezier(0.16, 1, 0.3, 1), top 700ms cubic-bezier(0.16, 1, 0.3, 1), width 700ms cubic-bezier(0.16, 1, 0.3, 1), height 700ms cubic-bezier(0.16, 1, 0.3, 1); }
     #tour .spot[data-on] { opacity: 1; }
-    #tour .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -4px 0 0 -4px; transform: translate(640px, 760px); transition: transform 780ms cubic-bezier(0.3, 0, 0.1, 1); filter: drop-shadow(0 2px 3px rgba(7, 18, 38, 0.5)); }
-    #tour .ripple { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #1f4fd8; border-radius: 50%; animation: ripple 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #tour .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -4px 0 0 -4px; transform: translate(640px, 760px); transition: transform 780ms cubic-bezier(0.3, 0, 0.1, 1); filter: drop-shadow(0 2px 3px rgba(4, 6, 9, 0.5)); }
+    #tour .ripple { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #3e6ef0; border-radius: 50%; animation: ripple 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes ripple { to { transform: scale(4.4); opacity: 0; } }
-    #tour .phone { position: absolute; top: 50%; right: 150px; width: 300px; height: 620px; padding: 10px; border-radius: 40px; background: #071226; box-shadow: 0 0 0 2px #223a63, 0 40px 80px -20px rgba(0, 0, 0, 0.7); transform: translate(0, -50%) translateY(760px) rotate(6deg); transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1); }
+    #tour .phone { position: absolute; top: 50%; right: 150px; width: 300px; height: 620px; padding: 10px; border-radius: 40px; background: #08090b; box-shadow: 0 0 0 2px #29303a, 0 40px 80px -20px rgba(0, 0, 0, 0.7); transform: translate(0, -50%) translateY(760px) rotate(6deg); transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1); }
     #tour .phone[data-on] { transform: translate(0, -50%); }
-    #tour .phone iframe { width: 390px; height: 836px; border: 0; border-radius: 42px; transform: scale(0.718); transform-origin: 0 0; background: #f2f5fa; }
-    #tour .backdrop { position: absolute; inset: 0; background: #0b1a33; opacity: 0; transition: opacity 600ms; }
+    #tour .phone iframe { width: 390px; height: 836px; border: 0; border-radius: 42px; transform: scale(0.718); transform-origin: 0 0; background: #111418; }
+    #tour .backdrop { position: absolute; inset: 0; background: #0d1013; opacity: 0; transition: opacity 600ms; }
     #tour .backdrop[data-on] { opacity: 1; }
     #tour .aside { position: absolute; left: 150px; top: 50%; width: 520px; color: #fff; transform: translateY(-50%); opacity: 0; transition: opacity 700ms 300ms; }
     #tour .aside[data-on] { opacity: 1; }
     #tour .aside h2 { margin: 0 0 12px; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-    #tour .aside p { margin: 0; color: #a9b9d6; font-size: 20px; line-height: 1.5; }
+    #tour .aside p { margin: 0; color: #a3adba; font-size: 20px; line-height: 1.5; }
   `
   document.documentElement.appendChild(style)
   const root = document.createElement('div')
@@ -61,7 +62,7 @@ const overlay = () => {
     <div class="backdrop"></div>
     <div class="aside"><h2></h2><p></p></div>
     <div class="phone"><iframe title="Mobile preview"></iframe></div>
-    <svg class="cursor" viewBox="0 0 22 22"><path d="M4 3l13 6.2-5.4 1.9-1.9 5.4z" fill="#fff" stroke="#0b1a33" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    <svg class="cursor" viewBox="0 0 22 22"><path d="M4 3l13 6.2-5.4 1.9-1.9 5.4z" fill="#fff" stroke="#0d1013" stroke-width="1.6" stroke-linejoin="round"/></svg>
     <div class="wipe"></div>
     <div class="card"><h1></h1><i></i><p></p><small></small></div>`
   document.documentElement.appendChild(root)
@@ -69,7 +70,8 @@ const overlay = () => {
   window.tour = {
     card(title, line, note) {
       const card = $('.card')
-      card.querySelector('h1').innerHTML = title.split(' ').map((word, index) => `<span style="animation-delay:${index * 140}ms">${word}</span>`).join(' ')
+      // The product name is the logo lockup; other titles animate word by word.
+      card.querySelector('h1').innerHTML = title === 'Aegis Command' ? `<img src="/brand/aegis-logo-on-dark.png" alt="Aegis Command">` : title.split(' ').map((word, index) => `<span style="animation-delay:${index * 140}ms">${word}</span>`).join(' ')
       card.querySelector('p').textContent = line
       card.querySelector('small').textContent = note
       card.removeAttribute('data-hidden')
@@ -118,7 +120,7 @@ async function record() {
 
   // Warm every route first so the recording never shows a compile or a cold query.
   const warm = await (await browser.newContext({ viewport: size })).newPage()
-  for (const route of ['/', '/readiness?view=incidents', '/readiness?view=incidents&pane=map', '/readiness?view=incidents&pane=timeline', '/readiness?view=units', '/readiness?view=units&pane=history', '/shifts', '/analytics']) {
+  for (const route of ['/', '/readiness?view=incidents', '/readiness?view=incidents&pane=map', '/readiness?view=incidents&pane=timeline', '/readiness?view=incidents&pane=graph', '/readiness?view=units', '/readiness?view=units&pane=history', '/shifts', '/analytics']) {
     await warm.goto(base + route, { waitUntil: 'networkidle' })
   }
   await warm.context().close()
@@ -128,7 +130,7 @@ async function record() {
   await context.addInitScript(() => {
     // A constructed stylesheet is not a DOM node, so hydration cannot remove it.
     const sheet = new CSSStyleSheet()
-    sheet.replaceSync('nextjs-portal { display: none !important; }' + (window.top === window ? ' html { background: #0b1a33 !important; } body { opacity: 0 !important; }' : ''))
+    sheet.replaceSync('nextjs-portal { display: none !important; }' + (window.top === window ? ' html { background: #0d1013 !important; } body { opacity: 0 !important; }' : ''))
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
     window.tourCover = sheet
   })
@@ -168,7 +170,7 @@ async function record() {
     writes.push(writeFile(join(work, file), Buffer.from(data, 'base64')))
   })
   await cdp.send('Page.startScreencast', { format: 'png', maxWidth: size.width, maxHeight: size.height, everyNthFrame: 1 })
-  await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Unofficial concept · synthetic data')
+  await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Synthetic data')
   await page.evaluate(() => window.tourCover.replaceSync('nextjs-portal { display: none !important; }'))
   await page.locator('[data-map-station]').first().waitFor()
   await wait(2300)
@@ -187,9 +189,42 @@ async function record() {
   await tour('zoom', 1)
   await tour('spot', null)
   await wait(800)
-  await point(page.locator('[data-map-station="fs-21"]'))
-  await tour('caption', 'Select anything', 'A station, unit, or incident opens beside the work')
-  await wait(1700)
+  await point(page.getByRole('button', { name: '3D view' }))
+  await tour('caption', 'Depth that carries data', 'Columns rise with the units assigned to each station')
+  await wait(2200)
+  // In the tilted view the marker can sit under the docked panel, so the cursor shows the move and the click goes to the marker itself.
+  await point(page.locator('[data-map-station="fs-21"]'), { click: false })
+  await page.locator('[data-map-station="fs-21"]').dispatchEvent('click')
+  await tour('caption', 'Select anything', 'The map flies to it; rings mark 1, 3, and 5 straight-line miles')
+  await wait(2600)
+  await point(page.getByRole('button', { name: '3D view' }))
+  await wait(900)
+  await point(page.getByRole('button', { name: 'Close station details' }))
+  await wait(500)
+
+  // Activity scrubber
+  await tour('caption', null)
+  await page.evaluate(() => document.querySelector('[data-ui="time-track"]').scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  await wait(900)
+  const track = await page.locator('[data-ui="time-track"]').boundingBox()
+  await tour('caption', 'Scrub the last 24 hours', 'The map and queue filter to the window you draw')
+  await tour('cursor', track.x + track.width * 0.5, track.y + 30)
+  await wait(800)
+  await page.mouse.move(track.x + track.width * 0.5, track.y + 30)
+  await page.mouse.down()
+  for (let step = 1; step <= 14; step++) {
+    const x = track.x + track.width * (0.5 + 0.48 * step / 14)
+    await tour('cursor', x, track.y + 30)
+    await page.mouse.move(x, track.y + 30)
+    await wait(70)
+  }
+  await page.mouse.up()
+  await wait(700)
+  await page.evaluate(() => window.scrollTo({ top: 120, behavior: 'smooth' }))
+  await wait(2000)
+  await page.getByRole('button', { name: 'Clear time window' }).click()
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+  await wait(700)
 
   // Incidents: one selection across register, map, and timeline
   await scene('Incidents', 'Incidents', 'One selection across the register, the map, and the timeline')
@@ -203,6 +238,12 @@ async function record() {
   await tour('spot', '[data-ui="incident-timeline"]', 0)
   await tour('caption', 'Recorded, not assumed', 'Lifecycle stages come from the audit history')
   await wait(1850)
+  await tour('spot', null)
+  await point(page.getByRole('tab', { name: 'Graph', exact: true }))
+  await tour('caption', 'Relationships', 'Incidents, apparatus, crews, and stations from recorded assignments')
+  await wait(1100)
+  await point(page.locator('[data-ui="link-graph"]').first().locator('[data-graph-node="incident:inc-02"]'))
+  await wait(2100)
 
   // Units
   await scene('Units', 'Units', 'Crew, readiness checks, and service state for every apparatus')
@@ -238,13 +279,21 @@ async function record() {
   await tour('caption', null)
   await wait(300)
 
+  // Theme
+  await tour('caption', 'Dark by default, light on demand', 'One toggle; the stage stays dark for space and time')
+  await point(page.getByRole('button', { name: 'Switch to light theme' }))
+  await wait(1700)
+  await point(page.getByRole('button', { name: 'Switch to dark theme' }))
+  await wait(900)
+  await tour('caption', null)
+
   // Mobile
   await tour('cursor', 640, 780)
   await tour('phone', base + '/readiness?view=incidents', 'Complete on a phone', 'Every workflow fits 320px and up, with 44px touch targets and drawers in place of side panels.')
   await wait(2900)
 
   // Close
-  await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Unofficial concept · synthetic data · not for dispatch')
+  await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Synthetic data')
   await wait(2400)
 
   await cdp.send('Page.stopScreencast')

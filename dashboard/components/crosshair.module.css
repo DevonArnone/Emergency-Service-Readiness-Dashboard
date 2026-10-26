@@ -1,0 +1,2 @@
+.crosshair { position: absolute; top: 0; bottom: 0; z-index: 4; width: 1px; background: color-mix(in srgb, var(--stage-ink) 45%, transparent); pointer-events: none; }
+.crosshair b { position: sticky; top: 4px; display: block; width: max-content; margin-left: 5px; padding: 1px 5px; border: 1px solid var(--stage-rule); border-radius: 2px; background: var(--stage-2); color: var(--stage-ink); font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 500; line-height: 16px; }

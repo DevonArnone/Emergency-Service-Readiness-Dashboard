@@ -9,6 +9,7 @@ import { EmptyState, Filters, InlineError, Inspector, InspectorBody, InspectorFo
 import { clip, clock, duration, eventTime, incidentHistory, incidentRef, LIFECYCLE_LABEL, SERVICE_LABEL, serviceSegments, ticks, type IncidentHistory, type LifecycleStatus, type ServiceState } from '@/lib/history'
 import type { AuditEvent, Incident, OperationsSnapshot, Personnel, SimulationResult, Station, Unit, UnitAssignment, UnitReadiness } from '@/lib/schemas'
 import { cn, ratioTone, titleCase } from '@/lib/utils'
+import { useTimeCrosshair } from './useTimeCrosshair'
 import styles from './ops.module.css'
 
 type History = { incidentEvents: AuditEvent[]; unitEvents: AuditEvent[]; baselines: AuditEvent[]; incidents: Incident[]; loading: boolean }
@@ -297,7 +298,7 @@ export default function UnitsWorkspace({ snapshot, stations, definitions, assign
 
         <Inspector label="Unit record" open={inspectorOpen && Boolean(selectedDefinition)} onClose={() => setInspectorOpen(false)} recordKey={selectedDefinition?.unit_id}>
           {selectedDefinition && selectedUnit ? <>
-            <InspectorHeader kind={`${typeName(selectedDefinition)} · Station ${stationNumber(selectedStation) || '—'} ${stationArea(selectedStation)} · Battalion ${battalion(selectedStation)}`} title={recordTitle(selectedDefinition)} headingId="unit-record-heading" badge={<span data-ui="unit-service"><StatusBadge tone={TONE[selectedState]}>{serviceWord(selectedDefinition.operational_status)}</StatusBadge></span>}>
+            <InspectorHeader objectType="apparatus" objectId={selectedDefinition.unit_name} kind={`${typeName(selectedDefinition)} · Station ${stationNumber(selectedStation) || '—'} ${stationArea(selectedStation)} · Battalion ${battalion(selectedStation)}`} title={recordTitle(selectedDefinition)} headingId="unit-record-heading" badge={<span data-ui="unit-service"><StatusBadge tone={TONE[selectedState]}>{serviceWord(selectedDefinition.operational_status)}</StatusBadge></span>}>
               <DropdownMenu.Root modal={false}>
                 <DropdownMenu.Trigger asChild><button type="button" className={styles.switcher} aria-label={`${selectedDefinition.unit_name}, ${serviceWord(selectedDefinition.operational_status)}. Choose another unit at this station`}>Other units at this station<ChevronDown aria-hidden="true" /></button></DropdownMenu.Trigger>
                 <DropdownMenu.Portal><DropdownMenu.Content className="ui-menu" align="start" sideOffset={4}>
@@ -358,7 +359,6 @@ export default function UnitsWorkspace({ snapshot, stations, definitions, assign
           </> : <EmptyState title={loading ? 'Loading unit records' : 'No unit selected'} description={loading ? 'Unit and station records are loading.' : 'Select a station or unit to review crew, readiness, and actions.'} />}
         </Inspector>
       </div>
-      <p className="ui-provenance">Unofficial concept · synthetic operations · public station geography.</p>
     </div>
   )
 }
@@ -476,6 +476,7 @@ function UnitTimeline({ units, stationById, readiness, assignments, histories, h
     .filter((bar, index, list) => list.findIndex((item) => (item.incident?.incident_id || item.key) === (bar.incident?.incident_id || bar.key)) === index)
   const hourTicks = ticks(start, end)
   const windowLabel = `${clock(start)}–${clock(end)}`
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(start, end, `.${styles.track}`)
 
   return (
     <section className={cn('ui-stage', styles.timeline)} aria-labelledby="unit-timeline-heading" data-ui="unit-timeline">
@@ -495,7 +496,8 @@ function UnitTimeline({ units, stationById, readiness, assignments, histories, h
       <ul className={styles.legend} aria-label="Timeline legend">{LEGEND.map(([tone, label]) => <li key={tone}><i data-tone={tone} aria-hidden="true" />{label}</li>)}</ul>
       <div className={styles.historyBody}>
         <div className={styles.timeScroll} tabIndex={0} role="region" aria-label="Recorded unit activity by time">
-          <div className={styles.timeCanvas} role="table" aria-label={`Recorded unit activity, ${windowLabel}`} aria-rowcount={rows.length + 1}>
+          <div className={styles.timeCanvas} role="table" aria-label={`Recorded unit activity, ${windowLabel}`} aria-rowcount={rows.length + 1} {...crosshairHandlers}>
+            {crosshair}
             <div className={cn(styles.ruler, styles.unitRuler)} role="row"><span role="columnheader">Unit</span><span role="columnheader">Station</span><span role="columnheader">Crew</span><div role="columnheader" aria-label={`Time ruler ${windowLabel}`}>{hourTicks.filter((tick) => pct(tick) > 2.5 && pct(tick) < 97.5).map((tick) => <b key={tick} style={{ left: `${pct(tick)}%` }}>{clock(tick)}</b>)}</div></div>
             {rows.map(({ unit, bars }) => {
               const metric = readiness.get(unit.unit_id)

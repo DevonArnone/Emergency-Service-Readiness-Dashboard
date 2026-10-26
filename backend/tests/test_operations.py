@@ -137,6 +137,21 @@ class OperationsApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(resolved.is_active)
         self.assertIsNotNone(resolved.resolved_at)
 
+    async def test_readiness_trend_ends_at_live_score_without_a_jump(self) -> None:
+        from app.services.readiness_service import ReadinessService
+
+        trends = await readiness_trends(days=14, station_id=None)
+        live = ReadinessService.check_all_units()
+        by_station: dict[str, list[float]] = {}
+        for row in live:
+            by_station.setdefault(units_store[row["unit_id"]].station_id, []).append(row["readiness_score"])
+        expected = [round(sum(scores) / len(scores), 1) for scores in by_station.values()]
+
+        self.assertAlmostEqual(trends[-1]["overall"], sum(expected) / len(expected), delta=0.1)
+        overall = [row["overall"] for row in trends]
+        self.assertLess(max(abs(b - a) for a, b in zip(overall, overall[1:])), 6)
+        self.assertEqual(trends, await readiness_trends(days=14, station_id=None))
+
     async def test_analytics_filters_apply_at_source(self) -> None:
         trends = await readiness_trends(days=30, station_id=self.station_id)
         risks = await certification_risk(days_ahead=30, station_id=self.station_id)

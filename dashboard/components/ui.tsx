@@ -5,6 +5,13 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import {
   AlertTriangle,
   ArrowRight,
+  Award,
+  Bell,
+  Building2,
+  CalendarClock,
+  Siren,
+  Truck,
+  UserRound,
   CheckCircle2,
   ChevronDown,
   Eye,
@@ -19,7 +26,7 @@ import {
 } from 'lucide-react'
 import * as m from 'motion/react-m'
 import Link from 'next/link'
-import { createContext, forwardRef, useContext, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { createContext, forwardRef, useContext, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { useAccess } from '@/hooks/useAccess'
 import { useDockedInspector } from '@/hooks/useMediaQuery'
@@ -76,7 +83,49 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 type SummaryTone = 'ok' | 'warn' | 'bad' | undefined
-export type SummaryItem = { label: string; value: ReactNode; detail?: ReactNode; tone?: SummaryTone; href?: string }
+export type SummaryItem = { label: string; value: ReactNode; detail?: ReactNode; tone?: SummaryTone; href?: string; trend?: number[]; trendLabel?: string }
+
+/** Counts a leading number up once on first render; later updates (realtime refetches) change in place. */
+function Figure({ value }: { value: ReactNode }) {
+  const match = typeof value === 'string' || typeof value === 'number' ? String(value).match(/^(\d+)(.*)$/) : null
+  const target = match ? Number(match[1]) : null
+  const [shown, setShown] = useState<number | null>(null)
+  const played = useRef(false)
+  useLayoutEffect(() => {
+    if (target === null || played.current) return
+    played.current = true
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || target === 0) return
+    setShown(0)
+    const start = performance.now()
+    let frame = 0
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / 700)
+      setShown(Math.round(target * (1 - Math.pow(1 - progress, 3))))
+      if (progress < 1) frame = requestAnimationFrame(step)
+      else setShown(null)
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [target])
+  if (!match || shown === null) return <>{value}</>
+  return <>{shown}{match[2]}</>
+}
+
+export function Sparkline({ values, label, tone }: { values: number[]; label: string; tone?: SummaryTone }) {
+  if (values.length < 2) return null
+  const min = Math.min(...values), max = Math.max(...values)
+  const span = max - min || 1
+  const points = values.map((value, index) => [index / (values.length - 1) * 100, 22 - (value - min) / span * 18] as const)
+  const line = points.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ')
+  const [lastX, lastY] = points[points.length - 1]
+  return (
+    <svg className="ui-sparkline" data-tone={tone} viewBox="0 0 100 24" preserveAspectRatio="none" role="img" aria-label={label}>
+      <path className="ui-sparkline-area" d={`${line} L100 24 L0 24 Z`} />
+      <path className="ui-sparkline-line" d={line} vectorEffect="non-scaling-stroke" />
+      <circle cx={lastX} cy={lastY} r="1" className="ui-sparkline-dot" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
 
 export function SummaryStrip({ items, label }: { items: SummaryItem[]; label: string }) {
   return (
@@ -84,7 +133,7 @@ export function SummaryStrip({ items, label }: { items: SummaryItem[]; label: st
       {items.map((item) => (
         <div key={item.label} data-tone={item.tone}>
           <dt>{item.label}</dt>
-          <dd>{item.href ? <Link href={item.href}>{item.value}</Link> : item.value}{item.detail && <small>{item.detail}</small>}</dd>
+          <dd>{item.href ? <Link href={item.href}><Figure value={item.value} /></Link> : <Figure value={item.value} />}{item.detail && <small>{item.detail}</small>}{item.trend && <Sparkline values={item.trend} label={item.trendLabel || `${item.label} trend`} tone={item.tone} />}</dd>
         </div>
       ))}
     </dl>
@@ -244,11 +293,21 @@ export function Inspector({ label, open, onClose, recordKey, dismissible = false
   )
 }
 
-export function InspectorHeader({ kind, title, subtitle, badge, headingId, children }: { kind?: string; title: ReactNode; subtitle?: ReactNode; badge?: ReactNode; headingId?: string; children?: ReactNode }) {
+export type ObjectType = 'incident' | 'apparatus' | 'person' | 'station' | 'shift' | 'credential' | 'alert'
+const OBJECT_ICON: Record<ObjectType, LucideIcon> = { incident: Siren, apparatus: Truck, person: UserRound, station: Building2, shift: CalendarClock, credential: Award, alert: Bell }
+
+/** Names a record the same way everywhere: type chip, then its identifier. */
+export function ObjectChip({ type, id }: { type: ObjectType; id?: ReactNode }) {
+  const Icon = OBJECT_ICON[type]
+  return <span className="inline-flex items-center gap-2"><span className="ui-object-chip" data-type={type}><Icon aria-hidden="true" />{type}</span>{id && <span className="ui-object-id">{id}</span>}</span>
+}
+
+export function InspectorHeader({ kind, objectType, objectId, title, subtitle, badge, headingId, children }: { kind?: string; objectType?: ObjectType; objectId?: ReactNode; title: ReactNode; subtitle?: ReactNode; badge?: ReactNode; headingId?: string; children?: ReactNode }) {
   const { drawer, dismiss, closeLabel } = useContext(InspectorContext)
   return (
     <header className="ui-inspector-header">
       <div className="min-w-0">
+        {objectType && <div className="ui-inspector-object"><ObjectChip type={objectType} id={objectId} /></div>}
         <h2 id={headingId}>{title}</h2>
         {kind && <p className="ui-inspector-kind">{kind}</p>}
         {subtitle && <p>{subtitle}</p>}

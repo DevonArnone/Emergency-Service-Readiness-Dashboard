@@ -1,73 +1,189 @@
 @tailwind base;
 
-/* Aegis operating deck: light for reading and deciding, dark for space and time. */
+/* Aegis operating deck: graphite chrome, a dark stage for space and time, and a light or dark workspace for records.
+   The --navy-* names are kept for the rail; their values are graphite. */
 :root {
   color-scheme: light;
 
-  /* Navigation */
-  --navy-950: #071226;
-  --navy-900: #0b1a33;
-  --navy-800: #12264a;
-  --navy-700: #1b3564;
-  --navy-ink: #e8eefb;
-  --navy-ink-2: #a9b9d6;
-  --navy-line: rgba(169, 185, 214, 0.16);
+  /* Rail */
+  --navy-950: #0b0d10;
+  --navy-900: #14181d;
+  --navy-800: #1f242b;
+  --navy-700: #2b313a;
+  --navy-ink: #e7ebf0;
+  --navy-ink-2: #9aa4b2;
+  --navy-line: rgba(255, 255, 255, 0.08);
 
   /* Workspace */
-  --bg: #f2f5fa;
+  --bg: #f2f3f5;
   --surface: #ffffff;
-  --surface-2: #f7f9fc;
-  --surface-sunken: #e9eef6;
-  --ink: #0d1b30;
-  --ink-2: #36465f;
-  --ink-3: #56667f;
-  --rule: #dbe3ee;
-  --rule-strong: #c2cede;
+  --surface-2: #f7f8fa;
+  --surface-sunken: #eaecef;
+  --ink: #111418;
+  --ink-2: #3b4350;
+  --ink-3: #5d6876;
+  --rule: #dde1e6;
+  --rule-strong: #c4cbd4;
 
   /* Selection and primary action */
-  --cobalt: #1f4fd8;
-  --cobalt-strong: #1a41b4;
-  --cobalt-soft: #e9effd;
-  --cobalt-rule: #b7c8f5;
-  --cobalt-ink: #173a9e;
+  --cobalt: #2257e0;
+  --cobalt-strong: #1b47bd;
+  --cobalt-soft: #e8eefc;
+  --cobalt-rule: #b5c7f3;
+  --cobalt-ink: #1a43ad;
 
   /* State: always paired with a word */
-  --ok: #0c7347;
-  --ok-soft: #e2f4ea;
-  --ok-rule: #a9dcc1;
-  --warn: #8a5200;
-  --warn-soft: #fdf2d9;
-  --warn-rule: #edcf8a;
-  --warn-solid: #d99a06;
-  --bad: #b9271d;
-  --bad-soft: #fdeae8;
-  --bad-rule: #f0b4ae;
-  --quiet-soft: #eef1f6;
+  --ok: #17784d;
+  --ok-soft: #e3f3ea;
+  --ok-rule: #a8d8bf;
+  --warn: #8a5100;
+  --warn-soft: #fcf0dc;
+  --warn-rule: #eacc8f;
+  --warn-solid: #d98e1c;
+  --bad: #b8292c;
+  --bad-soft: #fcebeb;
+  --bad-rule: #efb5b6;
+  --bad-solid: #b8292c;
+  --quiet-soft: #eef0f3;
+  --ok-ink: #0e5c3a;
+  --warn-ink: #6b3f00;
+  --bad-ink: #7e1d20;
+  --on-cobalt: #ffffff;
+  --selection: #c8d6fa;
+  --skeleton-shine: #f6f7f9;
+  --overlay: rgba(8, 10, 13, 0.56);
+  --staff-on-call: #5fbf95;
+  --staff-off: #98a2b0;
 
-  /* Stage: maps, timelines */
-  --stage: #081426;
-  --stage-2: #0e1e3a;
-  --stage-3: #162b50;
-  --stage-rule: #223a63;
-  --stage-ink: #e7eefb;
-  --stage-ink-2: #a3b5d4;
-  --stage-ok: #3ad29a;
-  --stage-warn: #ffc24a;
-  --stage-bad: #ff6f61;
-  --stage-cobalt: #78a2ff;
-  --stage-quiet: #5d7196;
+  /* Stage: maps, timelines, graphs — graphite in both themes */
+  --stage: #0e1115;
+  --stage-2: #161a20;
+  --stage-3: #1f242c;
+  --stage-rule: #29303a;
+  --stage-ink: #e7ebf0;
+  --stage-ink-2: #a3adba;
+  --stage-ok: #3fcf8e;
+  --stage-warn: #f2a93b;
+  --stage-bad: #f2605f;
+  --stage-cobalt: #6f97ff;
+  --stage-quiet: #5c6674;
+  --stage-incident-other: #b9c2ce;
+  --stage-selected: #1d2e55;
+  --stage-selected-ink: #d9e4ff;
+  --stage-assigned: #3b6cf0;
+  --stage-investigating: #9aa9c4;
+  --stage-resolved: #4a5466;
+  --stage-oos: #d0443f;
+  --stage-maintenance: #c08414;
+  --stage-hatch-a: #3a4250;
+  --stage-hatch-b: #262c35;
+  --on-stage-bad: #2a0c0c;
+  --on-stage-warn: #2c1d00;
+  --stage-glow: rgba(111, 151, 255, 0.35);
+  --chart-violet: #b39cff;
+  --duty-covered-rule: rgba(63, 207, 142, 0.45);
+  --duty-elapsed: rgba(63, 207, 142, 0.18);
+  --duty-remaining: rgba(31, 36, 44, 0.6);
+  --duty-gap-strong: rgba(242, 96, 95, 0.55);
+  --duty-gap-soft: rgba(242, 96, 95, 0.16);
+  --chart-cursor: rgba(111, 151, 255, 0.12);
 
-  --radius-control: 6px;
-  --radius-panel: 10px;
-  --radius-stage: 14px;
-  --shadow-panel: 0 1px 2px rgba(13, 27, 48, 0.05);
-  --shadow-raised: 0 1px 2px rgba(13, 27, 48, 0.06), 0 12px 28px -14px rgba(13, 27, 48, 0.28);
-  --shadow-overlay: 0 2px 6px rgba(7, 18, 38, 0.12), 0 28px 60px -20px rgba(7, 18, 38, 0.45);
+  /* Map: basemap palette (MapLibre style reads these) and the SVG fallback */
+  --map-bg: #0c0f13;
+  --map-grid: #171b21;
+  --map-land: #14181e;
+  --map-landuse: #171c22;
+  --map-park: #132019;
+  --map-context: #7c8694;
+  --map-label: #c5ccd6;
+  --map-label-halo: #0c0f13;
+  --map-road-faint: #232932;
+  --map-road-local: #262d37;
+  --map-road-collector: #2f3744;
+  --map-road-arterial: #3b4554;
+  --map-road-major: #4d5a6d;
+  --map-road-freeway: #6b7a90;
+  --map-building: #2a313b;
+  --map-stream: #1f5f9c;
+  --map-water: #0f2238;
+  --map-water-outside: #0c1a2b;
+  --map-boundary: #6f97ff;
+  --map-mask: rgba(6, 8, 10, 0.62);
+  --map-relief: rgba(0, 0, 0, 0.55);
+  --map-risk-fill: rgba(242, 169, 59, 0.16);
+  --map-risk-rule: rgba(242, 169, 59, 0.5);
+
+  --radius-control: 4px;
+  --radius-panel: 6px;
+  --radius-stage: 8px;
+  --shadow-control: 0 1px 2px rgba(17, 20, 24, 0.14);
+  --shadow-panel: 0 1px 2px rgba(17, 20, 24, 0.05);
+  --shadow-raised: 0 1px 2px rgba(17, 20, 24, 0.06), 0 12px 28px -14px rgba(17, 20, 24, 0.3);
+  --shadow-overlay: 0 2px 6px rgba(8, 10, 13, 0.14), 0 28px 60px -20px rgba(8, 10, 13, 0.5);
+  --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 30px -8px rgba(0, 0, 0, 0.6);
+
+  --headline: 1.75rem;
+  --figure-xl: 1.625rem;
 
   --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --rail-width: 248px;
-  --inspector-width: 408px;
+  --rail-width: 240px;
+  --inspector-width: 400px;
+}
+
+/* Dark operator theme (default): graphite workspace one step above the stage. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --navy-950: #08090b;
+  --navy-900: #0d1013;
+  --navy-800: #191d23;
+  --navy-700: #252b33;
+  --navy-line: rgba(255, 255, 255, 0.06);
+
+  --bg: #111418;
+  --surface: #181c21;
+  --surface-2: #1e2329;
+  --surface-sunken: #0e1114;
+  --ink: #e7ebf0;
+  --ink-2: #b1bac6;
+  --ink-3: #8b95a3;
+  --rule: #272d35;
+  --rule-strong: #353d48;
+
+  --cobalt: #3563e6;
+  --cobalt-strong: #4a76f5;
+  --cobalt-soft: #19243c;
+  --cobalt-rule: #2c4688;
+  --cobalt-ink: #9db8ff;
+
+  --ok: #43c48b;
+  --ok-soft: #102419;
+  --ok-rule: #1f4a35;
+  --ok-ink: #93dcb9;
+  --warn: #f0a548;
+  --warn-soft: #2a1f10;
+  --warn-rule: #5a3f17;
+  --warn-ink: #f6cd94;
+  --bad: #f17a7c;
+  --bad-soft: #2c1618;
+  --bad-rule: #62292c;
+  --bad-ink: #ffb6b7;
+  --quiet-soft: #1e2329;
+
+  --selection: #2a4486;
+  --skeleton-shine: #232930;
+  --overlay: rgba(0, 0, 0, 0.66);
+  --staff-off: #6b7584;
+
+  --stage: #0b0d10;
+  --stage-2: #13161b;
+  --stage-3: #1b2027;
+
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.02), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.45), 0 14px 30px -14px rgba(0, 0, 0, 0.8);
+  --shadow-overlay: 0 2px 6px rgba(0, 0, 0, 0.45), 0 28px 60px -20px rgba(0, 0, 0, 0.9);
 }

@@ -71,7 +71,7 @@ def _ensure_organization(session, organization_id: str) -> None:
         session.add(Organization(
             organization_id=organization_id,
             slug="fairfax-concept" if organization_id == settings.default_organization_id else organization_id,
-            name="Fairfax County Fire and Rescue Department — Unofficial Concept",
+            name="Fairfax County Fire and Rescue Department",
             is_public_demo=organization_id == settings.default_organization_id,
         ))
         session.flush()

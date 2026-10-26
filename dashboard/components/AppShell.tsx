@@ -17,10 +17,12 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
+  Moon,
   RefreshCw,
   Search,
   Settings,
   Siren,
+  Sun,
   Truck,
   UserRound,
   Users,
@@ -33,6 +35,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, queryKeys } from '@/lib/api'
 import { OIDC_ENABLED, signOut } from '@/lib/auth'
+import { useTheme } from '@/hooks/useTheme'
 import { incidentRef } from '@/lib/history'
 import { useAccess } from '@/hooks/useAccess'
 import { useOperationsStream } from '@/hooks/useOperationsStream'
@@ -100,10 +103,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const streamState = useOperationsStream()
+  const { theme, toggle: toggleTheme } = useTheme()
+  const themeLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
   const session = useAccess()
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
-    queryKey: queryKeys.shellOperations(stationId),
+    // Same key as the workspaces, so the shell and the page share one snapshot request.
+    queryKey: queryKeys.operations(stationId),
     queryFn: () => api.operationsSnapshot(stationId === 'all' ? undefined : stationId),
   })
 
@@ -130,6 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [term, stations.data, snapshot.data])
 
+  const themeAction = !term || /theme|dark|light|mode/.test(term)
   const openAlerts = snapshot.data?.alerts.filter((alert) => alert.state === 'OPEN') || []
   const serviceLive = !snapshot.isError && streamState === 'live'
   const connectionLabel = snapshot.isError ? 'Operations offline' : serviceLive ? 'Operations connected' : 'Operations syncing'
@@ -137,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const currentPage = destinations.find((item) => item.id === activeId)
   const [now] = useState(() => Date.now())
   const period = useOperationalPeriod(snapshot.data ? new Date(snapshot.data.timestamp).getTime() : now)
-  const identity = session.data?.display_name || (session.data?.can_write ? 'Duty officer' : 'Public observer')
+  const identity = session.data?.display_name || (session.data?.can_write ? 'Duty officer' : 'Guest viewer')
 
   const navigate = (href: string) => {
     router.push(href)
@@ -178,18 +185,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const brand = (
     <div className={styles.brand}>
-      <Image src="/brand/aegis-command-seal-v2.png" alt="Unofficial Aegis Fairfax County Fire and Rescue concept seal" width={30} height={44} priority />
-      <div><Link href="/" aria-label="Aegis Command county overview">Aegis Command</Link><span>Fairfax County Fire and Rescue</span></div>
+      <Link href="/" aria-label="Aegis Command county overview"><Image src="/brand/aegis-logo-on-dark.png" alt="Aegis Command" width={726} height={240} priority /></Link>
+      <span>Fairfax County Fire and Rescue</span>
     </div>
   )
-  const provenance = <p className={styles.provenance}>Unofficial concept · Synthetic operations<br />Not for dispatch</p>
 
   return (
     <div className={styles.shell}>
       <aside className={styles.rail} data-shell="rail">
         {brand}
         <nav className={styles.nav} aria-label="Primary navigation">{navList()}</nav>
-        {provenance}
       </aside>
 
       <header className={styles.topbar}>
@@ -205,11 +210,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className={styles.spacer} />
         <div className={styles.connection} data-state={snapshot.isError ? 'offline' : serviceLive ? 'live' : 'syncing'}>
           <i aria-hidden="true" />
-          <div><strong>{connectionLabel}</strong><small>Last sync <span className="ui-mono">{syncClock(snapshot.data?.timestamp)}</span></small></div>
+          <div><strong>{connectionLabel}</strong><small>Last sync <span className="ui-mono" key={snapshot.dataUpdatedAt} data-fresh={snapshot.dataUpdatedAt ? true : undefined}>{syncClock(snapshot.data?.timestamp)}</span></small></div>
         </div>
         <button type="button" className={styles.searchTrigger} aria-label="Search unit, station, incident, location" onClick={() => setCommandOpen(true)}><Search aria-hidden="true" /><span>Search unit, station, incident</span><kbd>⌘K</kbd></button>
+        <button type="button" className={cn(styles.iconTrigger, styles.themeTrigger)} data-ui="theme-toggle" aria-label={themeLabel} title={themeLabel} onClick={toggleTheme}>{theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</button>
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild><button className={styles.iconTrigger} aria-label={`${openAlerts.length} open alerts`}><Bell aria-hidden="true" />{openAlerts.length > 0 && <span>{openAlerts.length > 9 ? '9+' : openAlerts.length}</span>}</button></DropdownMenu.Trigger>
+          <DropdownMenu.Trigger asChild><button className={styles.iconTrigger} aria-label={`${openAlerts.length} open alerts`}><Bell aria-hidden="true" />{openAlerts.length > 0 && <span>{openAlerts.length > 99 ? '99+' : openAlerts.length}</span>}</button></DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content className={cn('ui-menu', styles.alertMenu)} align="end" sideOffset={8}>
               <div className={styles.alertMenuHead}><div><strong>Open alerts</strong><span>{openAlerts.length} requiring review</span></div><StatusBadge tone={openAlerts.length ? 'danger' : 'success'}>{openAlerts.length ? 'Action needed' : 'Clear'}</StatusBadge></div>
@@ -225,7 +231,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <DropdownMenu.Content className="ui-menu" align="end" sideOffset={8}>
               <div className={styles.account}><strong>{identity}</strong><span>{session.isPending ? 'Checking access' : session.data?.can_write ? 'Operator access' : 'Read-only access'}</span></div>
               <DropdownMenu.Item asChild><Link className="ui-menu-item" href="/admin"><Settings size={16} aria-hidden="true" />Access and service details</Link></DropdownMenu.Item>
-              {session.data?.can_reset_demo && <DropdownMenu.Item className="ui-menu-item" onSelect={() => setResetOpen(true)}><RefreshCw size={16} aria-hidden="true" />Restore demo data</DropdownMenu.Item>}
+              {session.data?.can_reset_demo && <DropdownMenu.Item className="ui-menu-item" onSelect={() => setResetOpen(true)}><RefreshCw size={16} aria-hidden="true" />Restore baseline data</DropdownMenu.Item>}
               {OIDC_ENABLED && <DropdownMenu.Item className="ui-menu-item" onSelect={() => void signOut().catch(() => window.location.assign('/'))}><LogOut size={16} aria-hidden="true" />Sign out</DropdownMenu.Item>}
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
@@ -242,13 +248,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Dialog.Close className={styles.mobileClose} aria-label="Close navigation"><X aria-hidden="true" /></Dialog.Close>
             </div>
             <nav className={styles.nav} aria-label="All workspaces">{navList(() => setMobileMenuOpen(false))}</nav>
-            {provenance}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
 
       <main className={styles.main} id="main-content">
-        <p className={styles.mobileProvenance}>Unofficial concept · synthetic data · not for dispatch</p>
         {(snapshot.isError || streamState === 'offline' || streamState === 'reconnecting') && (
           <div className={styles.connectionNotice} role="status">
             <Activity aria-hidden="true" />
@@ -271,10 +275,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className={styles.commandResults} ref={resultsRef}>
               {results.navigation.length > 0 && <section aria-label="Workspaces"><h3>Workspaces</h3>{results.navigation.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" data-command-item onClick={() => navigate(item.href)}><Icon aria-hidden="true" /><strong>{item.name}</strong><small>Open</small></button> })}</section>}
+              {themeAction && <section aria-label="Actions"><h3>Actions</h3><button type="button" data-command-item onClick={() => { toggleTheme(); setCommandOpen(false); setCommandQuery('') }}>{theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}<strong>{themeLabel}</strong><small>Theme</small></button></section>}
               {term && results.stations.length > 0 && <section aria-label="Stations"><h3>Stations</h3>{results.stations.map((station) => <button key={station.station_id} type="button" data-command-item onClick={() => navigate(`/?layer=stations&station=${encodeURIComponent(station.station_id)}`)}><Building2 aria-hidden="true" /><strong>{station.name}</strong><small>{station.district || 'Station'}</small></button>)}</section>}
               {term && results.units.length > 0 && <section aria-label="Units"><h3>Units</h3>{results.units.map((unit) => <button key={unit.unit_id} type="button" data-command-item onClick={() => navigate(`/readiness?view=units&unit=${encodeURIComponent(unit.unit_id)}`)}><Truck aria-hidden="true" /><strong>{unit.unit_name}</strong><small>{unit.readiness_score}% ready</small></button>)}</section>}
               {term && results.incidents.length > 0 && <section aria-label="Incidents"><h3>Active incidents</h3>{results.incidents.map((incident) => <button key={incident.incident_id} type="button" data-command-item onClick={() => navigate(`/readiness?view=incidents&incident=${encodeURIComponent(incident.incident_id)}`)}><Siren aria-hidden="true" /><strong>{incidentRef(incident)} · {incident.title}</strong><small>{incident.display_location?.split(',')[0] || incident.incident_type}</small></button>)}</section>}
-              {term && !results.navigation.length && !results.stations.length && !results.units.length && !results.incidents.length && <p className={styles.commandEmpty}>No workspace, station, unit, or active incident matches “{commandQuery.trim()}”.</p>}
+              {term && !themeAction && !results.navigation.length && !results.stations.length && !results.units.length && !results.incidents.length && <p className={styles.commandEmpty}>No workspace, station, unit, or active incident matches “{commandQuery.trim()}”.</p>}
               {term && (stations.isError || !stations.data) && <p className={styles.commandNote}>Station records are unavailable right now, so they are not included in these results.</p>}
               {term && (snapshot.isError || !snapshot.data) && <p className={styles.commandNote}>Unit and incident records are unavailable until the operations snapshot loads.</p>}
               {!term && <p className={styles.commandNote}>Type to also search stations, units, and active incidents in the current scope. Personnel and closed incidents are searched in their own workspaces.</p>}
@@ -287,7 +292,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Dialog.Portal>
       </Dialog.Root>
 
-      <ConfirmDialog open={resetOpen} onOpenChange={setResetOpen} title="Restore demo data?" description="All synthetic demonstration records are replaced with the baseline dataset." detail="Current demo edits will be permanently removed. This cannot be undone." confirmLabel="Restore demo data" guarded={false} onConfirm={async () => { await api.resetDemo(); await queryClient.invalidateQueries() }} />
+      <ConfirmDialog open={resetOpen} onOpenChange={setResetOpen} title="Restore baseline data?" description="All operational records are replaced with the baseline dataset." detail="Changes made since the last restore will be permanently removed. This cannot be undone." confirmLabel="Restore baseline data" guarded={false} onConfirm={async () => { await api.resetDemo(); await queryClient.invalidateQueries() }} />
     </div>
   )
 }

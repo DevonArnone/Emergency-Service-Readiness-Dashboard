@@ -1,10 +1,8 @@
 # Aegis Command
 
-[![A 43-second tour: county overview, incidents on the register, map, and timeline, units, scheduling, analytics, command search, and the mobile layout](pictures/aegis-tour.webp)](pictures/aegis-tour.webm)
+[![A 73-second tour: the map-first county overview in 2D and 3D, a station fly-in, the activity scrubber, incidents on the register, map, timeline, and relationship graph, units, scheduling, analytics, command search, the theme toggle, and the mobile layout](pictures/aegis-tour.webp)](pictures/aegis-tour.webm)
 
 A readiness coordination tool for a county fire and rescue department: who is on duty, which apparatus can respond, what is open, and what needs attention. FastAPI and PostgreSQL behind a Next.js interface, with an outbox-to-Kafka event pipeline, Redis fan-out to WebSockets, and OIDC roles.
-
-**This is an unofficial portfolio concept.** It is modeled on Fairfax County Fire and Rescue using 39 public station locations and public county GIS geometry. Every unit, person, incident, shift, credential, and alert is synthetic. It is not affiliated with or endorsed by Fairfax County and is not a dispatch, CAD, or patient-care system. Sources and provenance are in [docs/target-research.md](docs/target-research.md).
 
 The tour above is a recording of the running application against the seeded synthetic data ([full-resolution WebM](pictures/aegis-tour.webm)). `node dashboard/scripts/record-tour.mjs` regenerates both files from a running dashboard.
 
@@ -18,6 +16,7 @@ The tour above is a recording of the running application against the seeded synt
 - [Tests and what they cover](#tests-and-what-they-cover)
 - [Known limits](#known-limits)
 - [Repository map](#repository-map)
+- [Disclaimer](#disclaimer)
 
 ## What it does
 
@@ -25,10 +24,10 @@ The tour above is a recording of the running application against the seeded synt
 
 | Workspace | Route | What you can do there |
 |---|---|---|
-| County overview | `/` | Read countywide readiness, pick a station on the map, open an incident or alert, export a handover brief. |
-| Stations | `/?layer=stations` | Search the station directory; the list, the map, and the station panel share one selection. |
+| County overview | `/` | A map-first command view: layers, response arcs, a 3D readiness view, a docked attention queue, and a 24-hour activity scrubber that filters the map and queue by time. Export a handover brief. |
+| Stations | `/?layer=stations` | Search the station directory; the list, the map (with nearest-station areas and 1/3/5-mile rings), and the station panel share one selection. |
 | Resource status | `/?panel=resources` | Compare apparatus, special-team, and supply availability. |
-| Incidents | `/readiness?view=incidents` | Edit an incident, add notes, assign units, resolve it. Switch between register, map, and lifecycle timeline. |
+| Incidents | `/readiness?view=incidents` | Edit an incident, add notes, assign units, resolve it. Switch between register, map, lifecycle timeline, and a relationship graph of incidents, apparatus, crews, and stations. |
 | Units | `/readiness?view=units` | Review crew and readiness per apparatus, assign crew, record out-of-service, maintenance, and return. Coverage matrix and deployment history are alternate views. |
 | Alerts | `/readiness?view=alerts` | Filter by state, acknowledge, resolve. |
 | Personnel | `/personnel` | Search the roster, edit profiles and availability, archive records. |
@@ -37,9 +36,11 @@ The tour above is a recording of the running application against the seeded synt
 | Analytics | `/analytics` | Readiness, staffing, credential, and coverage analyses with CSV export. |
 | Plans & Hazards | `/readiness?view=simulation` | Run a what-if for an apparatus outage or crew callout. Nothing is written. |
 | Weather | `/weather` | National Weather Service forecast and active alerts, with stale and unavailable states. |
-| Admin | `/admin` | Current identity and rights, response checks, audit history, demo reset. |
+| Admin | `/admin` | Organization, roles and permissions, system status, audit log, and baseline data restore. |
 
-More screenshots: [Incidents](pictures/aegis-incidents-desktop.png) · [Units](pictures/aegis-units-desktop.png) · [Alerts](pictures/aegis-alerts-desktop.png) · [Stations](pictures/aegis-stations-desktop.png) · [Personnel](pictures/aegis-personnel-desktop.png) · [Scheduling](pictures/aegis-shifts-desktop.png) · [Credentials](pictures/aegis-certifications-management-desktop.png) · [Analytics](pictures/aegis-analytics-desktop.png) · [Plans](pictures/aegis-plans-desktop.png) · [Weather](pictures/aegis-weather-desktop.png) · [Admin](pictures/aegis-admin-desktop.png). Each has a `-mobile.png` counterpart in [pictures/](pictures/). The browser test suite regenerates them.
+![3D view: tilted county map with readiness columns, 3D buildings, and the station inspector](pictures/aegis-3d-desktop.png)
+
+More screenshots: [3D view](pictures/aegis-3d-desktop.png) · [Relationship graph](pictures/aegis-graph-desktop.png) · [Light theme](pictures/aegis-command-light.png) · [Incidents](pictures/aegis-incidents-desktop.png) · [Units](pictures/aegis-units-desktop.png) · [Alerts](pictures/aegis-alerts-desktop.png) · [Stations](pictures/aegis-stations-desktop.png) · [Personnel](pictures/aegis-personnel-desktop.png) · [Scheduling](pictures/aegis-shifts-desktop.png) · [Credentials](pictures/aegis-certifications-management-desktop.png) · [Analytics](pictures/aegis-analytics-desktop.png) · [Plans](pictures/aegis-plans-desktop.png) · [Weather](pictures/aegis-weather-desktop.png) · [Admin](pictures/aegis-admin-desktop.png). Each has a `-mobile.png` counterpart in [pictures/](pictures/). The browser test suite regenerates them.
 
 ## Run it
 
@@ -120,7 +121,7 @@ No claim is made about consumer-lag reduction or production scale.
 
 ## Frontend
 
-Next.js 16 (App Router), React 19, TypeScript, TanStack Query, Zod, Radix primitives, Recharts. The design system is documented in [DESIGN.md](DESIGN.md).
+Next.js 16 (App Router), React 19, TypeScript, TanStack Query, Zod, Radix primitives, Recharts, MapLibre GL, deck.gl, and d3-force. The interface is dark by default with a light theme on the toggle; the design system is documented in [DESIGN.md](DESIGN.md).
 
 **Where things are**
 
@@ -130,7 +131,10 @@ Next.js 16 (App Router), React 19, TypeScript, TanStack Query, Zod, Radix primit
 | `dashboard/app/styles/ui.css` | Shared component classes, all prefixed `ui-`. |
 | `dashboard/components/ui.tsx` | Shared React components: `PageHeader`, `SummaryStrip`, `Panel`, `Inspector`, `StatusBadge`, `Filters`, loading, empty, and error states. |
 | `dashboard/components/*.module.css`, `dashboard/app/*.module.css` | Layout that belongs to one workspace. |
-| `dashboard/components/CountyMap.tsx` | The SVG county map. Geometry is a committed JSON file projected at a single Web Mercator scale. |
+| `dashboard/components/GeoMap.tsx`, `MapView.tsx` | The WebGL county map. MapLibre draws a custom dark basemap from [OpenFreeMap](https://openfreemap.org) vector tiles (OpenStreetMap data, no API key) with AWS Terrain Tiles hillshade and 3D buildings; deck.gl draws response arcs, readiness columns, nearest-station areas, and distance rings. Station and incident markers are real buttons, so they are keyboard-reachable and testable. `MapView` loads it client-only and falls back to the SVG map when WebGL is unavailable. |
+| `dashboard/lib/map/` | The basemap style (built from the `--map-*` tokens), station helpers, and layer definitions. |
+| `dashboard/components/CountyMap.tsx` | The offline SVG fallback map, projected from a committed geometry file. |
+| `dashboard/components/TimeScrubber.tsx`, `LinkGraph.tsx` | The activity histogram that filters by time, and the force-directed relationship graph. |
 | `dashboard/lib/api.ts`, `dashboard/lib/schemas.ts` | The typed API client. Every response is parsed with Zod; a response that fails parsing is an error, not a silent `undefined`. |
 | `dashboard/lib/history.ts` | Rebuilds unit service states and incident lifecycles from audit events. Time with no record is returned as "unrecorded" rather than assumed. |
 
@@ -193,7 +197,8 @@ It needs the Docker stack running and port 3000 free.
 - **Analytics are descriptive.** Station comparison and trends describe current and recorded state. Nothing predicts response times or coverage.
 - **The map is not for navigation.** It is public GIS geometry drawn for context.
 - **Admin response checks only show that the browser received a valid response.** They are not infrastructure health probes.
-- **Some chart and timeline colors are literal values** in component styles rather than tokens.
+- **The basemap needs network access.** Tiles come from OpenFreeMap and terrain from AWS; offline, the map keeps the county boundary and markers, and without WebGL it falls back to the SVG map.
+- **Map areas and rings are straight-line.** Nearest-station areas and 1/3/5-mile rings are geometric, not drive-time or response coverage.
 
 ## Repository map
 
@@ -219,6 +224,10 @@ docs/                      architecture, security, quality record, execution pla
 ```
 
 Further reading: [PRODUCT.md](PRODUCT.md) for scope and constraints, [DESIGN.md](DESIGN.md) for the interface system, [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for how changes are planned and checked.
+
+## Disclaimer
+
+Aegis Command is an unofficial portfolio project. It is modeled on Fairfax County Fire and Rescue using 39 public station locations and public county GIS geometry, but every unit, person, incident, shift, credential, and alert is synthetic. It is not affiliated with or endorsed by Fairfax County, and it is not a dispatch, CAD, or patient-care system. Sources and provenance are in [docs/target-research.md](docs/target-research.md).
 
 ## License
 

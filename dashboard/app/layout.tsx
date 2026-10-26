@@ -8,10 +8,11 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import AppShell from '@/components/AppShell'
 import AppProviders from '@/components/AppProviders'
+import { themeBootScript } from '@/hooks/useTheme'
 
 export const metadata: Metadata = {
-  title: 'Aegis Command | Fairfax County Concept',
-  description: 'An unofficial Fairfax County Fire and Rescue coordination concept with synthetic operational data.',
+  title: 'Aegis Command',
+  description: 'Fire and rescue readiness coordination: staffing, apparatus, incidents, and credentials in one operating picture.',
 }
 
 export default function RootLayout({
@@ -20,7 +21,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeBootScript }} /></head>
       <body>
         <a className="skip-link" href="#main-content">Skip to workspace</a>
         <AppProviders>

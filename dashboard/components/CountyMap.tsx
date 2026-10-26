@@ -7,9 +7,10 @@ import type { Incident, Station, UnitReadiness } from '@/lib/schemas'
 import { cn } from '@/lib/utils'
 import styles from './map.module.css'
 
-export type MapLayer = 'stations' | 'incidents' | 'risk'
-export type StationCondition = 'normal' | 'attention' | 'offline'
-export type StationRow = Station & { assigned: UnitReadiness[]; score: number | null; condition: StationCondition }
+import { CONDITION_LABEL, INCIDENT_TYPE_LABEL as TYPE_LABEL, stationNumber, stationRows, type MapLayer } from '@/lib/map/stations'
+
+export { CONDITION_LABEL, stationNumber, stationRows }
+export type { MapLayer, StationCondition, StationRow } from '@/lib/map/stations'
 
 const EARTH_RADIUS = 6378137
 
@@ -21,24 +22,9 @@ export function project(lon: number, lat: number): [number, number] {
   return [translateX + x * scale, translateY - y * scale]
 }
 
-/** Station readiness derived from its units in the current snapshot. */
-export function stationRows(stations: Station[], units: UnitReadiness[]): StationRow[] {
-  const readiness = new Map(units.map((unit) => [unit.unit_id, unit]))
-  return stations.map((station) => {
-    const assigned = station.unit_ids.map((id) => readiness.get(id)).filter((unit): unit is UnitReadiness => Boolean(unit))
-    const score = assigned.length ? assigned.reduce((sum, unit) => sum + unit.readiness_score, 0) / assigned.length : null
-    const attention = assigned.some((unit) => unit.is_understaffed || unit.readiness_score < 85)
-    return { ...station, assigned, score, condition: assigned.length === 0 ? 'offline' : attention ? 'attention' : 'normal' }
-  })
-}
-
-export const stationNumber = (station: Pick<Station, 'name' | 'station_id'>) => station.name.match(/Station (\d+)/)?.[1] || station.station_id.replace(/\D/g, '')
-export const CONDITION_LABEL: Record<StationCondition, string> = { normal: 'Normal', attention: 'Staffing attention', offline: 'No active resources' }
-
 const place = (lon: number, lat: number) => { const [x, y] = project(lon, lat); return { x: Math.round(x), y: Math.round(y) } }
 const DULLES = place(-77.4558, 38.9531)
 const FALLS_CHURCH = place(-77.1711, 38.8823)
-const TYPE_LABEL: Record<Incident['incident_type'], string> = { FIRE: 'Fire', EMS: 'EMS', HAZMAT: 'HazMat', OTHER: 'Other' }
 
 type Props = {
   title: string
@@ -62,27 +48,36 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
   const stageRef = useRef<HTMLElement>(null)
   const [zoom, setZoom] = useState(1)
   const rows = stationRows(stations, units)
+  const stationByUnit = new Map(stations.flatMap((station) => station.unit_ids.map((id) => [id, station] as const)))
   const stationPoints = stations.filter((station) => station.latitude && station.longitude).map((station) => project(station.longitude!, station.latitude!))
   const order: MapLayer[] = mode === 'readiness' ? ['stations', 'incidents', 'risk'] : ['incidents', 'stations', 'risk']
-  const layerName: Record<MapLayer, string> = { stations: 'Stations', incidents: 'Incidents', risk: 'Risk layers' }
+  const layerName: Partial<Record<MapLayer, string>> = { stations: 'Stations', incidents: 'Incidents', risk: 'Risk layers' }
   const activate = (action: () => void) => (event: React.KeyboardEvent) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); action() } }
 
   return (
     <section ref={stageRef} className={cn('ui-stage', styles.map, className)} aria-label={title} data-map={mode}>
       <header className="ui-stage-header">
-        <div><h2>{title}</h2><p>{scope !== 'all' ? 'Filtered to the selected station scope' : layers.risk ? 'Risk layer marks stations with staffing or readiness attention' : 'Public station geography with synthetic operations'}</p></div>
+        <div><h2>{title}</h2><p>{scope !== 'all' ? 'Filtered to the selected station scope' : layers.risk ? 'Risk layer marks stations with staffing or readiness attention' : 'Station readiness and active incidents'}</p></div>
         <div className={styles.layers} role="group" aria-label="Map layers">
           {order.map((layer) => <button key={layer} type="button" className="ui-stage-button" aria-pressed={layers[layer]} onClick={() => onToggleLayer(layer)}>{layerName[layer]}</button>)}
         </div>
       </header>
       <div className={styles.canvas}>
-        <svg className={styles.svg} viewBox="0 0 920 600" role="group" aria-label="Interactive Fairfax County map using locally committed public GIS geometry">
+        <svg className={styles.svg} viewBox="0 0 920 600" preserveAspectRatio="xMidYMid slice" role="group" aria-label="Interactive Fairfax County map using locally committed public GIS geometry">
           <defs>
-            <pattern id="map-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1b3157" strokeWidth=".5" /></pattern>
+            <pattern id="map-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path className={styles.gridLine} d="M40 0H0V40" /></pattern>
             <clipPath id="county-clip"><path d={mapData.layers.county.path} fillRule={mapData.layers.county.fillRule as 'evenodd'} /></clipPath>
+            <filter id="county-relief" x="-5%" y="-5%" width="110%" height="110%">
+              <feMorphology in="SourceAlpha" operator="erode" radius="2" result="inner" />
+              <feGaussianBlur in="inner" stdDeviation="9" result="soft" />
+              <feComposite in="SourceAlpha" in2="soft" operator="out" result="rim" />
+              <feFlood className={styles.reliefShade} result="shade" />
+              <feComposite in="shade" in2="rim" operator="in" />
+            </filter>
           </defs>
-          <rect width="920" height="600" fill="#081426" />
-          <rect width="920" height="600" fill="url(#map-grid)" opacity=".55" />
+          {/* Oversized so the stage stays continuous when the canvas is taller than the geometry. */}
+          <rect className={styles.backdrop} x="-600" y="-600" width="2120" height="1800" />
+          <rect x="-600" y="-600" width="2120" height="1800" fill="url(#map-grid)" opacity=".55" />
           <g className={styles.context}>
             <text x="92" y="150">Loudoun County</text>
             <text x="716" y="270">Arlington County</text>
@@ -91,27 +86,33 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
             <text x={FALLS_CHURCH.x + 9} y={FALLS_CHURCH.y + 3}>Falls Church</text><text x={DULLES.x - 12} y={DULLES.y + 3} textAnchor="end">Dulles Intl</text>
           </g>
           <g transform={`translate(${460 * (1 - zoom)} ${300 * (1 - zoom)}) scale(${zoom})`} className={styles.zoom}>
-            <g>
-              <path d={mapData.layers.streets.arterial} fill="none" stroke="#2a4470" strokeWidth=".6" opacity=".5" />
-              <path d={mapData.layers.majorRoads.path} fill="none" stroke="#35548a" strokeWidth="1" opacity=".6" />
-              <path d={mapData.layers.streets.freeway} fill="none" stroke="#4a6aa3" strokeWidth="1.8" opacity=".7" />
-              <path d={mapData.layers.streams.path} fill="none" stroke="#1f5f9c" strokeWidth="1.2" opacity=".7" />
-              <path d={mapData.layers.waterBodies.path} fill="#123e70" fillRule={mapData.layers.waterBodies.fillRule as 'evenodd'} />
+            <g className={styles.outside}>
+              <path className={styles.arterial} d={mapData.layers.streets.arterial} />
+              <path className={styles.major} d={mapData.layers.majorRoads.path} />
+              <path className={styles.freeway} d={mapData.layers.streets.freeway} />
+              <path className={styles.stream} d={mapData.layers.streams.path} />
+              <path className={styles.water} d={mapData.layers.waterBodies.path} fillRule={mapData.layers.waterBodies.fillRule as 'evenodd'} />
             </g>
-            <path d={mapData.layers.county.path} fill="#112445" fillRule={mapData.layers.county.fillRule as 'evenodd'} />
-            <g clipPath="url(#county-clip)">
-              <path d={mapData.layers.streets.local} fill="none" stroke="#3a5687" strokeWidth=".3" opacity=".45" />
-              <path d={mapData.layers.streets.collector} fill="none" stroke="#46639a" strokeWidth=".5" opacity=".6" />
-              <path d={mapData.layers.streets.arterial} fill="none" stroke="#5876ad" strokeWidth=".75" opacity=".7" />
-              <path d={mapData.layers.majorRoads.path} fill="none" stroke="#6f8cc0" strokeWidth="1.15" opacity=".8" />
-              <path d={mapData.layers.streams.path} fill="none" stroke="#2f7fd0" strokeWidth="1.1" opacity=".85" />
-              <path d={mapData.layers.waterBodies.path} fill="#17508f" fillRule={mapData.layers.waterBodies.fillRule as 'evenodd'} />
-              <path d={mapData.layers.streets.freeway} fill="none" stroke="#081426" strokeWidth="3.4" opacity=".6" />
-              <path d={mapData.layers.streets.freeway} fill="none" stroke="#a9bfe8" strokeWidth="1.9" opacity=".95" />
+            <path className={styles.land} d={mapData.layers.county.path} fillRule={mapData.layers.county.fillRule as 'evenodd'} />
+            <g clipPath="url(#county-clip)" className={styles.inside}>
+              <path className={styles.local} d={mapData.layers.streets.local} />
+              <path className={styles.collector} d={mapData.layers.streets.collector} />
+              <path className={styles.arterial} d={mapData.layers.streets.arterial} />
+              <path className={styles.major} d={mapData.layers.majorRoads.path} />
+              <path className={styles.stream} d={mapData.layers.streams.path} />
+              <path className={styles.water} d={mapData.layers.waterBodies.path} fillRule={mapData.layers.waterBodies.fillRule as 'evenodd'} />
+              <path className={styles.freewayCasing} d={mapData.layers.streets.freeway} />
+              <path className={styles.freeway} d={mapData.layers.streets.freeway} />
               {layers.risk && <g className={styles.risk}>{rows.filter((station) => station.condition === 'attention' && station.latitude && station.longitude).map((station) => { const [x, y] = project(station.longitude!, station.latitude!); return <circle key={`risk-${station.station_id}`} cx={x} cy={y} r="34" /> })}</g>}
             </g>
-            <path d={mapData.layers.county.path} fill="none" fillRule={mapData.layers.county.fillRule as 'evenodd'} stroke="#78a2ff" strokeWidth="1.8" strokeLinejoin="round" />
+            <path d={mapData.layers.county.path} fillRule={mapData.layers.county.fillRule as 'evenodd'} filter="url(#county-relief)" aria-hidden="true" />
+            <path className={styles.boundary} d={mapData.layers.county.path} fillRule={mapData.layers.county.fillRule as 'evenodd'} />
             <g className={styles.shields} aria-hidden="true">{mapData.layers.routeLabels.filter((route) => ['66', '495', '395', '95', '28'].includes(route.route)).map((route) => { const y = route.y - (stationPoints.some(([sx, sy]) => Math.hypot(sx - route.x, sy - route.y) < 22) ? 24 : 0); return <g key={`${route.route}-${route.x}-${route.y}`} transform={`translate(${route.x} ${y})`}><rect x="-12" y="-8" width="24" height="16" rx="4" /><text y="4" textAnchor="middle">{route.route}</text></g> })}</g>
+            {layers.incidents && layers.stations && <g className={styles.links} aria-hidden="true">{incidents.filter((incident) => incident.is_active && incident.latitude && incident.longitude).flatMap((incident) => {
+              const [ix, iy] = project(incident.longitude!, incident.latitude!)
+              const homes = new Set(incident.assigned_unit_ids.map((id) => stationByUnit.get(id)).filter((station): station is Station => Boolean(station?.latitude && station.longitude)))
+              return Array.from(homes).map((station) => { const [sx, sy] = project(station.longitude!, station.latitude!); return <line key={`${incident.incident_id}-${station.station_id}`} data-type={incident.incident_type.toLowerCase()} x1={sx} y1={sy} x2={ix} y2={iy} /> })
+            })}</g>}
             <text className={styles.countyLabel} x="470" y="326" textAnchor="middle">Fairfax County</text>
             {layers.incidents && incidents.filter((incident) => incident.latitude && incident.longitude).map((incident) => {
               const [x, y] = project(incident.longitude!, incident.latitude!)
@@ -121,6 +122,7 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
               return <g key={incident.incident_id} className={cn(styles.incident, !incident.is_active && styles.incidentClosed)} data-map-incident={incident.incident_id} data-type={incident.incident_type.toLowerCase()} data-selected={selected || undefined} transform={`translate(${x} ${y})`} role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-pressed={interactive ? selected : undefined} aria-label={interactive ? `Select ${incident.incident_type} incident at ${incident.display_location || incident.title}` : undefined} onClick={interactive ? select : undefined} onKeyDown={interactive ? activate(select) : undefined}>
                 <title>{TYPE_LABEL[incident.incident_type]}: {incident.display_location || incident.title}{incident.is_active ? '' : ' (closed)'}</title>
                 {selected && <circle className={styles.selection} r="19" />}
+                {incident.is_active && <><circle className={styles.pulse} r="9" /><circle className={styles.pulse} r="9" style={{ animationDelay: '1.4s' }} /></>}
                 <rect className={styles.incidentMark} x="-7.5" y="-7.5" width="15" height="15" rx="3" transform="rotate(45)" />
                 <rect className={styles.incidentBang} x="-1.1" y="-5" width="2.2" height="6" rx=".7" /><circle className={styles.incidentBang} cy="3.8" r="1.25" />
               </g>
@@ -152,7 +154,7 @@ export default function CountyMap({ title, stations, units, incidents, scope, mo
           : <><li><i data-kind="station" data-condition="normal" />Station normal</li><li><i data-kind="station" data-condition="attention" />Staffing attention</li><li><i data-kind="station" data-condition="offline" />No active resources</li><li><i data-kind="incident" data-type="fire" />Active incident</li></>}
         <li><i data-kind="boundary" />County boundary</li>
         <li><i data-kind="highway" />Major highway</li>
-        <li className={styles.source}>Public GIS geometry · synthetic operations · not for navigation or dispatch</li>
+        <li className={styles.source}>County GIS geometry · not for navigation</li>
       </ul>
     </section>
   )

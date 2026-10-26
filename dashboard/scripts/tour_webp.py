@@ -10,6 +10,7 @@ import sys
 from PIL import Image, _webp
 
 FPS = 30
+QUALITY = 62  # with the 20 fps thinning below, keeps a ~70 s tour under 10 MB so GitHub renders it inline
 work, target = sys.argv[1], sys.argv[2]
 manifest = json.load(open(os.path.join(work, "frames.json")))
 frames, end = manifest["frames"], manifest["end"]
@@ -23,11 +24,18 @@ slots = sorted(kept)
 
 # Pillow's public save() needs every frame in memory at once, so frames stream into its WebP encoder directly.
 width, height = Image.open(os.path.join(work, frames[0]["file"])).size
-encoder = _webp.WebPAnimEncoder((width, height), 0xFF0B1A33, 0, False, 3, 30, False, False)
-for slot in slots:
+encoder = _webp.WebPAnimEncoder((width, height), 0xFF0D1013, 0, False, 3, 30, False, False)
+# The WebP thins motion to about 20 fps to stay small, but never drops a frame that is then held on screen.
+last = -1
+for index, slot in enumerate(slots):
+    at = slot * 1000 / FPS
+    held = (slots[index + 1] - slot) * 1000 / FPS if index + 1 < len(slots) else 1000
+    if at - last < 50 and held < 50:
+        continue
+    last = at
     image = Image.open(os.path.join(work, kept[slot])).convert("RGB")
-    encoder.add(image.getim(), round(slot * 1000 / FPS), False, 72, 100, 4)
-encoder.add(None, round((end - start) * 1000), False, 72, 100, 0)
+    encoder.add(image.getim(), round(at), False, QUALITY, 100, 4)
+encoder.add(None, round((end - start) * 1000), False, QUALITY, 100, 0)
 with open(target, "wb") as handle:
     handle.write(encoder.assemble("", "", ""))
 

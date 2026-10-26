@@ -2,7 +2,7 @@
 
 import { Truck, Users } from 'lucide-react'
 import Link from 'next/link'
-import { CONDITION_LABEL, stationNumber, type StationRow } from './CountyMap'
+import { CONDITION_LABEL, stationNumber, type StationRow } from '@/lib/map/stations'
 import { useStationScope } from './ScopeContext'
 import { EmptyState, Inspector, InspectorBody, InspectorFooter, InspectorHeader, Meter, Section, StatusBadge, type StatusTone } from './ui'
 
@@ -16,7 +16,7 @@ export default function StationInspector({ station, open, onClose, dismissible =
   return (
     <Inspector label="Station details" open={open && Boolean(station)} onClose={onClose} recordKey={station?.station_id} dismissible={dismissible} closeLabel="Close station details">
       {station ? <>
-        <InspectorHeader kind={`Station ${stationNumber(station)} · ${station.district?.split(' · ')[0] || 'No battalion recorded'}`} title={station.name.split(' — ')[1] || station.name} subtitle={station.address || 'Address not recorded'} badge={<StatusBadge tone={CONDITION_TONE[station.condition]}>{CONDITION_LABEL[station.condition]}</StatusBadge>} />
+        <InspectorHeader objectType="station" objectId={`ST-${stationNumber(station).padStart(2, '0')}`} kind={`Station ${stationNumber(station)} · ${station.district?.split(' · ')[0] || 'No battalion recorded'}`} title={station.name.split(' — ')[1] || station.name} subtitle={station.address || 'Address not recorded'} badge={<StatusBadge tone={CONDITION_TONE[station.condition]}>{CONDITION_LABEL[station.condition]}</StatusBadge>} />
         <InspectorBody>
           <dl className="ui-facts">
             <div><dt>Readiness</dt><dd>{station.score === null ? 'No active resources' : `${Math.round(station.score)}%`}</dd></div>

@@ -110,7 +110,7 @@ def demo_principal() -> Principal:
         subject_id="public-demo",
         organization_id=settings.default_organization_id,
         roles=frozenset({"viewer"}),
-        display_name="Public demo viewer",
+        display_name="Guest viewer",
         is_public_demo=True,
     )
 

@@ -3,8 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, ChevronLeft, ChevronRight, LogIn, LogOut, Plus, UserPlus, XCircle } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import ConfirmAction from '@/components/ConfirmAction'
+import { useTimeCrosshair } from '@/components/useTimeCrosshair'
 import FormDialog, { Field } from '@/components/FormDialog'
 import { useStationScope } from '@/components/ScopeContext'
 import { Button, EmptyState, ErrorState, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, LoadingState, Notice, PageHeader, Pagination, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type NoticeValue } from '@/components/ui'
@@ -25,7 +26,7 @@ function shiftTone(status: string) {
   return 'info' as const
 }
 
-type DutyRow = { shift: Shift; id: string; label: string; present?: number; assigned?: number; required?: number }
+type DutyRow = { shift: Shift; id: string; label: string; stationId?: string | null; present?: number; assigned?: number; required?: number }
 
 export default function SchedulingPage() {
   const queryClient = useQueryClient()
@@ -37,6 +38,14 @@ export default function SchedulingPage() {
   const [shiftDialog, setShiftDialog] = useState(false)
   const [rosterDialog, setRosterDialog] = useState(false)
   const [notice, setNotice] = useState<NoticeValue>(null)
+  // Read the clock only after hydration so server and client markup agree; refresh the now line each minute.
+  const [nowMs, setNowMs] = useState<number | null>(null)
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now())
+    const first = setTimeout(tick, 0)
+    const every = setInterval(tick, 60_000)
+    return () => { clearTimeout(first); clearInterval(every) }
+  }, [])
 
   const shifts = useQuery({ queryKey: queryKeys.shifts, queryFn: api.shifts })
   const liveShifts = useQuery({ queryKey: [...queryKeys.liveShifts, selectedDate], queryFn: () => api.liveShifts(selectedDate), refetchInterval: 15_000 })
@@ -99,8 +108,16 @@ export default function SchedulingPage() {
     const groups = new Map<string, LiveShift['assigned_personnel']>()
     attendance?.assigned_personnel.forEach(person => groups.set(person.unit_id, [...(groups.get(person.unit_id) || []), person]))
     if (!groups.size) return [{ shift, id: shift.shift_id, label: shift.location, present: attendance?.clocked_in_count, assigned: attendance?.assigned_count, required: shift.required_headcount }]
-    return Array.from(groups).map(([id, crew]) => ({ shift, id: `${shift.shift_id}:${id}`, label: unitList.find(unit => unit.unit_id === id)?.unit_name || id, present: crew.filter(person => person.clocked_in_at && !person.clocked_out_at).length, assigned: crew.length, required: unitList.find(unit => unit.unit_id === id)?.minimum_staff }))
+    return Array.from(groups).map(([id, crew]) => { const unit = unitList.find(item => item.unit_id === id); return { shift, id: `${shift.shift_id}:${id}`, label: unit?.unit_name || id, stationId: unit?.station_id, present: crew.filter(person => person.clocked_in_at && !person.clocked_out_at).length, assigned: crew.length, required: unit?.minimum_staff } })
   })
+  // Group apparatus rows under their home station so the ruler reads like a station board.
+  const stationOrder = new Map((stations.data || []).map(station => [station.station_id, station]))
+  const stationNo = (id?: string | null) => Number(stationOrder.get(id || '')?.name.match(/Station (\d+)/)?.[1] ?? 999)
+  const dutyGroups = Array.from(dutyRows.reduce((map, row) => map.set(row.stationId || '', [...(map.get(row.stationId || '') || []), row]), new Map<string, DutyRow[]>()))
+    .sort(([a], [b]) => stationNo(a) - stationNo(b))
+  const nowPct = nowMs === null ? -1 : (nowMs - dayStart) / dayLength * 100
+  const showNow = nowPct > 0 && nowPct < 100
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(dayStart, dayStart + dayLength, `.${styles.dutyTrack}`)
   const ledger = unitList.map(unit => {
     const crew = liveSelected?.assigned_personnel.filter(person => person.unit_id === unit.unit_id) || []
     return { unit, assigned: crew.length, present: crew.filter(person => person.clocked_in_at && !person.clocked_out_at).length }
@@ -154,30 +171,45 @@ export default function SchedulingPage() {
         <div className={styles.main}>
           <section className={cn('ui-stage', styles.duty)} aria-labelledby="duty-heading">
             <header className="ui-stage-header">
-              <div><h2 id="duty-heading">Duty timeline</h2><p>{formatDate(`${selectedDate}T12:00:00`, 'EEEE, MMMM d')} · recorded shift windows grouped by apparatus assignment</p></div>
+              <div><h2 id="duty-heading">Duty timeline</h2><p>{formatDate(`${selectedDate}T12:00:00`, 'EEEE, MMMM d')} · recorded shift windows by station and apparatus</p></div>
               <ul className={styles.dutyLegend} aria-label="Timeline legend"><li><i data-state="covered" />Covered</li><li><i data-state="gap" />Below minimum</li><li><i data-state="cancelled" />Cancelled</li></ul>
             </header>
             <div className={styles.dutyScroll} tabIndex={0} role="region" aria-label="Duty timeline by hour">
-              <div className={styles.dutyCanvas}>
-                <div className={styles.dutyHead}><span>Shift / apparatus</span><div>{[0, 4, 8, 12, 16, 20, 24].map(hour => <b key={hour} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, '0')}00</b>)}</div><span>Present / min</span></div>
-                {shifts.isLoading ? <LoadingState rows={6} /> : dutyRows.map(row => {
-                  const left = Math.max(0, (new Date(row.shift.start_time).getTime() - dayStart) / dayLength * 100)
-                  const right = Math.min(100, (new Date(row.shift.end_time).getTime() - dayStart) / dayLength * 100)
-                  const cancelled = row.shift.status === 'CANCELLED'
-                  const gap = row.present !== undefined && row.required !== undefined && row.present < row.required
-                  const state = cancelled ? 'cancelled' : gap ? 'gap' : 'covered'
+              <div className={styles.dutyCanvas} {...crosshairHandlers}>
+                {crosshair}
+                <div className={styles.dutyHead}><span>Station / apparatus</span><div>{[0, 4, 8, 12, 16, 20, 24].filter(hour => !showNow || Math.abs(hour / 24 * 100 - nowPct) > 5).map(hour => <b key={hour} data-edge={hour === 0 ? 'start' : hour === 24 ? 'end' : undefined} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, '0')}00</b>)}{showNow && <em className={styles.dutyNowLabel} style={{ left: `${nowPct}%` }}>Now {formatDate(new Date(nowMs!).toISOString(), 'HHmm')}</em>}</div><span>Present / min</span></div>
+                {shifts.isLoading ? <LoadingState rows={6} /> : dutyGroups.map(([groupId, rows]) => {
+                  const station = stationOrder.get(groupId)
+                  const present = rows.reduce((sum, row) => sum + (row.present ?? 0), 0)
+                  const required = rows.reduce((sum, row) => sum + (row.required ?? 0), 0)
                   return (
-                    <button type="button" key={row.id} className={styles.dutyRow} data-ui="duty-row" aria-pressed={selected?.shift_id === row.shift.shift_id} onClick={() => select(row.shift.shift_id)} aria-label={`Inspect ${row.label}, ${cancelled ? 'cancelled' : `${row.present ?? 'unreported'} present, ${row.required ?? 'unreported'} required`}`}>
-                      <strong>{row.label}</strong>
-                      <span className={styles.dutyTrack}>{[4, 8, 12, 16, 20].map(hour => <i key={hour} style={{ left: `${hour / 24 * 100}%` }} />)}<span className={styles.dutyWindow} data-ui="duty-window" data-state={state} style={{ left: `${left}%`, width: `${Math.max(0, right - left)}%` }}>{formatDate(row.shift.start_time, 'HHmm')}–{formatDate(row.shift.end_time, 'HHmm')}{new Date(row.shift.end_time).getDate() !== new Date(row.shift.start_time).getDate() ? ' +1D' : ''}</span></span>
-                      <span className={styles.dutyCount} data-state={state}><span className="ui-num">{row.present ?? '—'} / {row.required ?? '—'}</span><small>{cancelled ? 'Cancelled' : gap ? 'Gap' : row.present === undefined ? 'Unreported' : 'Covered'}</small></span>
-                    </button>
+                    <div key={groupId || 'unassigned'} role="group" aria-label={station?.name || 'Shift'} data-ui="duty-group">
+                      {(station || dutyGroups.length > 1) && <p className={styles.dutyGroup}><span>{station ? station.name.replace(/^Station (\d+) — /, (_, number: string) => `${number.padStart(2, '0')} `) : 'Other shifts'}</span><span className="ui-num" data-state={present < required ? 'gap' : undefined}>{present} / {required}</span></p>}
+                      {rows.map(row => {
+                        const start = new Date(row.shift.start_time).getTime()
+                        const end = new Date(row.shift.end_time).getTime()
+                        const left = Math.max(0, (start - dayStart) / dayLength * 100)
+                        const right = Math.min(100, (end - dayStart) / dayLength * 100)
+                        const width = Math.max(0, right - left)
+                        const elapsed = width ? Math.min(100, Math.max(0, (nowPct - left) / width * 100)) : 0
+                        const cancelled = row.shift.status === 'CANCELLED'
+                        const gap = row.present !== undefined && row.required !== undefined && row.present < row.required
+                        const state = cancelled ? 'cancelled' : gap ? 'gap' : 'covered'
+                        return (
+                          <button type="button" key={row.id} className={styles.dutyRow} data-ui="duty-row" aria-pressed={selected?.shift_id === row.shift.shift_id} onClick={() => select(row.shift.shift_id)} aria-label={`Inspect ${row.label}, ${cancelled ? 'cancelled' : `${row.present ?? 'unreported'} present, ${row.required ?? 'unreported'} required`}`}>
+                            <strong>{row.label}</strong>
+                            <span className={styles.dutyTrack}>{[4, 8, 12, 16, 20].map(hour => <i key={hour} style={{ left: `${hour / 24 * 100}%` }} />)}<span className={styles.dutyWindow} data-ui="duty-window" data-state={state} style={{ left: `${left}%`, width: `${width}%`, ['--elapsed' as string]: `${elapsed}%` }}>{formatDate(row.shift.start_time, 'HHmm')} → {formatDate(row.shift.end_time, 'HHmm')}{new Date(end).getDate() !== new Date(start).getDate() ? ' +1' : ''}</span>{showNow && <b className={styles.dutyNow} style={{ left: `${nowPct}%` }} aria-hidden="true" />}</span>
+                            <span className={styles.dutyCount} data-state={state}><span className="ui-num">{row.present ?? '—'} / {row.required ?? '—'}</span><small>{cancelled ? 'Cancelled' : gap ? 'Gap' : row.present === undefined ? 'Unreported' : 'Covered'}</small></span>
+                          </button>
+                        )
+                      })}
+                    </div>
                   )
                 })}
                 {!shifts.isLoading && !dutyRows.length && <p className="ui-empty-inline">No recorded windows for this day. Select another date or create a shift.</p>}
               </div>
             </div>
-            <p className="ui-stage-note">Select a row to inspect its parent shift. Rows are actual roster groups, not separate station shifts.</p>
+            <p className="ui-stage-note">Rows are recorded roster groups under their home station; the solid part of each window has elapsed. Select a row to inspect its parent shift.</p>
           </section>
 
           <div className={styles.pair}>
@@ -204,7 +236,7 @@ export default function SchedulingPage() {
 
         <Inspector label="Shift details" open={inspectorOpen && Boolean(selected)} onClose={() => setInspectorOpen(false)} recordKey={selected?.shift_id}>
           {selected ? <>
-            <InspectorHeader kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'HH:mm')} – ${formatDate(selected.end_time, 'HH:mm')}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
+            <InspectorHeader objectType="shift" objectId={selected.shift_id} kind="Shift" title={selected.location} headingId="shift-heading" subtitle={`${formatDate(selected.start_time, 'EEEE · MMM d')} · ${formatDate(selected.start_time, 'HH:mm')} → ${formatDate(selected.end_time, 'HH:mm')}${new Date(selected.end_time).toDateString() !== new Date(selected.start_time).toDateString() ? ' +1' : ''}`} badge={<StatusBadge tone={shiftTone(liveSelected?.status || selected.status)}>{titleCase(liveSelected?.status || selected.status)}</StatusBadge>} />
             <InspectorBody>
               <dl className="ui-facts">
                 <div><dt>Clocked in</dt><dd className="ui-num">{liveSelected?.clocked_in_count ?? 0}</dd></div>
