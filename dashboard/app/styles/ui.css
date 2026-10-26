@@ -220,7 +220,7 @@ textarea.ui-input { min-height: 96px; padding: 10px 12px; line-height: 1.45; res
 .ui-inspector-header p.ui-inspector-kind { margin-top: 3px; color: var(--ink-2); }
 .ui-inspector-object { margin-bottom: 6px; }
 /* Facts inside an inspector read as a property sheet: bordered label/value cells. */
-.ui-inspector .ui-facts:not(.ui-facts-rows) { gap: 0; border: 1px solid var(--rule); border-radius: var(--radius-control); overflow: hidden; }
+.ui-inspector .ui-facts:not(.ui-facts-rows) { gap: 0; border: 1px solid var(--rule); border-radius: var(--radius-control); }
 .ui-inspector .ui-facts:not(.ui-facts-rows) > div { padding: 8px 10px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 0 -1px -1px 0; }
 .ui-inspector .ui-facts dt { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
 .ui-inspector .ui-facts dd { font-size: 0.875rem; }

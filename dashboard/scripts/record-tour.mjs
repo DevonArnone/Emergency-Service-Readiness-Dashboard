@@ -240,7 +240,7 @@ async function record() {
   await point(page.getByRole('tab', { name: 'Graph', exact: true }))
   await tour('caption', 'Relationships', 'Incidents, apparatus, crews, and stations from recorded assignments')
   await wait(1100)
-  await point(page.locator('[data-graph-node="incident:inc-02"]'))
+  await point(page.locator('[data-ui="link-graph"]').first().locator('[data-graph-node="incident:inc-02"]'))
   await wait(2100)
 
   // Units

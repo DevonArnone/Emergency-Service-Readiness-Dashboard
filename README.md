@@ -38,7 +38,9 @@ The tour above is a recording of the running application against the seeded synt
 | Weather | `/weather` | National Weather Service forecast and active alerts, with stale and unavailable states. |
 | Admin | `/admin` | Organization, roles and permissions, system status, audit log, and baseline data restore. |
 
-More screenshots: [Incidents](pictures/aegis-incidents-desktop.png) · [Units](pictures/aegis-units-desktop.png) · [Alerts](pictures/aegis-alerts-desktop.png) · [Stations](pictures/aegis-stations-desktop.png) · [Personnel](pictures/aegis-personnel-desktop.png) · [Scheduling](pictures/aegis-shifts-desktop.png) · [Credentials](pictures/aegis-certifications-management-desktop.png) · [Analytics](pictures/aegis-analytics-desktop.png) · [Plans](pictures/aegis-plans-desktop.png) · [Weather](pictures/aegis-weather-desktop.png) · [Admin](pictures/aegis-admin-desktop.png). Each has a `-mobile.png` counterpart in [pictures/](pictures/). The browser test suite regenerates them.
+![3D view: tilted county map with readiness columns, 3D buildings, and the station inspector](pictures/aegis-3d-desktop.png)
+
+More screenshots: [3D view](pictures/aegis-3d-desktop.png) · [Relationship graph](pictures/aegis-graph-desktop.png) · [Light theme](pictures/aegis-command-light.png) · [Incidents](pictures/aegis-incidents-desktop.png) · [Units](pictures/aegis-units-desktop.png) · [Alerts](pictures/aegis-alerts-desktop.png) · [Stations](pictures/aegis-stations-desktop.png) · [Personnel](pictures/aegis-personnel-desktop.png) · [Scheduling](pictures/aegis-shifts-desktop.png) · [Credentials](pictures/aegis-certifications-management-desktop.png) · [Analytics](pictures/aegis-analytics-desktop.png) · [Plans](pictures/aegis-plans-desktop.png) · [Weather](pictures/aegis-weather-desktop.png) · [Admin](pictures/aegis-admin-desktop.png). Each has a `-mobile.png` counterpart in [pictures/](pictures/). The browser test suite regenerates them.
 
 ## Run it
 

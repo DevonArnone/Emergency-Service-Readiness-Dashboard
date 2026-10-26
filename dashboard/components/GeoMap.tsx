@@ -315,7 +315,7 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
       // Sized for the county view; shrink as the camera closes in so a column never fills the screen.
       const scale = Math.min(1, 2 ** (11 - zoom))
       result.push(new ColumnLayer({
-        id: 'readiness-columns', data: placed.filter((row) => row.assigned.length), getPosition: (row) => coordsOf(row)!, diskResolution: 6, radius: 380 * scale, elevationScale: scale, extruded: true, pickable: true,
+        id: 'readiness-columns', data: placed.filter((row) => row.assigned.length), getPosition: (row) => coordsOf(row)!, diskResolution: 6, radius: 620 * scale, elevationScale: scale, extruded: true, pickable: true,
         getElevation: (row) => row.assigned.length * 650, getFillColor: (row) => row.station_id === selectedStationId ? [cobalt[0], cobalt[1], cobalt[2], 235] : conditionColor(row, 205),
         material: { ambient: 0.55, diffuse: 0.6, shininess: 24 }, transitions: { getElevation: 600 },
         updateTriggers: { getFillColor: [selectedStationId] },
