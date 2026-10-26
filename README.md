@@ -4,8 +4,6 @@
 
 A readiness coordination tool for a county fire and rescue department: who is on duty, which apparatus can respond, what is open, and what needs attention. FastAPI and PostgreSQL behind a Next.js interface, with an outbox-to-Kafka event pipeline, Redis fan-out to WebSockets, and OIDC roles.
 
-**This is an unofficial portfolio concept.** It is modeled on Fairfax County Fire and Rescue using 39 public station locations and public county GIS geometry. Every unit, person, incident, shift, credential, and alert is synthetic. It is not affiliated with or endorsed by Fairfax County and is not a dispatch, CAD, or patient-care system. Sources and provenance are in [docs/target-research.md](docs/target-research.md).
-
 The tour above is a recording of the running application against the seeded synthetic data ([full-resolution WebM](pictures/aegis-tour.webm)). `node dashboard/scripts/record-tour.mjs` regenerates both files from a running dashboard.
 
 ## Contents
@@ -18,6 +16,7 @@ The tour above is a recording of the running application against the seeded synt
 - [Tests and what they cover](#tests-and-what-they-cover)
 - [Known limits](#known-limits)
 - [Repository map](#repository-map)
+- [Disclaimer](#disclaimer)
 
 ## What it does
 
@@ -219,6 +218,10 @@ docs/                      architecture, security, quality record, execution pla
 ```
 
 Further reading: [PRODUCT.md](PRODUCT.md) for scope and constraints, [DESIGN.md](DESIGN.md) for the interface system, [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for how changes are planned and checked.
+
+## Disclaimer
+
+Aegis Command is an unofficial portfolio project. It is modeled on Fairfax County Fire and Rescue using 39 public station locations and public county GIS geometry, but every unit, person, incident, shift, credential, and alert is synthetic. It is not affiliated with or endorsed by Fairfax County, and it is not a dispatch, CAD, or patient-care system. Sources and provenance are in [docs/target-research.md](docs/target-research.md).
 
 ## License
 

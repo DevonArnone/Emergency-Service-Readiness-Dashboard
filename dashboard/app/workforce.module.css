@@ -16,9 +16,9 @@
 .stateTrack { grid-column: 1 / -1; display: flex; height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-sunken); }
 .stateTrack i, .stateLegend i { background: var(--cobalt); }
 .stateTrack i[data-state='available'], .stateLegend i[data-state='available'] { background: var(--ok); }
-.stateTrack i[data-state='on_call'], .stateLegend i[data-state='on_call'] { background: #6fc3a0; }
+.stateTrack i[data-state='on_call'], .stateLegend i[data-state='on_call'] { background: var(--staff-on-call); }
 .stateTrack i[data-state='in_training'], .stateLegend i[data-state='in_training'] { background: var(--warn-solid); }
-.stateTrack i[data-state='off'], .stateLegend i[data-state='off'] { background: #9aa7ba; }
+.stateTrack i[data-state='off'], .stateLegend i[data-state='off'] { background: var(--staff-off); }
 .stateLegend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-2); font-size: 0.8125rem; }
 .stateLegend li { display: inline-flex; align-items: center; gap: 6px; }
 .stateLegend i { width: 12px; height: 6px; border-radius: 999px; }

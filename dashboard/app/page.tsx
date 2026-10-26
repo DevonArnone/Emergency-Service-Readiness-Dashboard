@@ -96,7 +96,6 @@ export default function CommandCenterPage() {
     if (!snapshot) return
     const lines = [
       '# Aegis Command — duty officer brief', '',
-      'UNOFFICIAL FAIRFAX COUNTY CONCEPT · SYNTHETIC OPERATIONS · NOT FOR DISPATCH', '',
       `Snapshot: ${snapshot.timestamp}`, `Readiness: ${readiness}%`, `Active incidents: ${incidents.length}`, '',
       '## Key items', ...briefItems.map((item) => `- ${item}`), '',
       `Duty officer: ${dutyOfficer}`, `Next brief: ${nextBrief}`,
@@ -143,8 +142,6 @@ export default function CommandCenterPage() {
     </div>
   )
 
-  const footer = <p className={styles.footnote}>Unofficial concept · synthetic operations · public station geography. Not authorized for dispatch or real emergency operations.</p>
-
   if (view === 'resources') {
     return (
       <div className="ui-page" data-view="resources">
@@ -168,7 +165,6 @@ export default function CommandCenterPage() {
           </Tabs.Root>
         </Panel>
         <div className="ui-link-row"><TextLink href="/readiness?view=units">Review units by station</TextLink><TextLink href="/analytics?view=staffing">Staffing analysis</TextLink><TextLink href="/">County overview</TextLink></div>
-        {footer}
       </div>
     )
   }
@@ -208,7 +204,6 @@ export default function CommandCenterPage() {
           </div>
           <StationInspector station={selectedStation} open={inspectorOpen} onClose={() => setInspectorOpen(false)} />
         </div>
-        {footer}
       </div>
     )
   }
@@ -278,7 +273,6 @@ export default function CommandCenterPage() {
           </dl>
         </Panel>
       </div>
-      {footer}
     </div>
   )
 }

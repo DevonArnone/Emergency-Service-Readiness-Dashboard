@@ -29,7 +29,7 @@ from app.db.store import clear_operational_data
 
 
 STATION_DATA = Path(__file__).parents[2] / "data" / "fairfax_fire_stations.geojson"
-ORGANIZATION_NAME = "Fairfax County Fire and Rescue Department — Unofficial Concept"
+ORGANIZATION_NAME = "Fairfax County Fire and Rescue Department"
 DATASET_DISCLAIMER = (
     "Synthetic operational data for a portfolio concept. Not affiliated with or endorsed by Fairfax County."
 )

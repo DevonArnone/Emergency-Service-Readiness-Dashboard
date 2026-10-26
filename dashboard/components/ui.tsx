@@ -126,8 +126,7 @@ export function SummaryStrip({ items, label }: { items: SummaryItem[]; label: st
       {items.map((item) => (
         <div key={item.label} data-tone={item.tone}>
           <dt>{item.label}</dt>
-          <dd>{item.href ? <Link href={item.href}><Figure value={item.value} /></Link> : <Figure value={item.value} />}{item.detail && <small>{item.detail}</small>}</dd>
-          {item.trend && <Sparkline values={item.trend} label={item.trendLabel || `${item.label} trend`} tone={item.tone} />}
+          <dd>{item.href ? <Link href={item.href}><Figure value={item.value} /></Link> : <Figure value={item.value} />}{item.detail && <small>{item.detail}</small>}{item.trend && <Sparkline values={item.trend} label={item.trendLabel || `${item.label} trend`} tone={item.tone} />}</dd>
         </div>
       ))}
     </dl>

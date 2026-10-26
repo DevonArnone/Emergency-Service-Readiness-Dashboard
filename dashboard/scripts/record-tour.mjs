@@ -168,7 +168,7 @@ async function record() {
     writes.push(writeFile(join(work, file), Buffer.from(data, 'base64')))
   })
   await cdp.send('Page.startScreencast', { format: 'png', maxWidth: size.width, maxHeight: size.height, everyNthFrame: 1 })
-  await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Unofficial concept · synthetic data')
+  await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Synthetic data')
   await page.evaluate(() => window.tourCover.replaceSync('nextjs-portal { display: none !important; }'))
   await page.locator('[data-map-station]').first().waitFor()
   await wait(2300)
@@ -244,7 +244,7 @@ async function record() {
   await wait(2900)
 
   // Close
-  await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Unofficial concept · synthetic data · not for dispatch')
+  await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Synthetic data')
   await wait(2400)
 
   await cdp.send('Page.stopScreencast')

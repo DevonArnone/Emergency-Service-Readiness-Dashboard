@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, ChevronLeft, ChevronRight, LogIn, LogOut, Plus, UserPlus, XCircle } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import ConfirmAction from '@/components/ConfirmAction'
 import FormDialog, { Field } from '@/components/FormDialog'
 import { useStationScope } from '@/components/ScopeContext'
@@ -37,6 +37,14 @@ export default function SchedulingPage() {
   const [shiftDialog, setShiftDialog] = useState(false)
   const [rosterDialog, setRosterDialog] = useState(false)
   const [notice, setNotice] = useState<NoticeValue>(null)
+  // Read the clock only after hydration so server and client markup agree; refresh the now line each minute.
+  const [nowMs, setNowMs] = useState<number | null>(null)
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now())
+    const first = setTimeout(tick, 0)
+    const every = setInterval(tick, 60_000)
+    return () => { clearTimeout(first); clearInterval(every) }
+  }, [])
 
   const shifts = useQuery({ queryKey: queryKeys.shifts, queryFn: api.shifts })
   const liveShifts = useQuery({ queryKey: [...queryKeys.liveShifts, selectedDate], queryFn: () => api.liveShifts(selectedDate), refetchInterval: 15_000 })
@@ -106,8 +114,7 @@ export default function SchedulingPage() {
   const stationNo = (id?: string | null) => Number(stationOrder.get(id || '')?.name.match(/Station (\d+)/)?.[1] ?? 999)
   const dutyGroups = Array.from(dutyRows.reduce((map, row) => map.set(row.stationId || '', [...(map.get(row.stationId || '') || []), row]), new Map<string, DutyRow[]>()))
     .sort(([a], [b]) => stationNo(a) - stationNo(b))
-  const [nowMs] = useState(() => Date.now())
-  const nowPct = (nowMs - dayStart) / dayLength * 100
+  const nowPct = nowMs === null ? -1 : (nowMs - dayStart) / dayLength * 100
   const showNow = nowPct > 0 && nowPct < 100
   const ledger = unitList.map(unit => {
     const crew = liveSelected?.assigned_personnel.filter(person => person.unit_id === unit.unit_id) || []
@@ -167,7 +174,7 @@ export default function SchedulingPage() {
             </header>
             <div className={styles.dutyScroll} tabIndex={0} role="region" aria-label="Duty timeline by hour">
               <div className={styles.dutyCanvas}>
-                <div className={styles.dutyHead}><span>Station / apparatus</span><div>{[0, 4, 8, 12, 16, 20, 24].filter(hour => !showNow || Math.abs(hour / 24 * 100 - nowPct) > 5).map(hour => <b key={hour} data-edge={hour === 0 ? 'start' : hour === 24 ? 'end' : undefined} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, '0')}00</b>)}{showNow && <em className={styles.dutyNowLabel} style={{ left: `${nowPct}%` }}>Now {formatDate(new Date(nowMs).toISOString(), 'HHmm')}</em>}</div><span>Present / min</span></div>
+                <div className={styles.dutyHead}><span>Station / apparatus</span><div>{[0, 4, 8, 12, 16, 20, 24].filter(hour => !showNow || Math.abs(hour / 24 * 100 - nowPct) > 5).map(hour => <b key={hour} data-edge={hour === 0 ? 'start' : hour === 24 ? 'end' : undefined} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, '0')}00</b>)}{showNow && <em className={styles.dutyNowLabel} style={{ left: `${nowPct}%` }}>Now {formatDate(new Date(nowMs!).toISOString(), 'HHmm')}</em>}</div><span>Present / min</span></div>
                 {shifts.isLoading ? <LoadingState rows={6} /> : dutyGroups.map(([groupId, rows]) => {
                   const station = stationOrder.get(groupId)
                   const present = rows.reduce((sum, row) => sum + (row.present ?? 0), 0)

@@ -158,7 +158,6 @@ export default function IncidentsWorkspace({ snapshot, stations, definitions, hi
             : <EmptyState title={loading ? 'Loading incidents' : 'No incident selected'} description={loading ? 'Incident records are loading.' : 'Select an incident in the register, on the map, or on the timeline to review its record.'} />}
         </Inspector>
       </div>
-      <p className="ui-provenance">Unofficial concept · synthetic incidents · public station geography. Not a dispatch record.</p>
     </div>
   )
 }

@@ -3,7 +3,6 @@
 html {
   min-width: 320px;
   background: var(--bg);
-  color-scheme: light;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
@@ -33,7 +32,7 @@ button:disabled { cursor: not-allowed; }
 table { border-collapse: collapse; border-spacing: 0; }
 svg { flex-shrink: 0; }
 
-::selection { background: #c9d8fb; color: var(--ink); }
+::selection { background: var(--selection); color: var(--ink); }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; border-radius: 4px; }
 input, textarea { caret-color: var(--cobalt); }
@@ -44,10 +43,10 @@ input, textarea { caret-color: var(--cobalt); }
 .skip-link {
   position: fixed; top: 8px; left: 8px; z-index: 100;
   padding: 10px 14px; border-radius: var(--radius-control);
-  background: var(--cobalt); color: #fff; font-weight: 600; text-decoration: none;
+  background: var(--cobalt); color: var(--on-cobalt); font-weight: 600; text-decoration: none;
   transform: translateY(-160%);
 }
-.skip-link:focus { transform: none; color: #fff; }
+.skip-link:focus { transform: none; color: var(--on-cobalt); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

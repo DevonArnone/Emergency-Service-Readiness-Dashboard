@@ -42,7 +42,17 @@
   --bad: #b9271d;
   --bad-soft: #fdeae8;
   --bad-rule: #f0b4ae;
+  --bad-solid: #b9271d;
   --quiet-soft: #eef1f6;
+  --ok-ink: #0a5a38;
+  --warn-ink: #6b3f00;
+  --bad-ink: #7d1d16;
+  --on-cobalt: #ffffff;
+  --selection: #c9d8fb;
+  --skeleton-shine: #f4f7fb;
+  --overlay: rgba(7, 18, 38, 0.52);
+  --staff-on-call: #6fc3a0;
+  --staff-off: #9aa7ba;
 
   /* Stage: maps, timelines */
   --stage: #081426;
@@ -57,6 +67,17 @@
   --stage-cobalt: #78a2ff;
   --stage-quiet: #5d7196;
   --stage-incident-other: #c2cfe6;
+  --stage-selected: #1c3c86;
+  --stage-selected-ink: #dbe6ff;
+  --stage-assigned: #2f5fe0;
+  --stage-investigating: #9db0d6;
+  --stage-resolved: #46597e;
+  --stage-oos: #c9382d;
+  --stage-maintenance: #b77a08;
+  --stage-hatch-a: #3a4f78;
+  --stage-hatch-b: #263857;
+  --on-stage-bad: #2a0d0a;
+  --on-stage-warn: #2e1f00;
   --chart-violet: #b79cff;
   --duty-covered-rule: rgba(58, 210, 154, 0.45);
   --duty-elapsed: rgba(58, 210, 154, 0.2);
@@ -80,10 +101,13 @@
   --map-water: #17508f;
   --map-water-outside: #123e70;
   --map-relief: rgba(3, 9, 20, 0.55);
+  --map-risk-fill: rgba(255, 194, 74, 0.16);
+  --map-risk-rule: rgba(255, 194, 74, 0.5);
 
   --radius-control: 6px;
   --radius-panel: 10px;
   --radius-stage: 14px;
+  --shadow-control: 0 1px 2px rgba(13, 27, 48, 0.14);
   --shadow-panel: 0 1px 2px rgba(13, 27, 48, 0.05);
   --shadow-raised: 0 1px 2px rgba(13, 27, 48, 0.06), 0 12px 28px -14px rgba(13, 27, 48, 0.28);
   --shadow-overlay: 0 2px 6px rgba(7, 18, 38, 0.12), 0 28px 60px -20px rgba(7, 18, 38, 0.45);
@@ -97,4 +121,55 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --rail-width: 248px;
   --inspector-width: 408px;
+}
+
+/* Dark operator theme: the workspace sits one step above the stage so maps and timelines still read as the stage. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --navy-950: #030915;
+  --navy-900: #050e1f;
+  --navy-800: #0d1c38;
+  --navy-700: #17305a;
+  --navy-line: rgba(169, 185, 214, 0.12);
+
+  --bg: #0c1729;
+  --surface: #111e35;
+  --surface-2: #15243f;
+  --surface-sunken: #0a1426;
+  --ink: #e6edf9;
+  --ink-2: #b6c3da;
+  --ink-3: #8a9bb8;
+  --rule: #22324f;
+  --rule-strong: #31456b;
+
+  --cobalt: #3d6cf5;
+  --cobalt-strong: #5a85ff;
+  --cobalt-soft: #172b55;
+  --cobalt-rule: #2d4b91;
+  --cobalt-ink: #a3bcff;
+
+  --ok: #43d197;
+  --ok-soft: #0e2b25;
+  --ok-rule: #1f5845;
+  --ok-ink: #9ae6c4;
+  --warn: #f3bb52;
+  --warn-soft: #2c2312;
+  --warn-rule: #5e4719;
+  --warn-ink: #f7d594;
+  --bad: #ff8073;
+  --bad-soft: #33181a;
+  --bad-rule: #6c2b28;
+  --bad-ink: #ffb8b0;
+  --quiet-soft: #18263f;
+
+  --selection: #2b4b92;
+  --skeleton-shine: #1b2b49;
+  --overlay: rgba(2, 6, 14, 0.68);
+  --staff-off: #6c7b95;
+
+  --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4), 0 14px 30px -14px rgba(0, 0, 0, 0.75);
+  --shadow-overlay: 0 2px 6px rgba(0, 0, 0, 0.4), 0 28px 60px -20px rgba(0, 0, 0, 0.85);
 }

@@ -36,7 +36,7 @@ The interface is desktop-first for a continuously monitored command environment 
 ## Brand Commitments
 
 - Product name: Aegis Command.
-- Target context: Fairfax County Fire and Rescue Department, always labeled as an unofficial portfolio concept.
+- Target context: Fairfax County Fire and Rescue Department. The interface presents the product without concept labeling; its unofficial, synthetic-data status is stated in the README disclaimer.
 - Voice: calm, accountable, concise, operational, and specific.
 - Visual world: a calm operating deck. Cool-white workspaces, deep navy navigation, cobalt for selection and the primary action, and a dark stage for maps and timelines. The earlier municipal systems-room look is historical reference only.
 - Avoid walls of equal dense panels, generic dark SaaS cards, cyberpunk neon, glass effects, ornamental gradients, and decorative command-center theatrics.

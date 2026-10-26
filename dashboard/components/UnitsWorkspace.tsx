@@ -358,7 +358,6 @@ export default function UnitsWorkspace({ snapshot, stations, definitions, assign
           </> : <EmptyState title={loading ? 'Loading unit records' : 'No unit selected'} description={loading ? 'Unit and station records are loading.' : 'Select a station or unit to review crew, readiness, and actions.'} />}
         </Inspector>
       </div>
-      <p className="ui-provenance">Unofficial concept · synthetic operations · public station geography.</p>
     </div>
   )
 }
