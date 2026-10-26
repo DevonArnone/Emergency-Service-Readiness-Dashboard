@@ -7,6 +7,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { ConfirmDialog } from './ConfirmAction'
 import LinkGraph from './LinkGraph'
 import MapView from './MapView'
+import { useTimeCrosshair } from './useTimeCrosshair'
 import { defaultLayers, type MapLayer } from '@/lib/map/stations'
 import FormDialog from './FormDialog'
 import { EmptyState, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, PageHeader, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type StatusTone } from './ui'
@@ -321,6 +322,7 @@ function IncidentTimeline({ records, histories, selectedId, onSelect, now, unitN
   const detail = segments.find((item) => item.key === detailKey)
   const unitDetail = unitSegments.find((item) => item.key === detailKey)
   const dateLabel = new Date(start).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(start, end, `.${styles.track}`)
 
   return (
     <section className={cn('ui-stage', styles.timeline)} aria-labelledby="incident-timeline-heading" data-ui="incident-timeline">
@@ -338,7 +340,8 @@ function IncidentTimeline({ records, histories, selectedId, onSelect, now, unitN
         <label className={styles.unitToggle}><input type="checkbox" checked={showUnits} onChange={(event) => setShowUnits(event.target.checked)} />Unit activity</label>
       </fieldset>
       <div className={styles.timeScroll} tabIndex={0} role="region" aria-label="Recorded incident lifecycle stages by time">
-        <div className={styles.timeCanvas}>
+        <div className={styles.timeCanvas} {...crosshairHandlers}>
+          {crosshair}
           <div className={styles.ruler} aria-hidden="true"><span />{<div>{hourTicks.map((tick) => <b key={tick} style={{ left: `${pct(tick)}%` }}>{pct(tick) > 1.5 && pct(tick) < 98.5 ? clock(tick) : ''}</b>)}</div>}</div>
           {rows.map((record) => {
             const incident = record.incident

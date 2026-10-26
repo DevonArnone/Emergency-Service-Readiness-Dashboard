@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, LogIn, LogOut, Plus, UserPlus,
 import Link from 'next/link'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import ConfirmAction from '@/components/ConfirmAction'
+import { useTimeCrosshair } from '@/components/useTimeCrosshair'
 import FormDialog, { Field } from '@/components/FormDialog'
 import { useStationScope } from '@/components/ScopeContext'
 import { Button, EmptyState, ErrorState, InlineError, Inspector, InspectorBody, InspectorFooter, InspectorHeader, LoadingState, Notice, PageHeader, Pagination, Panel, SearchInput, Section, StatusBadge, SummaryStrip, WriteButton, type NoticeValue } from '@/components/ui'
@@ -116,6 +117,7 @@ export default function SchedulingPage() {
     .sort(([a], [b]) => stationNo(a) - stationNo(b))
   const nowPct = nowMs === null ? -1 : (nowMs - dayStart) / dayLength * 100
   const showNow = nowPct > 0 && nowPct < 100
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(dayStart, dayStart + dayLength, `.${styles.dutyTrack}`)
   const ledger = unitList.map(unit => {
     const crew = liveSelected?.assigned_personnel.filter(person => person.unit_id === unit.unit_id) || []
     return { unit, assigned: crew.length, present: crew.filter(person => person.clocked_in_at && !person.clocked_out_at).length }
@@ -173,7 +175,8 @@ export default function SchedulingPage() {
               <ul className={styles.dutyLegend} aria-label="Timeline legend"><li><i data-state="covered" />Covered</li><li><i data-state="gap" />Below minimum</li><li><i data-state="cancelled" />Cancelled</li></ul>
             </header>
             <div className={styles.dutyScroll} tabIndex={0} role="region" aria-label="Duty timeline by hour">
-              <div className={styles.dutyCanvas}>
+              <div className={styles.dutyCanvas} {...crosshairHandlers}>
+                {crosshair}
                 <div className={styles.dutyHead}><span>Station / apparatus</span><div>{[0, 4, 8, 12, 16, 20, 24].filter(hour => !showNow || Math.abs(hour / 24 * 100 - nowPct) > 5).map(hour => <b key={hour} data-edge={hour === 0 ? 'start' : hour === 24 ? 'end' : undefined} style={{ left: `${hour / 24 * 100}%` }}>{String(hour).padStart(2, '0')}00</b>)}{showNow && <em className={styles.dutyNowLabel} style={{ left: `${nowPct}%` }}>Now {formatDate(new Date(nowMs!).toISOString(), 'HHmm')}</em>}</div><span>Present / min</span></div>
                 {shifts.isLoading ? <LoadingState rows={6} /> : dutyGroups.map(([groupId, rows]) => {
                   const station = stationOrder.get(groupId)

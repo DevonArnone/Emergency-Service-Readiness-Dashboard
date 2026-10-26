@@ -9,6 +9,7 @@ import { EmptyState, Filters, InlineError, Inspector, InspectorBody, InspectorFo
 import { clip, clock, duration, eventTime, incidentHistory, incidentRef, LIFECYCLE_LABEL, SERVICE_LABEL, serviceSegments, ticks, type IncidentHistory, type LifecycleStatus, type ServiceState } from '@/lib/history'
 import type { AuditEvent, Incident, OperationsSnapshot, Personnel, SimulationResult, Station, Unit, UnitAssignment, UnitReadiness } from '@/lib/schemas'
 import { cn, ratioTone, titleCase } from '@/lib/utils'
+import { useTimeCrosshair } from './useTimeCrosshair'
 import styles from './ops.module.css'
 
 type History = { incidentEvents: AuditEvent[]; unitEvents: AuditEvent[]; baselines: AuditEvent[]; incidents: Incident[]; loading: boolean }
@@ -475,6 +476,7 @@ function UnitTimeline({ units, stationById, readiness, assignments, histories, h
     .filter((bar, index, list) => list.findIndex((item) => (item.incident?.incident_id || item.key) === (bar.incident?.incident_id || bar.key)) === index)
   const hourTicks = ticks(start, end)
   const windowLabel = `${clock(start)}–${clock(end)}`
+  const { handlers: crosshairHandlers, crosshair } = useTimeCrosshair(start, end, `.${styles.track}`)
 
   return (
     <section className={cn('ui-stage', styles.timeline)} aria-labelledby="unit-timeline-heading" data-ui="unit-timeline">
@@ -494,7 +496,8 @@ function UnitTimeline({ units, stationById, readiness, assignments, histories, h
       <ul className={styles.legend} aria-label="Timeline legend">{LEGEND.map(([tone, label]) => <li key={tone}><i data-tone={tone} aria-hidden="true" />{label}</li>)}</ul>
       <div className={styles.historyBody}>
         <div className={styles.timeScroll} tabIndex={0} role="region" aria-label="Recorded unit activity by time">
-          <div className={styles.timeCanvas} role="table" aria-label={`Recorded unit activity, ${windowLabel}`} aria-rowcount={rows.length + 1}>
+          <div className={styles.timeCanvas} role="table" aria-label={`Recorded unit activity, ${windowLabel}`} aria-rowcount={rows.length + 1} {...crosshairHandlers}>
+            {crosshair}
             <div className={cn(styles.ruler, styles.unitRuler)} role="row"><span role="columnheader">Unit</span><span role="columnheader">Station</span><span role="columnheader">Crew</span><div role="columnheader" aria-label={`Time ruler ${windowLabel}`}>{hourTicks.filter((tick) => pct(tick) > 2.5 && pct(tick) < 97.5).map((tick) => <b key={tick} style={{ left: `${pct(tick)}%` }}>{clock(tick)}</b>)}</div></div>
             {rows.map(({ unit, bars }) => {
               const metric = readiness.get(unit.unit_id)
