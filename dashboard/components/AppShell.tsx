@@ -209,7 +209,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <button type="button" className={styles.searchTrigger} aria-label="Search unit, station, incident, location" onClick={() => setCommandOpen(true)}><Search aria-hidden="true" /><span>Search unit, station, incident</span><kbd>⌘K</kbd></button>
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild><button className={styles.iconTrigger} aria-label={`${openAlerts.length} open alerts`}><Bell aria-hidden="true" />{openAlerts.length > 0 && <span>{openAlerts.length > 9 ? '9+' : openAlerts.length}</span>}</button></DropdownMenu.Trigger>
+          <DropdownMenu.Trigger asChild><button className={styles.iconTrigger} aria-label={`${openAlerts.length} open alerts`}><Bell aria-hidden="true" />{openAlerts.length > 0 && <span>{openAlerts.length > 99 ? '99+' : openAlerts.length}</span>}</button></DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content className={cn('ui-menu', styles.alertMenu)} align="end" sideOffset={8}>
               <div className={styles.alertMenuHead}><div><strong>Open alerts</strong><span>{openAlerts.length} requiring review</span></div><StatusBadge tone={openAlerts.length ? 'danger' : 'success'}>{openAlerts.length ? 'Action needed' : 'Clear'}</StatusBadge></div>

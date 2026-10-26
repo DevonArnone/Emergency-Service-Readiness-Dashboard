@@ -26,7 +26,7 @@
 .menuTrigger, .iconTrigger { position: relative; display: inline-grid; flex: 0 0 auto; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--ink-2); transition: background 150ms var(--ease-out); }
 .menuTrigger svg, .iconTrigger svg { width: 20px; height: 20px; }
 .menuTrigger:hover, .iconTrigger:hover { background: var(--surface-sunken); color: var(--ink); }
-.iconTrigger span { position: absolute; top: 4px; right: 2px; min-width: 18px; padding: 0 4px; border: 2px solid #fff; border-radius: 999px; background: var(--bad); color: #fff; font-size: 0.6875rem; font-weight: 600; line-height: 14px; font-variant-numeric: tabular-nums; }
+.iconTrigger span { position: absolute; top: 4px; right: 2px; min-width: 18px; padding: 0 4px; border: 2px solid var(--surface); border-radius: 999px; background: var(--bad); color: #fff; font-size: 0.6875rem; font-weight: 600; line-height: 14px; font-variant-numeric: tabular-nums; }
 
 .scope { display: flex; flex: 0 1 auto; align-items: center; gap: 8px; min-width: 0; height: 40px; padding: 0 4px 0 10px; border: 1px solid var(--rule-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink-3); font-size: 0.8125rem; }
 .scope svg { width: 16px; height: 16px; }
@@ -111,6 +111,8 @@
 }
 
 @media (min-width: 1024px) {
+  /* Paint the rail column so full-page captures past the viewport keep it. */
+  .shell { background: linear-gradient(to right, var(--navy-900) var(--rail-width), var(--bg) 0); }
   .rail { display: flex; }
   .topbar, .main { margin-left: var(--rail-width); }
   .topbar { padding: 8px 28px; }

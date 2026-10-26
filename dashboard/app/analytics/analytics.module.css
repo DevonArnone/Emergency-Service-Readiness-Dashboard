@@ -2,13 +2,14 @@
 .analysis > * { min-width: 0; }
 .chartStage { display: flex; flex-direction: column; }
 .chart { height: clamp(280px, 44vh, 440px); padding: 12px 8px 12px 12px; }
+.aside { display: grid; gap: 20px; align-content: start; }
 .findings { display: grid; gap: 12px; }
 .findings li { position: relative; padding-left: 16px; color: var(--ink-2); font-size: 0.9375rem; }
 .findings li::before { content: ''; position: absolute; top: 0.62em; left: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--cobalt); }
 .findings strong { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .evidence { grid-column: 1 / -1; }
 .evidencePanel { margin-top: 10px; max-height: 520px; overflow: auto; }
-.posture { display: grid; gap: 12px; padding: 16px; }
+.posture { display: grid; gap: 12px; }
 .posture > div { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: 12px; font-size: 0.875rem; }
 .posture strong { text-align: right; }
 
@@ -28,6 +29,11 @@
 .stationGrid strong { font-size: 0.9375rem; font-weight: 600; }
 .stationGrid button > :nth-child(3) { grid-column: 1 / -1; height: 6px; }
 .stationGrid small { grid-column: 1 / -1; color: var(--ink-3); font-size: 0.75rem; }
+/* Fully ready stations recede so the exceptions carry the grid. */
+.stationGrid button[data-full] { border-color: transparent; background: var(--surface-2); }
+.stationGrid button[data-full] strong { color: var(--ink-3); font-weight: 500; }
+.stationGrid button[data-full] :global(.ui-meter) i { background: var(--rule-strong); }
+.stationGrid button[data-full][aria-pressed='true'] { border-color: var(--cobalt); background: var(--cobalt-soft); }
 .stationEvidence { padding: 16px; border: 1px solid var(--rule); border-radius: var(--radius-control); background: var(--surface-2); }
 .stationEvidence h3 { margin-bottom: 4px; font-size: 1rem; }
 .stationEvidence h4 { margin: 14px 0 6px; font-size: 0.875rem; font-weight: 600; }

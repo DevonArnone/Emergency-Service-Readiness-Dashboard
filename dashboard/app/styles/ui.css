@@ -265,6 +265,8 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--cobalt);
 .ui-pagination div { display: flex; gap: 8px; }
 
 .ui-provenance { color: var(--ink-3); font-size: 0.8125rem; }
+.ui-text-button { padding: 4px 0; border: 0; background: none; color: var(--cobalt-ink); font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+.ui-text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .ui-link-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.875rem; }
 .ui-link { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
 .ui-link svg { width: 14px; height: 14px; }

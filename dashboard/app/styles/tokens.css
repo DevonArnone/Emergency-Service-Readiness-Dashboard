@@ -56,6 +56,25 @@
   --stage-bad: #ff6f61;
   --stage-cobalt: #78a2ff;
   --stage-quiet: #5d7196;
+  --stage-incident-other: #c2cfe6;
+  --chart-violet: #b79cff;
+  --chart-cursor: rgba(120, 162, 255, 0.12);
+
+  /* Map geometry, drawn on the stage in both themes */
+  --map-grid: #1b3157;
+  --map-land: #112445;
+  --map-context: #7a8fb5;
+  --map-label: #c9d8f6;
+  --map-road-faint: #2a4470;
+  --map-road-local: #3a5687;
+  --map-road-collector: #46639a;
+  --map-road-arterial: #5876ad;
+  --map-road-major: #6f8cc0;
+  --map-road-freeway: #a9bfe8;
+  --map-stream: #2f7fd0;
+  --map-water: #17508f;
+  --map-water-outside: #123e70;
+  --map-relief: rgba(3, 9, 20, 0.55);
 
   --radius-control: 6px;
   --radius-panel: 10px;

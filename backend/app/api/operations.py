@@ -433,7 +433,6 @@ async def readiness_trends(
     from datetime import timedelta
     import random
 
-    random.seed(42)
     now = datetime.now(timezone.utc)
     stations = [
         station for station in stations_store.values()
@@ -442,29 +441,46 @@ async def readiness_trends(
     if not stations:
         return []
 
-    result = []
     current_readiness = ReadinessService.check_all_units()
     unit_records = dict(units_store.items())
-    for day_offset in range(days - 1, -1, -1):
-        day = (now - timedelta(days=day_offset)).strftime("%Y-%m-%d")
+
+    # Synthetic history is a seeded walk backward from the live score, so the
+    # final point always matches the current snapshot and days move plausibly.
+    # A shared daily factor (weather, training days, a multi-alarm draw) so the
+    # department line moves together instead of averaging out to flat.
+    shared_rng = random.Random("department:42")
+    shared = [0.0]
+    for _ in range(days - 1):
+        dip = -shared_rng.uniform(3, 7) if shared_rng.random() < 0.12 else 0.0
+        shared.append(round(shared_rng.gauss(0, 1.4) + dip, 1))
+
+    series: dict[str, list[float]] = {}
+    for st in stations:
+        st_scores = [
+            r["readiness_score"]
+            for r in current_readiness
+            if unit_records.get(r["unit_id"]) and unit_records[r["unit_id"]].station_id == st.station_id
+        ]
+        score = round(sum(st_scores) / len(st_scores), 1) if st_scores else 0
+        rng = random.Random(f"{st.station_id}:42")
+        values = [score]
+        for _ in range(days - 1):
+            step = rng.gauss(0, 2.2)
+            if rng.random() < 0.08:
+                step -= rng.uniform(6, 14)  # an apparatus out of service or a crew callout
+            previous = values[-1] - step
+            values.append(round(min(100.0, max(55.0, previous + (93 - previous) * 0.15)), 1))
+        values = [round(min(100.0, max(50.0, value + shared[offset])), 1) for offset, value in enumerate(values)]
+        series[st.station_id] = list(reversed(values))
+
+    result = []
+    for index in range(days):
+        day = (now - timedelta(days=days - 1 - index)).strftime("%Y-%m-%d")
         entry: dict = {"date": day}
-        total_score = 0
-        count = 0
         for st in stations:
-            base = 72 + random.randint(-8, 12) if day_offset > 0 else None
-            score = base if base else None
-            if day_offset == 0:
-                st_scores = [
-                    r["readiness_score"]
-                    for r in current_readiness
-                    if unit_records.get(r["unit_id"]) and unit_records[r["unit_id"]].station_id == st.station_id
-                ]
-                score = round(sum(st_scores) / len(st_scores), 1) if st_scores else 0
-            entry[st.station_id] = score
-            if score is not None:
-                total_score += score
-                count += 1
-        entry["overall"] = round(total_score / count, 1) if count else 0
+            entry[st.station_id] = series[st.station_id][index]
+        scores = [series[st.station_id][index] for st in stations]
+        entry["overall"] = round(sum(scores) / len(scores), 1)
         result.append(entry)
     return result
 
