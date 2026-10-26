@@ -192,7 +192,9 @@ async function record() {
   await point(page.getByRole('button', { name: '3D view' }))
   await tour('caption', 'Depth that carries data', 'Columns rise with the units assigned to each station')
   await wait(2200)
-  await point(page.locator('[data-map-station="fs-21"]'))
+  // In the tilted view the marker can sit under the docked panel, so the cursor shows the move and the click goes to the marker itself.
+  await point(page.locator('[data-map-station="fs-21"]'), { click: false })
+  await page.locator('[data-map-station="fs-21"]').dispatchEvent('click')
   await tour('caption', 'Select anything', 'The map flies to it; rings mark 1, 3, and 5 straight-line miles')
   await wait(2600)
   await point(page.getByRole('button', { name: '3D view' }))
