@@ -127,17 +127,18 @@ export default function CommandCenterPage() {
     <div className="ui-table-wrap" tabIndex={0} role="region" aria-label={caption}>
       <table className={`ui-table ${styles.resourceTable}`}>
         <caption className="sr-only">{caption}</caption>
-        <thead><tr><th scope="col">Type</th><th scope="col" className={`ui-num ${styles.wideOnly}`}>Total</th><th scope="col" className="ui-num">In service</th><th scope="col" className={`ui-num ${styles.wideOnly}`}>Out of service</th><th scope="col" className="ui-num">Available</th><th scope="col" className={styles.barColumn}><span className="sr-only">Availability comparison</span></th></tr></thead>
-        <tbody>{groups.map((group) => (
-          <tr key={group.key}>
-            <th scope="row">{group.label}</th>
-            <td className={`ui-num ${styles.wideOnly}`}>{group.total}</td>
-            <td className="ui-num">{group.in_service}<span className={styles.narrowOnly}> / {group.total}</span></td>
-            <td className={`ui-num ${styles.wideOnly}`}>{group.out_of_service}</td>
-            <td className="ui-num" style={ratioTone(group.availability_pct) ? { color: ratioTone(group.availability_pct) === 'bad' ? 'var(--bad)' : 'var(--warn)', fontWeight: 600 } : undefined}>{Math.round(group.availability_pct)}%</td>
-            <td className={styles.barColumn}><Meter value={group.availability_pct} tone={readinessTone(group.availability_pct)} /></td>
-          </tr>
-        ))}</tbody>
+        <thead><tr><th scope="col">Type</th><th scope="col" className="ui-num">In service</th><th scope="col" className={`ui-num ${styles.wideOnly}`}>Out</th><th scope="col" className={styles.availColumn}>Available</th></tr></thead>
+        <tbody>{groups.map((group) => {
+          const tone = ratioTone(group.availability_pct)
+          return (
+            <tr key={group.key}>
+              <th scope="row">{group.label}</th>
+              <td className="ui-num">{group.in_service}<span className={styles.ofTotal}> / {group.total}</span></td>
+              <td className={`ui-num ${styles.wideOnly}`}>{group.out_of_service}</td>
+              <td className={styles.availColumn}><span className={styles.availCell}><Meter value={group.availability_pct} tone={readinessTone(group.availability_pct)} /><span className="ui-num" data-tone={tone}>{Math.round(group.availability_pct)}%</span></span></td>
+            </tr>
+          )
+        })}</tbody>
       </table>
     </div>
   )
