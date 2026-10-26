@@ -58,6 +58,11 @@
   --stage-quiet: #5d7196;
   --stage-incident-other: #c2cfe6;
   --chart-violet: #b79cff;
+  --duty-covered-rule: rgba(58, 210, 154, 0.45);
+  --duty-elapsed: rgba(58, 210, 154, 0.2);
+  --duty-remaining: rgba(22, 43, 80, 0.45);
+  --duty-gap-strong: rgba(255, 111, 97, 0.55);
+  --duty-gap-soft: rgba(255, 111, 97, 0.18);
   --chart-cursor: rgba(120, 162, 255, 0.12);
 
   /* Map geometry, drawn on the stage in both themes */
@@ -82,6 +87,9 @@
   --shadow-panel: 0 1px 2px rgba(13, 27, 48, 0.05);
   --shadow-raised: 0 1px 2px rgba(13, 27, 48, 0.06), 0 12px 28px -14px rgba(13, 27, 48, 0.28);
   --shadow-overlay: 0 2px 6px rgba(7, 18, 38, 0.12), 0 28px 60px -20px rgba(7, 18, 38, 0.45);
+
+  --headline: 2rem;
+  --figure-xl: 1.75rem;
 
   --font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;

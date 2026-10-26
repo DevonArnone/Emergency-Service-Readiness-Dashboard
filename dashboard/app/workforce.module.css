@@ -42,17 +42,20 @@
 .dutyLegend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--stage-ink-2); font-size: 0.8125rem; }
 .dutyLegend li { display: inline-flex; align-items: center; gap: 6px; }
 .dutyLegend i { width: 14px; height: 10px; border-radius: 2px; }
-.dutyLegend i[data-state='covered'], .dutyWindow[data-state='covered'] { background: var(--stage-3); box-shadow: inset 0 0 0 1px rgba(58, 210, 154, 0.45); color: var(--stage-ink); }
-.dutyLegend i[data-state='gap'], .dutyWindow[data-state='gap'] { background: var(--stage-bad); color: #2a0d0a; }
-.dutyLegend i[data-state='cancelled'], .dutyWindow[data-state='cancelled'] { background: repeating-linear-gradient(135deg, #3a4f78 0 5px, #263857 5px 10px); color: var(--stage-ink); }
+.dutyLegend i[data-state='covered'] { background: var(--stage-3); box-shadow: inset 0 0 0 1px var(--duty-covered-rule); }
+.dutyWindow[data-state='covered'] { background: linear-gradient(90deg, var(--duty-elapsed) var(--elapsed, 100%), var(--duty-remaining) var(--elapsed, 100%)); box-shadow: inset 0 0 0 1px var(--duty-covered-rule); color: var(--stage-ink); }
+/* Gaps are hatched in the alarm color rather than a solid slab, so the label stays readable. */
+.dutyLegend i[data-state='gap'], .dutyWindow[data-state='gap'] { background: repeating-linear-gradient(135deg, var(--duty-gap-strong) 0 4px, var(--duty-gap-soft) 4px 9px); box-shadow: inset 0 0 0 1.5px var(--stage-bad); color: var(--stage-ink); }
+.dutyWindow[data-state='gap'] { text-shadow: 0 1px 2px var(--stage); }
+.dutyLegend i[data-state='cancelled'], .dutyWindow[data-state='cancelled'] { background: repeating-linear-gradient(135deg, var(--stage-quiet) 0 5px, var(--stage-3) 5px 10px); color: var(--stage-ink); }
 .dutyScroll { overflow: auto; max-height: 560px; }
 .dutyCanvas { min-width: 680px; padding: 0 16px 12px; }
 .dutyHead, .dutyRow { display: grid; grid-template-columns: 132px minmax(0, 1fr) 104px; align-items: center; gap: 12px; }
-.dutyHead { position: sticky; top: 0; z-index: 2; height: 34px; border-bottom: 1px solid var(--stage-rule); background: var(--stage); color: var(--stage-ink-2); font-size: 0.75rem; }
+.dutyHead { position: sticky; top: 0; z-index: 3; height: 40px; border-bottom: 1px solid var(--stage-rule); background: var(--stage); color: var(--stage-ink-2); font-size: 0.75rem; }
 .dutyHead div { position: relative; height: 100%; }
 .dutyHead b { position: absolute; bottom: 8px; font-family: var(--font-mono); font-weight: 400; transform: translateX(-50%); }
-.dutyHead b:first-child { transform: none; }
-.dutyHead b:last-child { transform: translateX(-100%); }
+.dutyHead b[data-edge='start'] { transform: none; }
+.dutyHead b[data-edge='end'] { transform: translateX(-100%); }
 .dutyHead span:last-child { text-align: right; }
 .dutyRow { width: 100%; min-height: 40px; padding: 0; border: 0; border-bottom: 1px solid var(--stage-rule); background: transparent; color: var(--stage-ink); font-size: 0.875rem; text-align: left; transition: background 120ms var(--ease-out); }
 .dutyRow:hover { background: var(--stage-2); }
@@ -60,7 +63,12 @@
 .dutyRow[aria-pressed='true'] strong { color: var(--stage-cobalt); }
 .dutyRow strong { padding-left: 4px; font-family: var(--font-mono); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dutyTrack { position: relative; height: 24px; }
-.dutyTrack i { position: absolute; top: -8px; bottom: -8px; width: 1px; background: rgba(34, 58, 99, 0.7); }
+.dutyTrack i { position: absolute; top: -8px; bottom: -8px; width: 1px; background: var(--stage-rule); opacity: .7; }
+.dutyNow { position: absolute; top: -9px; bottom: -9px; z-index: 1; width: 2px; margin-left: -1px; background: var(--stage-cobalt); box-shadow: 0 0 0 1px var(--stage); pointer-events: none; }
+.dutyNowLabel { position: absolute; top: 2px; padding: 1px 6px; border-radius: 3px; background: var(--stage-cobalt); color: var(--stage); font-family: var(--font-mono); font-size: 0.6875rem; font-style: normal; font-weight: 600; white-space: nowrap; transform: translateX(-50%); }
+.dutyGroup { display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding: 14px 4px 6px; border-bottom: 1px solid var(--stage-rule); color: var(--stage-ink-2); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.dutyGroup span:last-child { font-weight: 500; letter-spacing: 0; }
+.dutyGroup [data-state='gap'] { color: var(--stage-bad); }
 .dutyWindow { position: absolute; top: 0; bottom: 0; overflow: hidden; padding: 0 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.75rem; line-height: 24px; white-space: nowrap; }
 .dutyCount { display: flex; flex-direction: column; align-items: flex-end; padding-right: 4px; font-size: 0.875rem; line-height: 1.2; }
 .dutyCount small { color: var(--stage-ok); font-size: 0.75rem; }

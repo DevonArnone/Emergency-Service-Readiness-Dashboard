@@ -51,6 +51,8 @@ export default function CommandCenterPage() {
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const weather = useQuery({ queryKey: queryKeys.weather, queryFn: api.weatherFairfax, retry: false, enabled: view === 'overview' })
   const definitions = useQuery({ queryKey: queryKeys.units, queryFn: api.units, enabled: view === 'resources' })
+  const scopedStation = stationId === 'all' ? undefined : stationId
+  const trend = useQuery({ queryKey: queryKeys.analytics.trends(14, scopedStation), queryFn: () => api.readinessTrends(14, scopedStation), enabled: view !== 'stations' })
   const [layers, setLayers] = useState<Record<MapLayer, boolean>>({ stations: true, incidents: view !== 'stations', risk: false })
   const [selectedStationId, setSelectedStationId] = useState<string | null>(params.get('station'))
   const [inspectorOpen, setInspectorOpen] = useState(Boolean(params.get('station')))
@@ -104,7 +106,7 @@ export default function CommandCenterPage() {
 
   const summary = (
     <SummaryStrip label="Countywide readiness summary" items={[
-      { label: 'Operational readiness', value: snapshot ? `${readiness}%` : '—', detail: `target 100% · as of ${clock(snapshot?.timestamp)}`, tone: snapshot ? ratioTone(readiness) : undefined },
+      { label: 'Operational readiness', value: snapshot ? `${readiness}%` : '—', detail: `target 100% · as of ${clock(snapshot?.timestamp)}`, tone: snapshot ? ratioTone(readiness) : undefined, trend: trend.data?.map((row) => row.overall), trendLabel: '14-day readiness trend' },
       { label: 'On-duty personnel', value: board ? `${board.personnel.on_duty} / ${board.personnel.authorized}` : '—', detail: board ? `${board.personnel.authorized - board.personnel.on_duty} short · ${board.personnel.available} off-unit reserve` : undefined },
       { label: 'Active incidents', value: snapshot ? incidents.length : '—', detail: board ? `Fire ${board.incident_types.FIRE ?? 0} · EMS ${board.incident_types.EMS ?? 0} · HazMat ${board.incident_types.HAZMAT ?? 0} · Other ${board.incident_types.OTHER ?? 0}` : undefined, href: '/readiness?view=incidents' },
       { label: 'Open alerts', value: snapshot ? openAlerts.length : '—', detail: openAlerts.length ? 'awaiting review' : 'none awaiting review', tone: openAlerts.length ? 'bad' : undefined, href: '/readiness?view=alerts' },
@@ -124,7 +126,7 @@ export default function CommandCenterPage() {
   const supply = tankers.length ? [{ key: 'tankers', label: 'Tankers', total: tankers.length, in_service: tankers.length - tankersOut, out_of_service: tankersOut, availability_pct: (tankers.length - tankersOut) / tankers.length * 100 }] : []
   const resourceTable = (groups: typeof apparatus, caption: string) => (
     <div className="ui-table-wrap" tabIndex={0} role="region" aria-label={caption}>
-      <table className="ui-table">
+      <table className={`ui-table ${styles.resourceTable}`}>
         <caption className="sr-only">{caption}</caption>
         <thead><tr><th scope="col">Type</th><th scope="col" className={`ui-num ${styles.wideOnly}`}>Total</th><th scope="col" className="ui-num">In service</th><th scope="col" className={`ui-num ${styles.wideOnly}`}>Out of service</th><th scope="col" className="ui-num">Available</th><th scope="col" className={styles.barColumn}><span className="sr-only">Availability comparison</span></th></tr></thead>
         <tbody>{groups.map((group) => (

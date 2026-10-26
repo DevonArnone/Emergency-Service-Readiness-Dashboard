@@ -8,7 +8,7 @@
 .ui-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 24px 28px 40px; min-width: 0; }
 .ui-page > * { min-width: 0; }
 .ui-page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
-.ui-page-header h1 { font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.02em; }
+.ui-page-header h1 { font-size: var(--headline); line-height: 1.15; letter-spacing: -0.025em; }
 .ui-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .ui-page-header p { max-width: 72ch; margin-top: 4px; color: var(--ink-2); font-size: 0.9375rem; }
 .ui-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -22,14 +22,21 @@
 
 /* Summary strip: a single line of facts, not a row of hero cards */
 .ui-summary { display: flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--shadow-panel); }
-.ui-summary > div { flex: 1 1 150px; min-width: 0; padding: 12px 16px; border-left: 1px solid var(--rule); }
+.ui-summary > div { position: relative; display: flex; flex-direction: column; flex: 1 1 150px; min-width: 0; padding: 14px 16px 12px; border-left: 1px solid var(--rule); }
 .ui-summary > div:first-child { border-left: 0; }
 .ui-summary dt { color: var(--ink-3); font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ui-summary dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-top: 2px; font-size: 1.375rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.ui-summary dd small { color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; letter-spacing: 0; }
+.ui-summary dd { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: var(--figure-xl); font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.025em; }
+.ui-summary dd small { color: var(--ink-3); font-size: 0.8125rem; font-weight: 400; line-height: 1.4; letter-spacing: 0; }
 .ui-summary [data-tone='bad'] dd { color: var(--bad); }
 .ui-summary [data-tone='warn'] dd { color: var(--warn); }
 .ui-summary [data-tone='ok'] dd { color: var(--ok); }
+.ui-summary dd small { color: var(--ink-3); }
+.ui-sparkline { display: block; width: 100%; height: 26px; margin-top: auto; padding-top: 8px; overflow: visible; }
+.ui-sparkline-line { fill: none; stroke: var(--cobalt); stroke-width: 1.5; stroke-linejoin: round; }
+.ui-sparkline-area { fill: var(--cobalt-soft); opacity: .7; }
+.ui-sparkline-dot { fill: var(--surface); stroke: var(--cobalt); stroke-width: 1.5; }
+.ui-sparkline[data-tone='warn'] .ui-sparkline-line, .ui-sparkline[data-tone='warn'] .ui-sparkline-dot { stroke: var(--warn); }
+.ui-sparkline[data-tone='bad'] .ui-sparkline-line, .ui-sparkline[data-tone='bad'] .ui-sparkline-dot { stroke: var(--bad); }
 .ui-summary a { color: inherit; text-decoration: none; }
 .ui-summary a:hover { text-decoration: underline; }
 
@@ -292,7 +299,7 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--cobalt);
   .ui-summary > div[data-tone='bad'], .ui-summary > div[data-tone='warn'] { order: -1; }
   .ui-summary > div[data-tone='bad'] + div, .ui-summary > div[data-tone='warn'] + div { border-left: 1px solid var(--rule); }
   .ui-summary dt { white-space: normal; }
-  .ui-summary dd { font-size: 1.125rem; }
+  .ui-summary dd { font-size: 1.375rem; }
   .ui-summary dd small { flex-basis: 100%; }
   .ui-page-header p { font-size: 0.875rem; }
   .ui-dialog-footer > * { flex: 1 1 auto; }

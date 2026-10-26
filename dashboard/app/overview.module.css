@@ -31,4 +31,5 @@
 @media (max-width: 640px) {
   .barColumn, .wideOnly { display: none; }
   .narrowOnly { display: inline; }
+  :global(.ui-table-wrap) > .resourceTable { min-width: 0; }
 }

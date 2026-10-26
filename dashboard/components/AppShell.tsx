@@ -205,7 +205,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className={styles.spacer} />
         <div className={styles.connection} data-state={snapshot.isError ? 'offline' : serviceLive ? 'live' : 'syncing'}>
           <i aria-hidden="true" />
-          <div><strong>{connectionLabel}</strong><small>Last sync <span className="ui-mono">{syncClock(snapshot.data?.timestamp)}</span></small></div>
+          <div><strong>{connectionLabel}</strong><small>Last sync <span className="ui-mono" key={snapshot.dataUpdatedAt} data-fresh={snapshot.dataUpdatedAt ? true : undefined}>{syncClock(snapshot.data?.timestamp)}</span></small></div>
         </div>
         <button type="button" className={styles.searchTrigger} aria-label="Search unit, station, incident, location" onClick={() => setCommandOpen(true)}><Search aria-hidden="true" /><span>Search unit, station, incident</span><kbd>⌘K</kbd></button>
         <DropdownMenu.Root>

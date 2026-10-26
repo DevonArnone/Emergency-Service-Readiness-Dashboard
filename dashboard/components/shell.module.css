@@ -38,7 +38,17 @@
 
 .connection { display: none; align-items: center; gap: 9px; white-space: nowrap; }
 .connection i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn-solid); }
+.connection i { position: relative; flex: 0 0 auto; }
 .connection[data-state='live'] i { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+/* A slow beacon while the stream is live; it stops the moment the connection degrades. */
+.connection[data-state='live'] i::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--ok); animation: beacon 2.4s var(--ease-out) infinite; }
+@keyframes beacon { from { transform: scale(1); opacity: .7; } to { transform: scale(2.6); opacity: 0; } }
+/* The sync clock briefly highlights each time a fresh snapshot lands. */
+.connection small [data-fresh] { border-radius: 3px; animation: fresh 1.6s var(--ease-out); }
+@keyframes fresh { from { background: var(--cobalt-soft); color: var(--cobalt-ink); } }
+@media (prefers-reduced-motion: reduce) {
+  .connection[data-state='live'] i::after, .connection small [data-fresh] { animation: none; }
+}
 .connection[data-state='offline'] i { background: var(--bad); }
 .connection strong { display: block; font-size: 0.8125rem; font-weight: 600; line-height: 1.25; }
 .connection small { display: block; color: var(--ink-3); font-size: 0.75rem; line-height: 1.3; }
