@@ -43,3 +43,9 @@ out/
 # Logs
 *.log
 
+
+# Agent instruction files (local only)
+AGENTS.md
+**/AGENTS.md
+CLAUDE.md
+**/CLAUDE.md
