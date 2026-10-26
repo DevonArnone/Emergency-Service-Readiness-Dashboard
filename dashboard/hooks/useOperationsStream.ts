@@ -54,7 +54,6 @@ export function useOperationsStream() {
             refreshTimer = setTimeout(() => {
               refreshTimer = undefined
               queryClient.invalidateQueries({ queryKey: ['operations'] })
-              queryClient.invalidateQueries({ queryKey: ['shell-operations'] })
               queryClient.invalidateQueries({ queryKey: queryKeys.readiness })
               if (refreshAll) queryClient.invalidateQueries()
               refreshAll = false

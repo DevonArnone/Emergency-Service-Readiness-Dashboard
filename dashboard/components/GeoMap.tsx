@@ -101,6 +101,8 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
   const [center, setCenter] = useState<[number, number] | null>(null)
   const [county, setCounty] = useState<CountyCollection | null>(null)
   const [layersOpen, setLayersOpen] = useState(layersOpenDefault)
+  // Follow the docked layout as the viewport changes: open beside docked panels, closed on narrow screens.
+  useEffect(() => { setLayersOpen(layersOpenDefault) }, [layersOpenDefault])
   const framing = useRef({ insetRight, layersOpen })
   useEffect(() => { framing.current = { insetRight, layersOpen } }, [insetRight, layersOpen])
   const padding = () => ({ top: 28, bottom: 28, left: framing.current.layersOpen ? 236 : 28, right: 64 + framing.current.insetRight })
@@ -389,8 +391,9 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
         {!styleReady && <div className={styles.geoLoading} aria-hidden="true" />}
         {layersOpen && (
           <div id="map-layer-panel" className={styles.layerPanel} role="group" aria-label="All map layers">
-            <p className="ui-label">Layers</p>
-            {order.map((layer) => (
+            <p className="ui-label">More layers</p>
+            {/* The first three layers are toggled in the stage header; the panel lists the rest so every control has one name. */}
+            {order.slice(3).map((layer) => (
               <button key={layer} type="button" aria-pressed={layers[layer]} onClick={() => onToggleLayer(layer)} title={LAYER_NOTE[layer]} aria-describedby={LAYER_NOTE[layer] ? `layer-note-${layer}` : undefined}>
                 <i aria-hidden="true" data-layer={layer} />
                 <span>{LAYER_LABEL[layer]}{LAYER_NOTE[layer] && <small id={`layer-note-${layer}`} className="sr-only">{LAYER_NOTE[layer]}</small>}</span>

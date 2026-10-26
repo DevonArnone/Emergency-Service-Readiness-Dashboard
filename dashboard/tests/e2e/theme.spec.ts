@@ -54,3 +54,19 @@ for (const workspace of darkWorkspaces) {
     expect(accessibility.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? '')).map((violation) => ({ id: violation.id, nodes: violation.nodes.slice(0, 3).map((node) => node.target.join(' ')) }))).toEqual([])
   })
 }
+
+// Dark is the default, so the main suite's accessibility checks run in dark; light gets its own pass.
+for (const workspace of darkWorkspaces) {
+  test(`${workspace.heading} meets contrast in the light theme`, async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'axe runs once per workspace')
+    await page.addInitScript(() => localStorage.setItem('aegis-theme', 'light'))
+    await page.setViewportSize({ width: 1512, height: 1000 })
+    await page.goto(workspace.path)
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+    await expect(page.getByRole('heading', { name: workspace.heading, level: 1 })).toBeVisible()
+    await expect.poll(async () => page.locator(workspace.dataSelector).count(), { timeout: 15_000 }).toBeGreaterThan(0)
+    await page.waitForTimeout(400)
+    const accessibility = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
+    expect(accessibility.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? '')).map((violation) => ({ id: violation.id, nodes: violation.nodes.slice(0, 3).map((node) => node.target.join(' ')) }))).toEqual([])
+  })
+}

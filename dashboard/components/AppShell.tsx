@@ -108,7 +108,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const session = useAccess()
   const stations = useQuery({ queryKey: queryKeys.stations, queryFn: api.stations })
   const snapshot = useQuery({
-    queryKey: queryKeys.shellOperations(stationId),
+    // Same key as the workspaces, so the shell and the page share one snapshot request.
+    queryKey: queryKeys.operations(stationId),
     queryFn: () => api.operationsSnapshot(stationId === 'all' ? undefined : stationId),
   })
 

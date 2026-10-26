@@ -50,7 +50,7 @@
 .legend i[data-kind='person'] { width: 8px; height: 8px; border-radius: 50%; background: var(--stage-ink-2); }
 .legend i[data-edge] { width: 18px; height: 0; border-top: 2px solid var(--stage-bad); }
 .legend i[data-edge='housed'] { border-top: 2px dashed var(--stage-ok); }
-.hint { margin-left: auto; color: var(--stage-quiet); font-size: 0.75rem; }
+.hint { margin-left: auto; color: var(--stage-ink-2); font-size: 0.75rem; }
 .list { border-top: 1px solid var(--stage-rule); color: var(--stage-ink-2); font-size: 0.8125rem; }
 .list summary { display: flex; align-items: center; gap: 6px; padding: 8px 16px; cursor: pointer; list-style: none; }
 .list summary::-webkit-details-marker { display: none; }
