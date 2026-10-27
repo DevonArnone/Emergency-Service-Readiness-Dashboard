@@ -10,295 +10,263 @@ import { join, resolve } from 'node:path'
 
 const base = process.env.REVIEW_BASE || 'http://127.0.0.1:3010'
 const out = resolve(import.meta.dirname, '../../pictures')
-const size = { width: 1280, height: 720 }
+// 1600×900 CSS pixels fits the map, summary strip, and queue in one view; 1.2× gives 1080p frames.
+const size = { width: 1600, height: 900 }
+const scale = 1.2
+const length = 30
 const work = mkdtempSync(join(tmpdir(), 'aegis-tour-'))
+// Tysons Corner: dense 3D buildings, an active incident inside the 1-mile ring, and a response arc to it.
+const focusStation = 'fs-29'
+const focusIncident = 'Stringfellow'
 
-// Overlay layer that lives outside <body>, so it survives client-side navigation and body zooms.
-const overlay = () => {
+// Overlay layer that lives outside <body>, so it survives client-side navigation.
+const overlay = (length) => {
   const style = document.createElement('style')
   style.textContent = `
     nextjs-portal { display: none !important; }
-    body { transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1); transform-origin: var(--tour-ox, 50%) var(--tour-oy, 50%); }
     #tour { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; font-family: 'IBM Plex Sans Variable', system-ui, sans-serif; }
     #tour * { box-sizing: border-box; }
-    #tour .card { position: absolute; inset: 0; display: grid; place-content: center; gap: 14px; padding: 80px; background: #0d1013; color: #fff; text-align: center; clip-path: inset(0 0 0 0); transition: clip-path 900ms cubic-bezier(0.7, 0, 0.2, 1); }
-    #tour .card[data-hidden] { clip-path: inset(0 0 100% 0); }
-    #tour .card h1 { margin: 0; font-size: 76px; font-weight: 600; letter-spacing: -0.03em; }
-    #tour .card img { display: block; width: 420px; height: auto; margin: 0 auto 6px; opacity: 0; animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card h1 span { display: inline-block; opacity: 0; transform: translateY(26px); filter: blur(10px); animation: rise 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card p { margin: 0; color: #a3adba; font-size: 24px; opacity: 0; animation: rise 800ms 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card small { color: #6f97ff; font-size: 16px; letter-spacing: 0.02em; opacity: 0; animation: rise 800ms 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    #tour .card i { display: block; width: 0; height: 3px; margin: 6px auto; border-radius: 2px; background: #3e6ef0; animation: rule 900ms 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes rise { to { opacity: 1; transform: none; filter: none; } }
-    @keyframes rule { to { width: 180px; } }
-    #tour .wipe { position: absolute; inset: 0; background: #3e6ef0; transform: translateX(-101%); }
-    #tour .wipe[data-run] { animation: wipe 760ms cubic-bezier(0.7, 0, 0.2, 1); }
-    @keyframes wipe { 0% { transform: translateX(-101%); } 45%, 55% { transform: none; } 100% { transform: translateX(101%); } }
-    #tour .caption { position: absolute; left: 36px; bottom: 34px; display: grid; gap: 2px; max-width: 620px; padding: 14px 20px 15px; border-radius: 12px; background: #0d1013; color: #fff; box-shadow: 0 2px 6px rgba(4, 6, 9, 0.2), 0 24px 50px -18px rgba(4, 6, 9, 0.6); opacity: 0; transform: translateY(18px); filter: blur(6px); transition: opacity 420ms, transform 520ms cubic-bezier(0.16, 1, 0.3, 1), filter 420ms; }
-    #tour .caption[data-on] { opacity: 1; transform: none; filter: none; }
-    #tour .caption strong { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
-    #tour .caption span { color: #a3adba; font-size: 15px; }
-    #tour .spot { position: absolute; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(4, 6, 9, 0.56), 0 0 0 2px #6f97ff; opacity: 0; transition: opacity 380ms, left 700ms cubic-bezier(0.16, 1, 0.3, 1), top 700ms cubic-bezier(0.16, 1, 0.3, 1), width 700ms cubic-bezier(0.16, 1, 0.3, 1), height 700ms cubic-bezier(0.16, 1, 0.3, 1); }
-    #tour .spot[data-on] { opacity: 1; }
-    #tour .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -4px 0 0 -4px; transform: translate(640px, 760px); transition: transform 780ms cubic-bezier(0.3, 0, 0.1, 1); filter: drop-shadow(0 2px 3px rgba(4, 6, 9, 0.5)); }
-    #tour .ripple { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #3e6ef0; border-radius: 50%; animation: ripple 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #tour .hud { position: absolute; left: 24px; bottom: 26px; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; min-width: 380px; max-width: 560px; padding: 14px 20px 15px 16px; background: rgba(8, 10, 13, 0.88); backdrop-filter: blur(10px); border: 1px solid rgba(111, 151, 255, 0.28); color: #fff; opacity: 0; transform: translateX(-14px); clip-path: inset(0 100% 0 0); transition: opacity 260ms, transform 420ms cubic-bezier(0.16, 1, 0.3, 1), clip-path 520ms cubic-bezier(0.16, 1, 0.3, 1); }
+    #tour .hud[data-on] { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+    #tour .hud::before, #tour .hud::after { content: ''; position: absolute; width: 10px; height: 10px; border: 0 solid #6f97ff; }
+    #tour .hud::before { left: -1px; top: -1px; border-left-width: 2px; border-top-width: 2px; }
+    #tour .hud::after { right: -1px; bottom: -1px; border-right-width: 2px; border-bottom-width: 2px; }
+    #tour .hud .idx { align-self: stretch; display: grid; place-items: center; padding-right: 14px; border-right: 1px solid rgba(111, 151, 255, 0.28); color: #6f97ff; font: 500 15px/1 'IBM Plex Mono', ui-monospace, monospace; }
+    #tour .hud b { display: block; margin-bottom: 4px; color: #9fb7ff; font: 500 12px/1.2 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: 0.16em; text-transform: uppercase; }
+    #tour .hud span:last-child { display: block; color: #e8ecf2; font-size: 18px; line-height: 1.3; letter-spacing: -0.005em; }
+    #tour .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #3e6ef0, #6f97ff); box-shadow: 0 0 12px rgba(111, 151, 255, 0.7); transform-origin: 0 50%; transform: scaleX(0); animation: progress ${length}s linear forwards; }
+    @keyframes progress { to { transform: scaleX(1); } }
+    #tour .veil { position: absolute; inset: 0; background: rgba(8, 10, 13, 0.5); backdrop-filter: blur(8px); opacity: 0; transition: opacity 160ms; }
+    #tour .veil[data-on] { opacity: 1; }
+    #tour .scan { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: #6f97ff; box-shadow: 0 0 18px 4px rgba(111, 151, 255, 0.55); opacity: 0; }
+    #tour .scan[data-run] { animation: scan 560ms cubic-bezier(0.5, 0, 0.2, 1); }
+    @keyframes scan { 0% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(100vh); } }
+    #tour .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -4px 0 0 -4px; transform: translate(800px, 960px); transition: transform 620ms cubic-bezier(0.3, 0, 0.1, 1); filter: drop-shadow(0 2px 3px rgba(4, 6, 9, 0.5)); }
+    #tour .ripple { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 2px solid #6f97ff; border-radius: 50%; animation: ripple 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes ripple { to { transform: scale(4.4); opacity: 0; } }
-    #tour .phone { position: absolute; top: 50%; right: 150px; width: 300px; height: 620px; padding: 10px; border-radius: 40px; background: #08090b; box-shadow: 0 0 0 2px #29303a, 0 40px 80px -20px rgba(0, 0, 0, 0.7); transform: translate(0, -50%) translateY(760px) rotate(6deg); transition: transform 1000ms cubic-bezier(0.16, 1, 0.3, 1); }
-    #tour .phone[data-on] { transform: translate(0, -50%); }
-    #tour .phone iframe { width: 390px; height: 836px; border: 0; border-radius: 42px; transform: scale(0.718); transform-origin: 0 0; background: #111418; }
-    #tour .backdrop { position: absolute; inset: 0; background: #0d1013; opacity: 0; transition: opacity 600ms; }
-    #tour .backdrop[data-on] { opacity: 1; }
-    #tour .aside { position: absolute; left: 150px; top: 50%; width: 520px; color: #fff; transform: translateY(-50%); opacity: 0; transition: opacity 700ms 300ms; }
-    #tour .aside[data-on] { opacity: 1; }
-    #tour .aside h2 { margin: 0 0 12px; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-    #tour .aside p { margin: 0; color: #a3adba; font-size: 20px; line-height: 1.5; }
   `
   document.documentElement.appendChild(style)
   const root = document.createElement('div')
   root.id = 'tour'
   root.innerHTML = `
-    <div class="spot"></div>
-    <div class="caption"><strong></strong><span></span></div>
-    <div class="backdrop"></div>
-    <div class="aside"><h2></h2><p></p></div>
-    <div class="phone"><iframe title="Mobile preview"></iframe></div>
-    <svg class="cursor" viewBox="0 0 22 22"><path d="M4 3l13 6.2-5.4 1.9-1.9 5.4z" fill="#fff" stroke="#0d1013" stroke-width="1.6" stroke-linejoin="round"/></svg>
-    <div class="wipe"></div>
-    <div class="card"><h1></h1><i></i><p></p><small></small></div>`
+    <div class="veil"></div>
+    <div class="scan"></div>
+    <div class="hud"><span class="idx"></span><div><b></b><span></span></div></div>
+    <svg class="cursor" viewBox="0 0 22 22"><path d="M4 3l13 6.2-5.4 1.9-1.9 5.4z" fill="#fff" stroke="#0d1013" stroke-width="1.6" stroke-linejoin="round"/></svg>`
   document.documentElement.appendChild(root)
   const $ = (selector) => root.querySelector(selector)
   window.tour = {
-    card(title, line, note) {
-      const card = $('.card')
-      // The product name is the logo lockup; other titles animate word by word.
-      card.querySelector('h1').innerHTML = title === 'Aegis Command' ? `<img src="/brand/aegis-logo-on-dark.png" alt="Aegis Command">` : title.split(' ').map((word, index) => `<span style="animation-delay:${index * 140}ms">${word}</span>`).join(' ')
-      card.querySelector('p').textContent = line
-      card.querySelector('small').textContent = note
-      card.removeAttribute('data-hidden')
+    start() { const bar = document.createElement('div'); bar.className = 'progress'; root.appendChild(bar) },
+    hud(index, label, line) {
+      const hud = $('.hud')
+      hud.removeAttribute('data-on')
+      if (!label) return
+      setTimeout(() => { $('.hud .idx').textContent = index; $('.hud b').textContent = label; $('.hud span:last-child').textContent = line; hud.setAttribute('data-on', '') }, 220)
     },
-    hideCard() { $('.card').setAttribute('data-hidden', '') },
-    wipe() { const wipe = $('.wipe'); wipe.removeAttribute('data-run'); void wipe.offsetWidth; wipe.setAttribute('data-run', '') },
-    caption(title, line) {
-      const caption = $('.caption')
-      caption.removeAttribute('data-on')
-      if (!title) return
-      setTimeout(() => { caption.querySelector('strong').textContent = title; caption.querySelector('span').textContent = line || ''; caption.setAttribute('data-on', '') }, 260)
-    },
-    spot(selector, pad = 8) {
-      const spot = $('.spot')
-      const target = selector && document.querySelector(selector)
-      if (!target) { spot.removeAttribute('data-on'); return }
-      const box = target.getBoundingClientRect()
-      Object.assign(spot.style, { left: `${box.left - pad}px`, top: `${box.top - pad}px`, width: `${box.width + pad * 2}px`, height: `${box.height + pad * 2}px` })
-      spot.setAttribute('data-on', '')
-    },
+    veil(on) { $('.veil').toggleAttribute('data-on', on); if (on) { const scan = $('.scan'); scan.removeAttribute('data-run'); void scan.offsetWidth; scan.setAttribute('data-run', '') } },
     cursor(x, y) { $('.cursor').style.transform = `translate(${x}px, ${y}px)` },
     ripple(x, y) { const ripple = document.createElement('div'); ripple.className = 'ripple'; ripple.style.left = `${x}px`; ripple.style.top = `${y}px`; root.appendChild(ripple); setTimeout(() => ripple.remove(), 700) },
-    zoom(scale, ox = 50, oy = 50) { document.body.style.setProperty('--tour-ox', `${ox}%`); document.body.style.setProperty('--tour-oy', `${oy}%`); document.body.style.transform = scale === 1 ? '' : `scale(${scale})` },
-    phone(src, title, line) {
-      const on = Boolean(src)
-      for (const name of ['.phone', '.backdrop', '.aside']) $(name).toggleAttribute('data-on', on)
-      if (on) { $('.phone iframe').src = src; $('.aside h2').textContent = title; $('.aside p').textContent = line }
-    },
   }
 }
 
 await record()
 
-// Lossless frames become a full-size animated WebP for the README and a constant-rate WebM for the full-resolution link.
+// Lossless frames become a 1600×900 animated WebP for the README and a 1080p constant-rate WebM for the full-resolution link.
 execFileSync('python3', [resolve(import.meta.dirname, 'tour_webp.py'), work, join(out, 'aegis-tour.webp')], { stdio: 'inherit' })
 // The WebM is encoded with the ffmpeg build Playwright already ships; it has libvpx but no filters or PNG input.
 const cache = join(homedir(), process.platform === 'darwin' ? 'Library/Caches/ms-playwright' : '.cache/ms-playwright')
 const ffmpegDir = readdirSync(cache).filter((name) => name.startsWith('ffmpeg-')).sort().at(-1)
 const ffmpeg = join(cache, ffmpegDir, readdirSync(join(cache, ffmpegDir)).find((name) => name.startsWith('ffmpeg')))
-execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', '30', '-i', join(work, 'seq.mjpeg'), '-c:v', 'libvpx', '-b:v', '5M', '-crf', '6', '-qmin', '0', '-qmax', '24', '-auto-alt-ref', '0', '-pix_fmt', 'yuv420p', join(out, 'aegis-tour.webm')])
+execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', '30', '-i', join(work, 'seq.mjpeg'), '-c:v', 'libvpx', '-b:v', '10M', '-crf', '4', '-qmin', '0', '-qmax', '20', '-auto-alt-ref', '0', '-pix_fmt', 'yuv420p', join(out, 'aegis-tour.webm')])
 rmSync(work, { recursive: true, force: true })
 console.log('wrote aegis-tour.webp and aegis-tour.webm in', out)
 
 async function record() {
-  const browser = await chromium.launch()
-
-  // Warm every route first so the recording never shows a compile or a cold query.
-  const warm = await (await browser.newContext({ viewport: size })).newPage()
-  for (const route of ['/', '/readiness?view=incidents', '/readiness?view=incidents&pane=map', '/readiness?view=incidents&pane=timeline', '/readiness?view=incidents&pane=graph', '/readiness?view=units', '/readiness?view=units&pane=history', '/shifts', '/analytics']) {
-    await warm.goto(base + route, { waitUntil: 'networkidle' })
-  }
-  await warm.context().close()
-
-  const context = await browser.newContext({ viewport: size, deviceScaleFactor: 1 })
-  // Hide the dev indicator in every frame, and keep the top page covered until the title card is up.
+  // The new headless mode renders WebGL on the GPU; the default headless shell falls back to software and drops frames in 3D.
+  const browser = await chromium.launch({ channel: 'chromium' })
+  const context = await browser.newContext({ viewport: size, deviceScaleFactor: scale })
+  // Hide the dev indicator in every frame.
   await context.addInitScript(() => {
     // A constructed stylesheet is not a DOM node, so hydration cannot remove it.
     const sheet = new CSSStyleSheet()
-    sheet.replaceSync('nextjs-portal { display: none !important; }' + (window.top === window ? ' html { background: #0d1013 !important; } body { opacity: 0 !important; }' : ''))
+    sheet.replaceSync('nextjs-portal { display: none !important; }')
     document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
-    window.tourCover = sheet
   })
+  // Rehearse the whole tour first, in the same context, so every route is compiled and every tile on the camera path is cached.
+  await perform(context, false)
+  await perform(context, true)
+  await context.close()
+  await browser.close()
+}
+
+async function perform(context, capture) {
   const page = await context.newPage()
   const wait = (ms) => page.waitForTimeout(ms)
   const tour = (method, ...args) => page.evaluate(([name, values]) => window.tour[name](...values), [method, args])
+  const idle = () => mapIdle(page)
+  let began = 0
+  const mark = (label) => capture && console.log(`${((Date.now() - began) / 1000).toFixed(1).padStart(5)} s  ${label}`)
 
-  async function point(locator, { click = true } = {}) {
-    const box = await locator.boundingBox()
-    const x = box.x + Math.min(box.width / 2, 120), y = box.y + box.height / 2
+  async function point(locator, { click = true, settle = 450 } = {}) {
+    const target = async () => { const box = await locator.boundingBox(); return [box.x + Math.min(box.width / 2, 120), box.y + box.height / 2] }
+    let [x, y] = await target()
     await tour('cursor', x, y)
-    await wait(800)
+    await wait(settle)
     if (!click) return
+    // Measure again: the layout can still shift while the cursor travels.
+    ;[x, y] = await target()
+    await tour('cursor', x, y)
     await tour('ripple', x, y)
     await page.mouse.click(x, y)
   }
-  async function scene(navName, title, line) {
-    await tour('spot', null)
-    await tour('caption', null)
-    await tour('wipe')
-    await wait(330)
+  // Wheel zoom in small steps reads as one continuous camera move, anchored where the cursor is.
+  async function wheel(x, y, steps, delta) {
+    await tour('cursor', x, y)
+    await page.mouse.move(x, y)
+    for (let step = 0; step < steps; step++) { await page.mouse.wheel(0, delta); await wait(50) }
+    await idle()
+  }
+  async function go(navName, settle = async () => {}) {
+    await tour('hud', null)
+    await tour('veil', true)
+    await wait(170)
     await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: navName, exact: true }).click()
-    await wait(650)
-    await tour('caption', title, line)
+    await page.waitForLoadState('networkidle')
+    await settle()
+    await wait(300)
+    await tour('veil', false)
   }
 
   await page.goto(base + '/', { waitUntil: 'networkidle' })
-  await page.evaluate(overlay)
+  await idle()
+  await collapseLayers(page)
+  await idle()
+  await page.evaluate(overlay, length)
+  const stats = await page.locator('.ui-summary').innerText()
+  const figure = (label) => stats.match(new RegExp(`${label}\\n(\\d+)`, 'i'))?.[1]
+  await wait(1200)
 
   // Playwright's recordVideo is a low-bitrate VP8 stream, so frames come straight from the compositor as PNGs instead.
   const cdp = await context.newCDPSession(page)
   const frames = [], writes = []
-  cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
-    cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {})
-    const file = `f-${String(frames.length).padStart(5, '0')}.png`
-    frames.push({ file, t: metadata.timestamp })
-    writes.push(writeFile(join(work, file), Buffer.from(data, 'base64')))
-  })
-  await cdp.send('Page.startScreencast', { format: 'png', maxWidth: size.width, maxHeight: size.height, everyNthFrame: 1 })
-  await tour('card', 'Aegis Command', 'Readiness, incidents, and staffing in one operating picture', 'Synthetic data')
-  await page.evaluate(() => window.tourCover.replaceSync('nextjs-portal { display: none !important; }'))
-  await page.locator('[data-map-station]').first().waitFor()
-  await wait(2300)
+  if (capture) {
+    cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
+      cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {})
+      const file = `f-${String(frames.length).padStart(5, '0')}.png`
+      frames.push({ file, t: metadata.timestamp })
+      writes.push(writeFile(join(work, file), Buffer.from(data, 'base64')))
+    })
+    await cdp.send('Page.startScreencast', { format: 'png', maxWidth: size.width * scale, maxHeight: size.height * scale, everyNthFrame: 1 })
+  }
+  began = Date.now()
+  await tour('start')
 
-  // County overview
-  await tour('hideCard')
-  await wait(550)
-  await tour('caption', 'County overview', '39 stations, active incidents, and open alerts at a glance')
+  // 01 · The landing page is already live: push the camera in on the county core.
+  mark('operating picture')
+  await tour('hud', '01', 'Live operating picture', `${figure('Station network') || 39} stations · ${figure('Active incidents') || 5} active incidents · ${figure('Open alerts') || 15} open alerts`)
+  const core = await page.locator('[data-map-station="fs-30"]').boundingBox()
+  await tour('cursor', core.x + 40, core.y + 30)
+  await wait(400)
+  await wheel(core.x + 6, core.y + 6, 12, -130)
   await wait(700)
-  await tour('spot', '.ui-summary')
-  await wait(1350)
-  await tour('spot', '[data-map="readiness"]', 0)
-  await wait(500)
-  await tour('zoom', 1.32, 38, 62)
-  await wait(1500)
-  await tour('zoom', 1)
-  await tour('spot', null)
-  await wait(800)
-  await point(page.getByRole('button', { name: '3D view' }))
-  await tour('caption', 'Depth that carries data', 'Columns rise with the units assigned to each station')
-  await wait(2200)
-  // In the tilted view the marker can sit under the docked panel, so the cursor shows the move and the click goes to the marker itself.
-  await point(page.locator('[data-map-station="fs-21"]'), { click: false })
-  await page.locator('[data-map-station="fs-21"]').dispatchEvent('click')
-  await tour('caption', 'Select anything', 'The map flies to it; rings mark 1, 3, and 5 straight-line miles')
-  await wait(2600)
-  await point(page.getByRole('button', { name: '3D view' }))
-  await wait(900)
-  await point(page.getByRole('button', { name: 'Close station details' }))
-  await wait(500)
 
-  // Activity scrubber
-  await tour('caption', null)
+  // 02 · Tilt into 3D; columns rise with the units assigned to each station.
+  mark('3D')
+  await point(page.getByRole('button', { name: '3D view' }))
+  await tour('hud', '02', 'Readiness in three dimensions', 'Column height is the number of units assigned to each station')
+  await wait(1200)
+  await idle()
+  await wait(700)
+
+  // 03 · Fly to one station: buildings, the 1-mile ring, and a live response link to an incident.
+  // In the tilted view the marker can sit under the docked queue, so the cursor shows the move and the click goes to the marker itself.
+  mark('station fly-in')
+  await point(page.locator(`[data-map-station="${focusStation}"]`), { click: false })
+  await page.locator(`[data-map-station="${focusStation}"]`).dispatchEvent('click')
+  await tour('hud', '03', 'Drill into any station', 'Fly-in with distance rings and response links to active incidents')
+  await wait(1450)
+  await idle()
+  const station = await page.locator(`[data-map-station="${focusStation}"]`).boundingBox()
+  await wheel(station.x + 8, station.y + 8, 6, 120)
+  await wait(1300)
+
+  // 04 · Scrub the last 24 hours; the map and the attention queue follow the window.
+  mark('scrubber')
+  await point(page.getByRole('button', { name: 'Close station details' }), { settle: 300 })
   await page.evaluate(() => document.querySelector('[data-ui="time-track"]').scrollIntoView({ behavior: 'smooth', block: 'center' }))
-  await wait(900)
+  await wait(550)
   const track = await page.locator('[data-ui="time-track"]').boundingBox()
-  await tour('caption', 'Scrub the last 24 hours', 'The map and queue filter to the window you draw')
-  await tour('cursor', track.x + track.width * 0.5, track.y + 30)
-  await wait(800)
-  await page.mouse.move(track.x + track.width * 0.5, track.y + 30)
+  await tour('hud', '04', 'Scrub the last 24 hours', 'The map and the queue filter to the window you draw')
+  await tour('cursor', track.x + track.width * 0.55, track.y + 30)
+  await wait(450)
+  await page.mouse.move(track.x + track.width * 0.55, track.y + 30)
   await page.mouse.down()
-  for (let step = 1; step <= 14; step++) {
-    const x = track.x + track.width * (0.5 + 0.48 * step / 14)
+  for (let step = 1; step <= 12; step++) {
+    const x = track.x + track.width * (0.55 + 0.44 * step / 12)
     await tour('cursor', x, track.y + 30)
     await page.mouse.move(x, track.y + 30)
-    await wait(70)
+    await wait(45)
   }
   await page.mouse.up()
-  await wait(700)
-  await page.evaluate(() => window.scrollTo({ top: 120, behavior: 'smooth' }))
-  await wait(2000)
-  await page.getByRole('button', { name: 'Clear time window' }).click()
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
-  await wait(700)
+  await wait(1000)
 
-  // Incidents: one selection across register, map, and timeline
-  await scene('Incidents', 'Incidents', 'One selection across the register, the map, and the timeline')
-  await wait(550)
-  await point(page.locator('[data-ui="incident-register"] tbody tr').nth(2).locator('th button'))
-  await wait(1050)
-  await point(page.getByRole('tab', { name: 'Map', exact: true }))
-  await wait(1200)
-  await point(page.getByRole('tab', { name: 'Timeline', exact: true }))
-  await wait(500)
-  await tour('spot', '[data-ui="incident-timeline"]', 0)
-  await tour('caption', 'Recorded, not assumed', 'Lifecycle stages come from the audit history')
-  await wait(1850)
-  await tour('spot', null)
-  await point(page.getByRole('tab', { name: 'Graph', exact: true }))
-  await tour('caption', 'Relationships', 'Incidents, apparatus, crews, and stations from recorded assignments')
-  await wait(1100)
-  await point(page.locator('[data-ui="link-graph"]').first().locator('[data-graph-node="incident:inc-02"]'))
-  await wait(2100)
-
-  // Units
-  await scene('Units', 'Units', 'Crew, readiness checks, and service state for every apparatus')
-  await wait(550)
-  await point(page.locator('[data-ui="unit-row"]').nth(3))
-  await wait(1050)
-  await point(page.getByRole('tab', { name: 'Deployment history', exact: true }))
-  await wait(550)
-  await tour('spot', '[data-ui="unit-timeline"]', 0)
-  await wait(1750)
-
-  // Scheduling
-  await scene('Scheduling', 'Scheduling', 'The duty timeline shows coverage gaps for the day')
-  await wait(700)
-  await tour('spot', '[aria-labelledby="duty-heading"]', 0)
-  await wait(1850)
-
-  // Analytics
-  await scene('Analytics', 'Analytics', 'One analysis at a time, with findings and exportable evidence')
-  await wait(900)
-  await tour('zoom', 1.18, 45, 60)
-  await wait(1700)
-  await tour('zoom', 1)
-  await wait(550)
-
-  // Command search
-  await tour('caption', 'Search everything', 'Workspaces, stations, units, and active incidents')
-  await point(page.getByRole('button', { name: 'Search unit, station, incident, location' }))
-  await wait(400)
-  await page.keyboard.type('fair oaks', { delay: 95 })
+  // 05 · One incident across the register, the map, and the relationship graph.
+  mark('incidents')
+  const register = page.locator('[data-ui="incident-register"] tbody tr').filter({ hasText: focusIncident }).locator('th button')
+  await go('Incidents', () => register.waitFor())
+  await tour('hud', '05', 'One record, every view', 'Register, map, and relationship graph share a single selection')
+  await point(register, { settle: 420 })
+  await wait(450)
+  await point(page.getByRole('tab', { name: 'Map', exact: true }), { settle: 420 })
   await wait(1500)
+  await idle()
+  await wait(600)
+  await point(page.getByRole('tab', { name: 'Graph', exact: true }), { settle: 420 })
+  await wait(500)
+  await point(page.locator('[data-ui="link-graph"]').first().locator('[data-graph-node="incident:inc-02"]'), { settle: 400 })
+  await wait(1000)
+
+  // 06 · Units: service history rebuilt from the audit trail.
+  mark('units')
+  await go('Units')
+  await tour('hud', '06', 'Every apparatus, every state change', 'Deployment history rebuilt from the audit trail, not assumed')
+  await point(page.locator('[data-ui="unit-row"]').nth(3), { settle: 400 })
+  await wait(350)
+  await point(page.getByRole('tab', { name: 'Deployment history', exact: true }), { settle: 400 })
+  await wait(1400)
+
+  // 07 · Command search across workspaces, stations, units, and incidents.
+  mark('search')
+  await tour('hud', '07', 'Search everything', 'Workspaces, stations, units, and active incidents from one box')
+  await point(page.getByRole('button', { name: 'Search unit, station, incident, location' }), { settle: 400 })
+  await wait(200)
+  await page.keyboard.type('tysons', { delay: 65 })
+  await wait(1100)
   await page.keyboard.press('Escape')
-  await tour('caption', null)
-  await wait(300)
 
-  // Theme
-  await tour('caption', 'Dark by default, light on demand', 'One toggle; the stage stays dark for space and time')
-  await point(page.getByRole('button', { name: 'Switch to light theme' }))
-  await wait(1700)
-  await point(page.getByRole('button', { name: 'Switch to dark theme' }))
-  await wait(900)
-  await tour('caption', null)
+  // Back to the landing page, so the loop closes where it opened.
+  mark('close')
+  await go('County overview', async () => { await idle(); await collapseLayers(page); await idle() })
+  await tour('hud', '—', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js · synthetic data')
+  await wait(2000)
+  mark('end')
 
-  // Mobile
-  await tour('cursor', 640, 780)
-  await tour('phone', base + '/readiness?view=incidents', 'Complete on a phone', 'Every workflow fits 320px and up, with 44px touch targets and drawers in place of side panels.')
-  await wait(2900)
+  if (capture) {
+    await cdp.send('Page.stopScreencast')
+    await Promise.all(writes)
+    writeFileSync(join(work, 'frames.json'), JSON.stringify({ frames, end: Date.now() / 1000 }))
+  }
+  await page.close()
+}
 
-  // Close
-  await tour('card', 'Aegis Command', 'FastAPI · PostgreSQL · Kafka · Redis · Next.js', 'Synthetic data')
-  await wait(2400)
+// Resolves once MapLibre reports the camera still and every tile drawn (GeoMap sets data-map-idle).
+async function mapIdle(page) {
+  await page.waitForTimeout(250)
+  await page.locator('[data-map-idle]').first().waitFor({ timeout: 20_000 })
+}
 
-  await cdp.send('Page.stopScreencast')
-  await Promise.all(writes)
-  writeFileSync(join(work, 'frames.json'), JSON.stringify({ frames, end: Date.now() / 1000 }))
-  await context.close()
-  await browser.close()
+// The layer panel starts open on wide screens; the tour shows the map without it.
+async function collapseLayers(page) {
+  const toggle = page.locator('[data-map] [aria-controls="map-layer-panel"]').first()
+  if (await toggle.getAttribute('aria-expanded') === 'true') await toggle.click()
 }
