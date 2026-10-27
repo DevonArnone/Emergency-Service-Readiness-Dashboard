@@ -10,7 +10,10 @@ import sys
 from PIL import Image, _webp
 
 FPS = 30
-QUALITY = 62  # with the 20 fps thinning below, keeps a ~70 s tour under 10 MB so GitHub renders it inline
+SIZE = (1600, 900)  # the README width; frames are captured at 1080p and downsampled for sharper text
+STEP_MS = 40  # thin motion to 25 fps in the WebP, but never drop a frame that is then held on screen
+LIMIT = 9.5e6  # GitHub stops rendering README images inline at 10 MB
+QUALITIES = (86, 82, 78, 74, 70)
 work, target = sys.argv[1], sys.argv[2]
 manifest = json.load(open(os.path.join(work, "frames.json")))
 frames, end = manifest["frames"], manifest["end"]
@@ -22,22 +25,37 @@ for frame in frames:
     kept[round((frame["t"] - start) * FPS)] = frame["file"]
 slots = sorted(kept)
 
-# Pillow's public save() needs every frame in memory at once, so frames stream into its WebP encoder directly.
-width, height = Image.open(os.path.join(work, frames[0]["file"])).size
-encoder = _webp.WebPAnimEncoder((width, height), 0xFF0D1013, 0, False, 3, 30, False, False)
-# The WebP thins motion to about 20 fps to stay small, but never drops a frame that is then held on screen.
-last = -1
+timeline, last = [], -STEP_MS
 for index, slot in enumerate(slots):
     at = slot * 1000 / FPS
     held = (slots[index + 1] - slot) * 1000 / FPS if index + 1 < len(slots) else 1000
-    if at - last < 50 and held < 50:
+    if at - last < STEP_MS and held < STEP_MS:
         continue
     last = at
-    image = Image.open(os.path.join(work, kept[slot])).convert("RGB")
-    encoder.add(image.getim(), round(at), False, QUALITY, 100, 4)
-encoder.add(None, round((end - start) * 1000), False, QUALITY, 100, 0)
+    timeline.append((round(at), kept[slot]))
+
+# Downsample once to disk so each quality attempt only re-encodes.
+small = os.path.join(work, "small")
+os.makedirs(small, exist_ok=True)
+for _, file in timeline:
+    Image.open(os.path.join(work, file)).convert("RGB").resize(SIZE, Image.LANCZOS).save(os.path.join(small, file), "PNG", compress_level=1)
+
+
+def encode(quality):
+    # Pillow's public save() needs every frame in memory at once, so frames stream into its WebP encoder directly.
+    encoder = _webp.WebPAnimEncoder(SIZE, 0xFF0D1013, 0, False, 3, 30, False, False)
+    for at, file in timeline:
+        encoder.add(Image.open(os.path.join(small, file)).getim(), at, False, quality, 100, 4)
+    encoder.add(None, round((end - start) * 1000), False, quality, 100, 0)
+    return encoder.assemble("", "", "")
+
+
+for quality in QUALITIES:
+    data = encode(quality)
+    if len(data) <= LIMIT:
+        break
 with open(target, "wb") as handle:
-    handle.write(encoder.assemble("", "", ""))
+    handle.write(data)
 
 # Constant-rate JPEG stream for ffmpeg (Playwright's build reads only MJPEG pipes): each slot repeats until the next.
 total = round((end - start) * FPS)
@@ -52,4 +70,4 @@ with open(os.path.join(work, "seq.mjpeg"), "wb") as stream:
             encoded = {index: buffer.getvalue()}
         stream.write(encoded[index])
 
-print(f"{len(frames)} captured, {len(slots)} kept, {(end - start):.1f} s, {os.path.getsize(target) / 1e6:.1f} MB")
+print(f"{len(frames)} captured, {len(timeline)} in WebP at quality {quality}, {(end - start):.1f} s, {len(data) / 1e6:.1f} MB")

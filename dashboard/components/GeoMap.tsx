@@ -158,6 +158,9 @@ export default function GeoMap({ title, stations, units, incidents, scope, mode 
         // Start collapsed; the info button expands it.
         container.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       })
+      // Marks when the camera is still and tiles are drawn, so recordings and screenshots wait for a settled map.
+      map.on('idle', () => { if (stageRef.current) stageRef.current.dataset.mapIdle = 'true' })
+      map.on('movestart', () => { delete stageRef.current?.dataset.mapIdle })
       map.on('rotate', () => setBearing(map!.getBearing()))
       map.on('zoom', () => setZoom(map!.getZoom()))
       map.on('moveend', () => { const point = map!.getCenter(); setCenter([point.lng, point.lat]) })

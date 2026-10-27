@@ -1,10 +1,10 @@
 # Aegis Command
 
-[![A 73-second tour: the map-first county overview in 2D and 3D, a station fly-in, the activity scrubber, incidents on the register, map, timeline, and relationship graph, units, scheduling, analytics, command search, the theme toggle, and the mobile layout](pictures/aegis-tour.webp)](pictures/aegis-tour.webm)
+[![A 30-second tour: the live county overview, a push in on the map, the tilt into 3D readiness columns, a fly-in to Station 29 with its distance ring and response link, the 24-hour activity scrubber, one incident across the register, map, and relationship graph, unit deployment history, and command search](pictures/aegis-tour.webp)](pictures/aegis-tour.webm)
 
 A readiness coordination tool for a county fire and rescue department: who is on duty, which apparatus can respond, what is open, and what needs attention. FastAPI and PostgreSQL behind a Next.js interface, with an outbox-to-Kafka event pipeline, Redis fan-out to WebSockets, and OIDC roles.
 
-The tour above is a recording of the running application against the seeded synthetic data ([full-resolution WebM](pictures/aegis-tour.webm)). `node dashboard/scripts/record-tour.mjs` regenerates both files from a running dashboard.
+The tour is a recording of the running application against the seeded synthetic data ([1080p WebM](pictures/aegis-tour.webm)). `node dashboard/scripts/record-tour.mjs` regenerates both files from a running dashboard, and `node dashboard/scripts/capture-readme.mjs` regenerates the screenshots below.
 
 ## Contents
 
@@ -20,27 +20,66 @@ The tour above is a recording of the running application against the seeded synt
 
 ## What it does
 
-![County overview: readiness map beside the queue of active incidents and open alerts](pictures/aegis-command-desktop.png)
+### The map
 
-| Workspace | Route | What you can do there |
-|---|---|---|
-| County overview | `/` | A map-first command view: layers, response arcs, a 3D readiness view, a docked attention queue, and a 24-hour activity scrubber that filters the map and queue by time. Export a handover brief. |
-| Stations | `/?layer=stations` | Search the station directory; the list, the map (with nearest-station areas and 1/3/5-mile rings), and the station panel share one selection. |
-| Resource status | `/?panel=resources` | Compare apparatus, special-team, and supply availability. |
-| Incidents | `/readiness?view=incidents` | Edit an incident, add notes, assign units, resolve it. Switch between register, map, lifecycle timeline, and a relationship graph of incidents, apparatus, crews, and stations. |
-| Units | `/readiness?view=units` | Review crew and readiness per apparatus, assign crew, record out-of-service, maintenance, and return. Coverage matrix and deployment history are alternate views. |
-| Alerts | `/readiness?view=alerts` | Filter by state, acknowledge, resolve. |
-| Personnel | `/personnel` | Search the roster, edit profiles and availability, archive records. |
-| Scheduling | `/shifts` | See the day's duty timeline, create and cancel shifts, manage the roster, clock people in and out. |
-| Credentials | `/certifications-management` | Work the renewal queue by expiration, maintain credential definitions and unit requirements. |
-| Analytics | `/analytics` | Readiness, staffing, credential, and coverage analyses with CSV export. |
-| Plans & Hazards | `/readiness?view=simulation` | Run a what-if for an apparatus outage or crew callout. Nothing is written. |
-| Weather | `/weather` | National Weather Service forecast and active alerts, with stale and unavailable states. |
-| Admin | `/admin` | Organization, roles and permissions, system status, audit log, and baseline data restore. |
+The county overview is the landing page, and the map is the center of it. Station and incident markers are real buttons, every layer is a toggle, and the selection lives in the URL.
 
-![3D view: tilted county map with readiness columns, 3D buildings, and the station inspector](pictures/aegis-3d-desktop.png)
+<table>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/overview.jpg"><img src="pictures/readme/overview.jpg" alt="County overview with the readiness map, summary figures, and the attention queue"></a><br><b>County overview</b> · <code>/</code><br>Readiness, on-duty staffing, active incidents, and open alerts above a WebGL county map, with the queue of what needs attention docked beside it.</td>
+<td width="50%" valign="top"><a href="pictures/readme/stations.jpg"><img src="pictures/readme/stations.jpg" alt="Station directory beside the map with one station selected"></a><br><b>Stations</b> · <code>/?layer=stations</code><br>Search the 39-station directory; the list, the map, and the station panel stay on the same selection.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/map-3d.jpg"><img src="pictures/readme/map-3d.jpg" alt="Tilted 3D county map with readiness columns at each station"></a><br><b>3D readiness</b> · <code>/</code><br>One toggle tilts the map; each station rises as a column whose height is its assigned units and whose color is its staffing condition.</td>
+<td width="50%" valign="top"><a href="pictures/readme/map-station.jpg"><img src="pictures/readme/map-station.jpg" alt="Map flown in to Station 29 in Tysons with 3D buildings, a 1-mile ring, a response link, and the station inspector"></a><br><b>Station fly-in</b> · <code>/?station=fs-29</code><br>Selecting a station flies the camera to it, draws 1, 3, and 5-mile straight-line rings, and opens its readiness, staffing, and units in the inspector.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/map-areas.jpg"><img src="pictures/readme/map-areas.jpg" alt="County map with nearest-station areas and risk rings around stations that need staffing attention"></a><br><b>Station areas and risk</b> · <code>/</code><br>Nearest-station areas split the county by straight-line distance; risk rings mark stations with staffing or readiness attention.</td>
+<td width="50%" valign="top"><a href="pictures/readme/map-scrubber.jpg"><img src="pictures/readme/map-scrubber.jpg" alt="Activity histogram with a time window drawn, filtering the map and queue"></a><br><b>24-hour activity scrubber</b> · <code>/</code><br>Draw a window across the last day of incidents and alerts; the map and the attention queue filter to it.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/incidents-map.jpg"><img src="pictures/readme/incidents-map.jpg" alt="Incident map focused on a structure fire with response links from the home stations of its assigned units"></a><br><b>Incident map</b> · <code>/readiness?view=incidents&amp;pane=map</code><br>Active incidents with response links back to the home station of every assigned unit. The register, map, and timeline share one selection.</td>
+<td width="50%" valign="top"><a href="pictures/readme/overview-light.jpg"><img src="pictures/readme/overview-light.jpg" alt="County overview in the light theme"></a><br><b>Light theme</b><br>Dark by default, light on the toggle. The map stage stays dark in both, so space and time read the same way.</td>
+</tr>
+</table>
 
-More screenshots: [3D view](pictures/aegis-3d-desktop.png) · [Relationship graph](pictures/aegis-graph-desktop.png) · [Light theme](pictures/aegis-command-light.png) · [Incidents](pictures/aegis-incidents-desktop.png) · [Units](pictures/aegis-units-desktop.png) · [Alerts](pictures/aegis-alerts-desktop.png) · [Stations](pictures/aegis-stations-desktop.png) · [Personnel](pictures/aegis-personnel-desktop.png) · [Scheduling](pictures/aegis-shifts-desktop.png) · [Credentials](pictures/aegis-certifications-management-desktop.png) · [Analytics](pictures/aegis-analytics-desktop.png) · [Plans](pictures/aegis-plans-desktop.png) · [Weather](pictures/aegis-weather-desktop.png) · [Admin](pictures/aegis-admin-desktop.png). Each has a `-mobile.png` counterpart in [pictures/](pictures/). The browser test suite regenerates them.
+### Operations
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/incidents.jpg"><img src="pictures/readme/incidents.jpg" alt="Incident register with a structure fire selected and its worksheet open"></a><br><b>Incidents</b> · <code>/readiness?view=incidents</code><br>Edit an incident, add notes, assign units, and resolve it from the register and its worksheet.</td>
+<td width="50%" valign="top"><a href="pictures/readme/incident-timeline.jpg"><img src="pictures/readme/incident-timeline.jpg" alt="Incident lifecycle timeline built from audit events"></a><br><b>Incident lifecycle</b> · <code>&amp;pane=timeline</code><br>Each stage comes from recorded audit events. Time with no record is shown as unrecorded rather than assumed.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/incident-graph.jpg"><img src="pictures/readme/incident-graph.jpg" alt="Force-directed graph linking incidents, apparatus, crews, and stations"></a><br><b>Relationship graph</b> · <code>&amp;pane=graph</code><br>Incidents, apparatus, crews, and stations linked by recorded assignments. Selecting a node selects the record everywhere.</td>
+<td width="50%" valign="top"><a href="pictures/readme/units.jpg"><img src="pictures/readme/units.jpg" alt="Unit register with an apparatus selected and its crew and readiness in the inspector"></a><br><b>Units</b> · <code>/readiness?view=units</code><br>Crew and readiness per apparatus. Assign crew and record out-of-service, maintenance, and return.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/units-history.jpg"><img src="pictures/readme/units-history.jpg" alt="Deployment history timeline of apparatus service states"></a><br><b>Deployment history</b> · <code>&amp;pane=history</code><br>Service states for every apparatus over time, rebuilt from the audit trail, with a crosshair that reads out the moment under the cursor.</td>
+<td width="50%" valign="top"><a href="pictures/readme/alerts.jpg"><img src="pictures/readme/alerts.jpg" alt="Alert queue filtered by state"></a><br><b>Alerts</b> · <code>/readiness?view=alerts</code><br>Filter by state, acknowledge, and resolve. Each alert links to the record it is about.</td>
+</tr>
+</table>
+
+### Workforce and analysis
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/shifts.jpg"><img src="pictures/readme/shifts.jpg" alt="Duty timeline for the day grouped by apparatus"></a><br><b>Scheduling</b> · <code>/shifts</code><br>The day's duty timeline shows coverage gaps. Create and cancel shifts, manage the roster, clock people in and out.</td>
+<td width="50%" valign="top"><a href="pictures/readme/personnel.jpg"><img src="pictures/readme/personnel.jpg" alt="Personnel roster with station distribution"></a><br><b>Personnel</b> · <code>/personnel</code><br>Search the roster, edit profiles and availability, and archive records.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/credentials.jpg"><img src="pictures/readme/credentials.jpg" alt="Credential renewal queue grouped by expiration"></a><br><b>Credentials</b> · <code>/certifications-management</code><br>Work the renewal queue by expiration and maintain credential definitions and unit requirements.</td>
+<td width="50%" valign="top"><a href="pictures/readme/analytics.jpg"><img src="pictures/readme/analytics.jpg" alt="Analytics workspace with readiness findings and evidence"></a><br><b>Analytics</b> · <code>/analytics</code><br>Readiness, staffing, credential, and coverage analyses, one at a time, with CSV export of the evidence.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/plans.jpg"><img src="pictures/readme/plans.jpg" alt="What-if workbench for an apparatus outage or crew callout"></a><br><b>Plans &amp; Hazards</b> · <code>/readiness?view=simulation</code><br>Run a what-if for an apparatus outage or crew callout and see degraded readiness and recovery actions. Nothing is written.</td>
+<td width="50%" valign="top"><a href="pictures/readme/weather.jpg"><img src="pictures/readme/weather.jpg" alt="National Weather Service forecast and active alerts"></a><br><b>Weather</b> · <code>/weather</code><br>National Weather Service forecast and active alerts, with explicit stale and unavailable states.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><a href="pictures/readme/admin.jpg"><img src="pictures/readme/admin.jpg" alt="Administration overview with roles, system status, and audit log"></a><br><b>Admin</b> · <code>/admin</code><br>Organization, roles and permissions, system status, the audit log, and baseline data restore.</td>
+<td width="50%" valign="top"><br><b>Also</b><br><b>Resource status</b> (<code>/?panel=resources</code>) compares apparatus, special-team, and supply availability. <b>Command search</b> (⌘K) finds workspaces, stations, units, and active incidents. The overview exports a handover brief.<br><br>Every workspace also works from 320px up; full-page desktop and mobile captures from the browser test suite are in <a href="pictures/">pictures/</a>.</td>
+</tr>
+</table>
 
 ## Run it
 
